@@ -1,0 +1,20 @@
+//
+// Created by Ethan Lee on 3/9/24.
+//
+
+#ifndef JOSHENGINE3_1_ENGINECONFIG_H
+#define JOSHENGINE3_1_ENGINECONFIG_H
+
+#define WINDOW_NAME "JoshEngine 3.1"
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
+
+#define CLEAR_RED 0.0f
+#define CLEAR_BLUE 0.5f
+#define CLEAR_GREEN 0.5f
+#define CLEAR_ALPHA 1.0f
+
+//#define CAMERA_AFFECTS_2D
+#define BACKFACE_CULL
+
+#endif //JOSHENGINE3_1_ENGINECONFIG_H
