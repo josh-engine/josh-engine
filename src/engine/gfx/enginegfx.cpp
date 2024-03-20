@@ -61,10 +61,18 @@ GLuint loadTexture(std::string fileName){
     return texture;
 }
 
-GLuint createTexture(std::string name, std::string fileName){
-    GLuint id = loadTexture(std::move(fileName));
+GLuint createTextureWithName(std::string name, std::string filePath){
+    GLuint id = loadTexture(std::move(filePath));
     if (id != 0){
         textures.insert({name, id});
+    }
+    return id;
+}
+
+GLuint createTexture(std::string folderPath, std::string fileName){
+    GLuint id = loadTexture(folderPath + fileName);
+    if (id != 0){
+        textures.insert({fileName, id});
     }
     return id;
 }
@@ -145,7 +153,7 @@ void initGFX(GLFWwindow** window){
     glGenBuffers(1, &iboID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
 
-    createTexture("missing", "./textures/missing_tex.png");
+    createTextureWithName("missing", "./textures/missing_tex.png");
     if (!textures.count("missing")){
         std::cerr << "Essential engine file missing." << std::endl;
         exit(1);
@@ -199,12 +207,14 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewA
                 #endif
             }
 
+            glUseProgram(renderable.shaderProgram);
+
             GLint MatrixID = glGetUniformLocation(renderable.shaderProgram, "MVP");
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
             //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
             //glUniform1f(alphaID, renderable.alpha);
+
             glBindTexture(GL_TEXTURE_2D, renderable.texture);
-            glUseProgram(renderable.shaderProgram);
 
             glBindBuffer(GL_ARRAY_BUFFER, vboID);
             glBufferData(

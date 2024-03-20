@@ -3,6 +3,8 @@
 // Interpolated values from the vertex shaders
 in vec2 UV;
 in vec3 vcol;
+in vec3 vnorm;
+in vec3 vpos;
 
 // Ouput data
 out vec3 color;

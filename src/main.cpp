@@ -88,7 +88,9 @@ void initTriangle(GameObject* selfObject){
 
 void initTriangle2(GameObject* selfObject){
     selfObject->transform = Transform(glm::vec3(0));
-    selfObject->renderables.push_back(quad);
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("basicColor"));
+    selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
+    //selfObject->renderables.push_back(quad);
     selfObject->onUpdate.push_back(&updateTriangle2);
 }
 
@@ -106,10 +108,11 @@ int main() {
     registerOnUpdate(&cameraFly);
     registerOnUpdate(&lockUnlock);
 
-    registerProgram("basicTexture", "./shaders/vertex.glsl", "./shaders/fragment.glsl");
-    createTexture("uv", "./textures/uv_tex.png");
+    registerProgram("basicColor", "./shaders/vertex.glsl", "./shaders/frag_col.glsl");
+    registerProgram("basicTexture", "./shaders/vertex.glsl", "./shaders/frag_tex.glsl");
+    createTexture("./textures/", "uv_tex.png");
 
-    quad = createQuad(true, getProgram("basicTexture"), getTexture("uv"));
+    quad = createQuad(true, getProgram("basicTexture"), getTexture("uv_tex.png"));
 
     putGameObject("triangle_test", GameObject(&initTriangle));
     putGameObject("triangle_test_2", GameObject(&initTriangle2));

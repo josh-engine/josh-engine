@@ -50,7 +50,8 @@ renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewAngle,
             int i, int i1);
 GLuint getProgram(std::string name);
 void registerProgram(std::string name, std::string vertex, std::string fragment);
-GLuint createTexture(std::string name, std::string fileName);
+GLuint createTextureWithName(std::string name, std::string fileName);
+GLuint createTexture(std::string folderPath, std::string fileName);
 GLuint getTexture(std::string name);
 
 #endif //JOSHENGINE3_1_ENGINEGFX_H

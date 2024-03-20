@@ -69,9 +69,6 @@ GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
     glDetachShader(ProgramID, VertexShaderID);
     glDetachShader(ProgramID, FragmentShaderID);
 
-    glDeleteShader(VertexShaderID);
-    glDeleteShader(FragmentShaderID);
-
     std::cout << "Success!" << std::endl;
 
     return ProgramID;
