@@ -119,7 +119,6 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
     std::stringstream buffer;
     buffer << fileStream.rdbuf();
     std::string fileContents = buffer.str();
-    std::unordered_map<std::string, std::string> mtlMap;
 
     std::vector<Renderable> renderableList;
 
@@ -141,7 +140,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
             std::vector<std::string> split = splitStr(currentLine, ' ');
             currentLine = "";
 
-            if (split[0] == "#") {
+            if (split.size() == 0 || split[0] == "#") {
                 continue; // This line of the file is a comment
             }
 
@@ -230,9 +229,10 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
                         currentRenderable.colors.push_back(1);
                     }
                 }
+            } else if (split[0] == "s"){
+                // smooth shaded enabled (ignore this case)
             } else if (split[0] == "mtllib"){
-                // load material (just grab texture)
-
+                // load material (ignore this case)
             } else if (split[0] == "usemtl"){
                 // use specific material
                 if (!currentRenderable.vertices.empty()) {
@@ -241,7 +241,10 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
                 currentRenderable = Renderable();
                 currentRenderable.is3d = true;
                 currentRenderable.enabled = true;
-                currentRenderable.texture = getTexture(mtlMap.at(split[1]));
+                currentRenderable.texture = getTexture(split[1]);
+                if (!textureExists(split[1])){
+                    std::cout << "\"" << split[1] << "\" not found in texture map! Please load the associated texture to the map under the name of the .mtl file." << std::endl;
+                }
                 currentRenderable.shaderProgram = shaderProgram;
             }
             else if (split[0] == "vp" || split[0] == "l"){

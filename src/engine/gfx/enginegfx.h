@@ -21,7 +21,14 @@ class Renderable {
         GLuint shaderProgram;
         GLuint texture;
         //float alpha;
-        glm::mat4 objectMatrix;
+        glm::mat4 transform;
+        glm::mat4 rotate;
+        glm::mat4 scale;
+
+        glm::mat4 objectMatrix(){
+            return (transform * rotate * scale);
+        }
+
         Renderable(){
             enabled = false;
         }
@@ -37,9 +44,11 @@ class Renderable {
             texture = tex;
             //this->alpha = alpha;
         }
-        Renderable addMatrix(glm::mat4 matrix){
+        Renderable addMatrices(glm::mat4 transform, glm::mat4 rotation, glm::mat4 scale){
             Renderable r = Renderable(this->is3d, this->vertices, this->colors, this->uvs, this->normals, this->indices,/* this->alpha, */this->shaderProgram, this->texture);
-            r.objectMatrix = matrix;
+            r.transform = transform;
+            r.rotate = rotation;
+            r.scale = scale;
             return r;
         }
 };
@@ -53,5 +62,6 @@ void registerProgram(std::string name, std::string vertex, std::string fragment)
 GLuint createTextureWithName(std::string name, std::string fileName);
 GLuint createTexture(std::string folderPath, std::string fileName);
 GLuint getTexture(std::string name);
+bool textureExists(std::string name);
 
 #endif //JOSHENGINE3_1_ENGINEGFX_H

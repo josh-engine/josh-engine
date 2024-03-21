@@ -8,6 +8,9 @@ layout(location = 3) in vec3 vertexNormal;
 
 // Values that stay constant for the whole mesh.
 uniform mat4 MVP;
+uniform mat4 translationMatrix;
+uniform mat4 rotationMatrix;
+uniform mat4 scaleMatrix;
 
 // Send these off to frag shader
 out vec3 vcol;
@@ -19,7 +22,9 @@ void main(){
     // Output position of the vertex, in clip space: MVP * position
     gl_Position =  MVP * vec4(vertexPosition_modelspace,1);
     vcol = vertexColor;
-    vpos = vec3(gl_Position.x, gl_Position.y, gl_Position.z);
+    vec4 pos = ((translationMatrix * rotationMatrix * scaleMatrix) * vec4(vertexPosition_modelspace,1));
+    vpos = pos.xyz;
     UV = vertexUV;
-    vnorm = vertexNormal;
+    vec4 normalv4 = ((rotationMatrix) * vec4(vertexNormal,1));
+    vnorm = normalv4.xyz;
 }

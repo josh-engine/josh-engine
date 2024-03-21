@@ -42,17 +42,22 @@ public:
         scale = sca;
     }
 
-    glm::mat4 getObjectMatrix(){
-        glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), position);
-        glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.0f), scale);
+    glm::mat4 getTranslateMatrix(){
+        return glm::translate(glm::mat4(1.0f), position);
+    }
 
+    glm::mat4 getRotateMatrix(){
         glm::vec3 radianRotation = glm::radians(rotation);
         auto rotationMatrix = glm::identity<mat4>();
         //TODO: There HAS to be a better way to do this.
         rotationMatrix = glm::rotate(rotationMatrix, radianRotation.x, vec3(1, 0, 0));
         rotationMatrix = glm::rotate(rotationMatrix, radianRotation.y, vec3(0, 1, 0));
         rotationMatrix = glm::rotate(rotationMatrix, radianRotation.z, vec3(0, 0, 1));
-        return translationMatrix * rotationMatrix * scaleMatrix;
+        return rotationMatrix;
+    }
+
+    glm::mat4 getScaleMatrix(){
+        return glm::scale(glm::mat4(1.0f), scale);
     }
 };
 

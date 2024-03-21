@@ -108,7 +108,7 @@ void mainLoop(){
         for (auto item : gameObjects){
             for (auto renderable : item.second.renderables) {
                 if (renderable.enabled) {
-                    renderables.push_back(renderable.addMatrix(item.second.transform.getObjectMatrix()));
+                    renderables.push_back(renderable.addMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix()));
                 }
             }
         }

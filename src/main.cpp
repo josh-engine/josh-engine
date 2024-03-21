@@ -71,11 +71,14 @@ void lockUnlock(GLFWwindow** window, double dt){
 }
 
 void updateTriangle(double deltaTime, GameObject* self){
+    if (self->transform.position.y > 2) {
+        self->transform.position.y = 0;
+    }
     self->transform.position += vec3(0, 1*deltaTime, 0);
 }
 
-void updateTriangle2(double deltaTime, GameObject* self){
-    self->transform.rotation += vec3(10*deltaTime, 20*deltaTime, 30*deltaTime);
+void updateBunny(double deltaTime, GameObject* self){
+    self->transform.rotation += vec3(0, 40*deltaTime, 0);
 }
 
 Renderable quad;
@@ -86,19 +89,35 @@ void initTriangle(GameObject* selfObject){
     selfObject->onUpdate.push_back(&updateTriangle);
 }
 
-void initTriangle2(GameObject* selfObject){
+void initBunny(GameObject* selfObject){
     selfObject->transform = Transform(glm::vec3(0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("basicColor"));
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonColor"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     //selfObject->renderables.push_back(quad);
-    selfObject->onUpdate.push_back(&updateTriangle2);
+    selfObject->onUpdate.push_back(&updateBunny);
+}
+
+void initBunny2(GameObject* selfObject){
+    selfObject->transform = Transform(glm::vec3(-2, 0, 0));
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonColor"));
+    selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
+    //selfObject->renderables.push_back(quad);
+    selfObject->onUpdate.push_back(&updateBunny);
+}
+
+void initCube(GameObject* selfObject){
+    selfObject->transform = Transform(glm::vec3(2, 0, 0));
+    std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getProgram("basicTexture"));
+    selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
+    //selfObject->renderables.push_back(quad);
+    selfObject->onUpdate.push_back(&updateBunny);
 }
 
 void initTriangle3(GameObject* selfObject){
     selfObject->transform = Transform(glm::vec3(-0.5, -0.25, -1), glm::vec3(0), glm::vec3(0.25));
     Renderable r = quad;
     r.is3d = false;
-    r.texture = getTexture("thisShouldBeMissing");
+    r.texture = getTexture("missing");
     selfObject->renderables.push_back(r);
 }
 
@@ -108,14 +127,17 @@ int main() {
     registerOnUpdate(&cameraFly);
     registerOnUpdate(&lockUnlock);
 
-    registerProgram("basicColor", "./shaders/vertex.glsl", "./shaders/frag_col.glsl");
+    registerProgram("toonColor", "./shaders/vertex.glsl", "./shaders/toonshade_color.glsl");
     registerProgram("basicTexture", "./shaders/vertex.glsl", "./shaders/frag_tex.glsl");
     createTexture("./textures/", "uv_tex.png");
+    createTextureWithName("cube_texture", "./textures/cubetex.png");
 
     quad = createQuad(true, getProgram("basicTexture"), getTexture("uv_tex.png"));
 
     putGameObject("triangle_test", GameObject(&initTriangle));
-    putGameObject("triangle_test_2", GameObject(&initTriangle2));
+    putGameObject("bunny", GameObject(&initBunny));
+    putGameObject("bunny2", GameObject(&initBunny2));
+    putGameObject("cube", GameObject(&initCube));
     putGameObject("triangle_test_3", GameObject(&initTriangle3));
 
     mainLoop();

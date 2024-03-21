@@ -77,8 +77,12 @@ GLuint createTexture(std::string folderPath, std::string fileName){
     return id;
 }
 
+bool textureExists(std::string name){
+    return textures.count(name);
+}
+
 GLuint getTexture(std::string name){
-    if (!textures.count(name)) {
+    if (!textureExists(name)) {
         std::cerr << "Texture \"" + name + "\" not found, defaulting to missing_tex.png" << std::endl;
         return textures.at("missing");
     }
@@ -195,7 +199,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewA
         if (renderable.enabled){
             if (renderable.is3d){
                 projectionMatrix = glm::perspective(glm::radians(fieldOfViewAngle), (float) w / (float)h, 0.01f, 500.0f);
-                mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix;
+                mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
             } else {
                 float scaledHeight = h * (1.0f/w);
                 float scaledWidth = 1.0;
@@ -203,7 +207,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewA
                 #ifdef CAMERA_AFFECTS_2D
                 mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix;
                 #else
-                mvp = projectionMatrix * renderable.objectMatrix;
+                mvp = projectionMatrix * renderable.objectMatrix();
                 #endif
             }
 
@@ -211,6 +215,15 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewA
 
             GLint MatrixID = glGetUniformLocation(renderable.shaderProgram, "MVP");
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+
+            GLint translate = glGetUniformLocation(renderable.shaderProgram, "translationMatrix");
+            glUniformMatrix4fv(translate, 1, GL_FALSE, &renderable.transform[0][0]);
+
+            GLint rotate = glGetUniformLocation(renderable.shaderProgram, "rotationMatrix");
+            glUniformMatrix4fv(rotate, 1, GL_FALSE, &renderable.rotate[0][0]);
+
+            GLint scale = glGetUniformLocation(renderable.shaderProgram, "scaleMatrix");
+            glUniformMatrix4fv(scale, 1, GL_FALSE, &renderable.scale[0][0]);
             //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
             //glUniform1f(alphaID, renderable.alpha);
 
