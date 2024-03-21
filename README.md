@@ -1,8 +1,8 @@
-# JoshEngine 3.0+1.0
-> *You can (NOT) have OpenAL support*
+# JoshEngine
+> *Code it for the meme, end up using it somehow.*
 
 Hello ladies, gents, and fellows anywhere inbetween! 
-Welcome to the amazing and wonderful home of JoshCo's *fourth attempt* (if you count my mistakes with just plain old C as a real JoshEngine version...) at a game engine!
+Welcome to the amazing and wonderful home of JoshCo's *fourth attempt* at a usable game engine!
 
 Alright, I'll cut the theatrics now. 
 
@@ -11,7 +11,7 @@ This is the work we have to get done:
 - [X] OpenGL working
 - [X] GameObjects working
 - [ ] OBJ models and removing duplicate vertices
-- [ ] OpenAL sound working (the subtitle is mostly a joke about JE1 and 2, and eva rebuild reference of course)
+- [ ] OpenAL sound working
 - [ ] ChaiScript scripting support
 - [ ] PYSON implementation because I said I'd do it for Liam so he would *merge the damn PR*
 
