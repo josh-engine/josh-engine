@@ -8,7 +8,6 @@ bool mouseLocked = true;
 bool pressed = false;
 
 void cameraFly(GLFWwindow** window, double dt){
-
     float speed = 3.0f; // 3 units / second
     float mouseSpeed = 10.0f;
 
@@ -91,25 +90,22 @@ void initTriangle(GameObject* selfObject){
 
 void initBunny(GameObject* selfObject){
     selfObject->transform = Transform(glm::vec3(0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonColor"));
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonNorm"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-    //selfObject->renderables.push_back(quad);
     selfObject->onUpdate.push_back(&updateBunny);
 }
 
 void initBunny2(GameObject* selfObject){
     selfObject->transform = Transform(glm::vec3(-2, 0, 0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonColor"));
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-    //selfObject->renderables.push_back(quad);
     selfObject->onUpdate.push_back(&updateBunny);
 }
 
 void initCube(GameObject* selfObject){
-    selfObject->transform = Transform(glm::vec3(2, 0, 0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getProgram("basicTexture"));
+    selfObject->transform = Transform(glm::vec3(3, 1, 0));
+    std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getProgram("bnphTexture"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-    //selfObject->renderables.push_back(quad);
     selfObject->onUpdate.push_back(&updateBunny);
 }
 
@@ -127,8 +123,11 @@ int main() {
     registerOnUpdate(&cameraFly);
     registerOnUpdate(&lockUnlock);
 
-    registerProgram("toonColor", "./shaders/vertex.glsl", "./shaders/toonshade_color.glsl");
+    registerProgram("toonNorm", "./shaders/vertex.glsl", "./shaders/toon_normals.glsl");
+    registerProgram("bnphColor", "./shaders/vertex.glsl", "./shaders/blinn-phong_color.glsl");
+    registerProgram("bnphTexture", "./shaders/vertex.glsl", "./shaders/blinn-phong_textured.glsl");
     registerProgram("basicTexture", "./shaders/vertex.glsl", "./shaders/frag_tex.glsl");
+
     createTexture("./textures/", "uv_tex.png");
     createTextureWithName("cube_texture", "./textures/cubetex.png");
 

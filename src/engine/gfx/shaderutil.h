@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 3/9/24.
+// Created by Ember Lee on 3/9/24.
 //
 
 #ifndef JOSHENGINE_SHADERUTIL_H
@@ -63,7 +63,8 @@ GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
     if ( InfoLogLength > 0 ){
         std::vector<char> ProgramErrorMessage(InfoLogLength+1);
         glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
-        printf("%s\n", &ProgramErrorMessage[0]);
+        // \e characters are yellow escape and reset so warnings are different color
+        printf("\e[0;33m%s\e[0m\n", &ProgramErrorMessage[0]);
     }
 
     glDetachShader(ProgramID, VertexShaderID);

@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 3/9/24.
+// Created by Ember Lee on 3/9/24.
 //
 
 #ifndef JOSHENGINE_ENGINEGFX_H
@@ -20,7 +20,7 @@ class Renderable {
         std::vector<unsigned int> indices;
         GLuint shaderProgram;
         GLuint texture;
-        //float alpha;
+
         glm::mat4 transform;
         glm::mat4 rotate;
         glm::mat4 scale;
@@ -54,9 +54,7 @@ class Renderable {
 };
 
 void initGFX(GLFWwindow** window);
-void
-renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewAngle, std::vector<Renderable> renderables,
-            int i, int i1);
+void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h);
 GLuint getProgram(std::string name);
 void registerProgram(std::string name, std::string vertex, std::string fragment);
 GLuint createTextureWithName(std::string name, std::string fileName);

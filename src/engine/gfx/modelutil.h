@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 3/13/24.
+// Created by Ember Lee on 3/13/24.
 //
 
 #ifndef JOSHENGINE_MODELUTIL
@@ -111,7 +111,15 @@ std::vector<std::string> splitStr(std::string in, char del){
     while (getline(stream, store, del)) {
         v.push_back(store);
     }
-    return v;
+
+    std::vector<std::string> v2;
+    for (auto a : v){
+        if (a != ""){
+            v2.push_back(a);
+        }
+    }
+
+    return v2;
 }
 
 std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
@@ -162,7 +170,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
                         // formatted as v//n
                         std::vector<std::string> vertexSplit = splitStr(split[i], '/');
                         unsigned int vertexIndex = std::stoi(vertexSplit[0]);
-                        unsigned int normalIndex = std::stoi(vertexSplit[2]);
+                        unsigned int normalIndex = std::stoi(vertexSplit[1]);
 
                         currentRenderable.indices.push_back(currentRenderable.vertices.size()/3);
 

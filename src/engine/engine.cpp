@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 3/9/24.
+// Created by Ember Lee on 3/9/24.
 //
 #include "gfx/enginegfx.h"
 #include "engineconfig.h"
@@ -65,7 +65,6 @@ void mainLoop(){
     // Initial Field of View
     fov = 78.0f;
 
-
     double currentTime = glfwGetTime();
     double lastTime = currentTime;
     while (glfwWindowShouldClose(window) == 0) {
@@ -113,7 +112,7 @@ void mainLoop(){
             }
         }
 
-        renderFrame(&window, cameraMatrix, fov, renderables, windowWidth, windowHeight);
+        renderFrame(&window, cameraMatrix, camera.position, fov, renderables, windowWidth, windowHeight);
         glfwPollEvents();
     }
 }

@@ -12,7 +12,7 @@
 using namespace glm;
 
 //
-// Created by Ethan Lee on 3/9/24.
+// Created by Ember Lee on 3/9/24.
 //
 GLuint vaoID;
 GLuint vboID;
@@ -184,7 +184,7 @@ static const GLfloat g_uv_buffer_data[] = {
 };
  */
 
-void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h) {
+void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h) {
     glm::mat4 projectionMatrix;
     glm::mat4 mvp;
 
@@ -224,6 +224,9 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, float fieldOfViewA
 
             GLint scale = glGetUniformLocation(renderable.shaderProgram, "scaleMatrix");
             glUniformMatrix4fv(scale, 1, GL_FALSE, &renderable.scale[0][0]);
+
+            GLint camera = glGetUniformLocation(renderable.shaderProgram, "cameraPosition");
+            glUniform3fv(camera, 1, &camerapos[0]);
             //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
             //glUniform1f(alphaID, renderable.alpha);
 

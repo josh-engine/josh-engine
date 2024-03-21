@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 3/9/24.
+// Created by Ember Lee on 3/9/24.
 //
 
 #ifndef JOSHENGINE_ENGINE_H
