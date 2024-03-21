@@ -2,8 +2,8 @@
 // Created by Ethan Lee on 3/9/24.
 //
 
-#ifndef JOSHENGINE3_1_SHADERUTIL_H
-#define JOSHENGINE3_1_SHADERUTIL_H
+#ifndef JOSHENGINE_SHADERUTIL_H
+#define JOSHENGINE_SHADERUTIL_H
 #include <fstream>
 #include <sstream>
 
@@ -74,4 +74,4 @@ GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
     return ProgramID;
 }
 
-#endif //JOSHENGINE3_1_SHADERUTIL_H
+#endif //JOSHENGINE_SHADERUTIL_H

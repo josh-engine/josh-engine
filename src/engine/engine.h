@@ -2,8 +2,8 @@
 // Created by Ethan Lee on 3/9/24.
 //
 
-#ifndef JOSHENGINE3_1_ENGINE_H
-#define JOSHENGINE3_1_ENGINE_H
+#ifndef JOSHENGINE_ENGINE_H
+#define JOSHENGINE_ENGINE_H
 #include "gfx/enginegfx.h"
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
@@ -88,4 +88,4 @@ int getCurrentWidth();
 int getCurrentHeight();
 Transform* cameraAccess();
 
-#endif //JOSHENGINE3_1_ENGINE_H
+#endif //JOSHENGINE_ENGINE_H

@@ -2,8 +2,8 @@
 // Created by Ethan Lee on 3/13/24.
 //
 
-#ifndef JOSHENGINE3_1_MODELUTIL
-#define JOSHENGINE3_1_MODELUTIL
+#ifndef JOSHENGINE_MODELUTIL
+#define JOSHENGINE_MODELUTIL
 
 #include <fstream>
 #include <sstream>
@@ -259,4 +259,4 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
     return renderableList;
 }
 
-#endif //JOSHENGINE3_1_MODELUTIL
+#endif //JOSHENGINE_MODELUTIL

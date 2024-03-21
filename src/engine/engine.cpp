@@ -44,7 +44,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void init(){
-    std::cout << "JoshEngine 3.1" << std::endl;
+    std::cout << "JoshEngine" << std::endl;
     windowWidth = WINDOW_WIDTH;
     windowHeight = WINDOW_HEIGHT;
     initGFX(&window);
