@@ -227,6 +227,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 
             GLint camera = glGetUniformLocation(renderable.shaderProgram, "cameraPosition");
             glUniform3fv(camera, 1, &camerapos[0]);
+
             //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
             //glUniform1f(alphaID, renderable.alpha);
 

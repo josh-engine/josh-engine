@@ -11,7 +11,7 @@ This is the work we have to get done:
 - [X] OpenGL working
 - [X] GameObjects working
 - [X] OBJ models and removing duplicate vertices
-- [ ] OpenAL sound working
+- [X] OpenAL sound working
 - [ ] ChaiScript scripting support
 - [ ] PYSON implementation because I said I'd do it for Liam so he would *merge the damn PR*
 

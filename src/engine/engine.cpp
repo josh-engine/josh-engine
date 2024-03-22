@@ -2,6 +2,7 @@
 // Created by Ember Lee on 3/9/24.
 //
 #include "gfx/enginegfx.h"
+#include "sound/engineaudio.h"
 #include "engineconfig.h"
 #include "engine.h"
 #include <iostream>
@@ -44,11 +45,14 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void init(){
-    std::cout << "JoshEngine" << std::endl;
+    std::cout << "Starting engine init." << std::endl;
     windowWidth = WINDOW_WIDTH;
     windowHeight = WINDOW_HEIGHT;
     initGFX(&window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    std::cout << "Graphics init successful!" << std::endl;
+
+    initAudio();
 }
 float fov;
 
@@ -101,6 +105,8 @@ void mainLoop(){
                 camera.position+direction, // looks in look direction
                 up  // up vector
         );
+
+        updateListener(camera.position, glm::vec3(0), direction, up);
 
         std::vector<Renderable> renderables;
 

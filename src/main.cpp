@@ -1,5 +1,6 @@
 #include <iostream>
 #include "engine/engineconfig.h"
+#include "engine/sound/engineaudio.h"
 #include "engine/engine.h"
 #include "engine/gfx/modelutil.h"
 #include "GLFW/glfw3.h"
@@ -119,6 +120,9 @@ void initTriangle3(GameObject* selfObject){
 
 int main() {
     init();
+
+    Sound soundTest = Sound(glm::vec3(0), glm::vec3(0), "./explosion-2.ogg", true, false, 3, 0.1, 2);
+    soundTest.play();
 
     registerOnUpdate(&cameraFly);
     registerOnUpdate(&lockUnlock);
