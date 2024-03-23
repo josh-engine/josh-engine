@@ -121,8 +121,11 @@ void initTriangle3(GameObject* selfObject){
 int main() {
     init();
 
-    Sound soundTest = Sound(glm::vec3(0), glm::vec3(0), "./explosion-2.ogg", true, false, 3, 0.1, 2);
-    soundTest.play();
+    //Sound soundTest = Sound(glm::vec3(0), glm::vec3(0), "./mice-on-venus.ogg", true, 3, 0.1, 2, 2);
+    //soundTest.play();
+
+    Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
+    st2.play();
 
     registerOnUpdate(&cameraFly);
     registerOnUpdate(&lockUnlock);
@@ -144,5 +147,7 @@ int main() {
     putGameObject("triangle_test_3", GameObject(&initTriangle3));
 
     mainLoop();
+
+    deinit();
     return 0;
 }

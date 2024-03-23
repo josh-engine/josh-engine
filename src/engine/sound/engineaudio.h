@@ -8,7 +8,7 @@
 #include <al.h>
 #include <string>
 
-ALuint oggToBuffer(std::string filePath, bool stereo);
+ALuint oggToBuffer(std::string filePath);
 
 class Sound {
 public:
@@ -17,7 +17,7 @@ public:
     glm::vec3 position;
     glm::vec3 velocity;
     bool isLooping;
-    Sound(glm::vec3 pos, glm::vec3 vel, std::string filePath, bool loop, bool stereo, float halfVolumeDistance, float min, float max){
+    Sound(glm::vec3 pos, glm::vec3 vel, std::string filePath, bool loop, float halfVolumeDistance, float min, float max, float gain){
         isLooping = loop;
         position = pos;
         velocity = vel;
@@ -26,14 +26,14 @@ public:
         sourceID = 0;
         alGenSources((ALuint)1, &sourceID);
         alSourcef(sourceID, AL_PITCH, 1);
-        alSourcef(sourceID, AL_GAIN, 1);
+        alSourcef(sourceID, AL_GAIN, gain);
         alSourcef(sourceID, AL_MAX_GAIN, max);
         alSourcef(sourceID, AL_MIN_GAIN, min);
         alSourcef(sourceID, AL_REFERENCE_DISTANCE, halfVolumeDistance);
         updateSource();
 
         // Fill buffer
-        bufferID = oggToBuffer(filePath, stereo);
+        bufferID = oggToBuffer(filePath);
     }
     void updateSource() {
         alSource3f(sourceID, AL_POSITION, position.x, position.y, position.z);

@@ -1,7 +1,7 @@
 //
 // Created by Ember Lee on 3/9/24.
 //
-#include "gfx/enginegfx.h"
+#include "gfx/opengl/gfx_gl33.h"
 #include "sound/engineaudio.h"
 #include "engineconfig.h"
 #include "engine.h"
@@ -53,7 +53,14 @@ void init(){
     std::cout << "Graphics init successful!" << std::endl;
 
     initAudio();
+    std::cout << "Audio init successful!" << std::endl;
 }
+
+void deinit(){
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
 float fov;
 
 void changeFOV(float n){

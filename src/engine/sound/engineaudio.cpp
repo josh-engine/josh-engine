@@ -45,13 +45,16 @@ void initAudio(){
 
 }
 
-ALuint oggToBuffer(std::string filePath, bool stereo){
+ALuint oggToBuffer(std::string filePath){
     int channels, sampleRate, samples;
     short* data;
+    int error;
+    stb_vorbis *v = stb_vorbis_open_filename(filePath.c_str(), &error, NULL);
+    stb_vorbis_info info = stb_vorbis_get_info(v);
     samples = stb_vorbis_decode_filename(filePath.c_str(), &channels, &sampleRate, &data);
     ALuint buffer;
     alGenBuffers(1, &buffer);
-    if (stereo) alBufferData(buffer, AL_FORMAT_STEREO16, data, samples*2*sizeof(short), sampleRate);
-    else alBufferData(buffer, AL_FORMAT_MONO16, data, samples*2*sizeof(short), sampleRate*2);
+    if (info.channels > 1) alBufferData(buffer, AL_FORMAT_STEREO16, data, samples*2*sizeof(short), sampleRate);
+    else alBufferData(buffer, AL_FORMAT_MONO16, data, samples*sizeof(short), sampleRate);
     return buffer;
 }

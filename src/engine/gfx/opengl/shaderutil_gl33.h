@@ -2,12 +2,13 @@
 // Created by Ember Lee on 3/9/24.
 //
 
-#ifndef JOSHENGINE_SHADERUTIL_H
-#define JOSHENGINE_SHADERUTIL_H
+#ifndef JOSHENGINE_SHADERUTIL_GL33_H
+#define JOSHENGINE_SHADERUTIL_GL33_H
 #include <fstream>
 #include <sstream>
+#include <GLFW/glfw3.h>
 
-GLuint loadShader(const std::string file_path, int target){
+GLuint loadShaderGL33(const std::string file_path, int target){
     // Create the shader
     GLuint shaderID = glCreateShader(target);
 
@@ -45,7 +46,7 @@ GLuint loadShader(const std::string file_path, int target){
     return shaderID;
 }
 
-GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
+GLuint createProgramGL33(GLuint VertexShaderID, GLuint FragmentShaderID){
     GLint Result = GL_FALSE;
     int InfoLogLength;
 
@@ -75,4 +76,4 @@ GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
     return ProgramID;
 }
 
-#endif //JOSHENGINE_SHADERUTIL_H
+#endif //JOSHENGINE_SHADERUTIL_GL33_H

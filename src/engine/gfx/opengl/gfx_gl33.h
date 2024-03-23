@@ -2,8 +2,8 @@
 // Created by Ember Lee on 3/9/24.
 //
 
-#ifndef JOSHENGINE_ENGINEGFX_H
-#define JOSHENGINE_ENGINEGFX_H
+#ifndef JOSHENGINE_GFX_GL33_H
+#define JOSHENGINE_GFX_GL33_H
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <utility>
@@ -62,4 +62,4 @@ GLuint createTexture(std::string folderPath, std::string fileName);
 GLuint getTexture(std::string name);
 bool textureExists(std::string name);
 
-#endif //JOSHENGINE_ENGINEGFX_H
+#endif //JOSHENGINE_GFX_GL33_H

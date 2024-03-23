@@ -4,7 +4,7 @@
 
 #ifndef JOSHENGINE_ENGINE_H
 #define JOSHENGINE_ENGINE_H
-#include "gfx/enginegfx.h"
+#include "gfx/opengl/gfx_gl33.h"
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -80,6 +80,7 @@ public:
 
 void init();
 void mainLoop();
+void deinit();
 void registerOnUpdate(void (*function)(GLFWwindow** window, double dt));
 void putGameObject(std::string name, GameObject g);
 GameObject* getGameObject(std::string name);

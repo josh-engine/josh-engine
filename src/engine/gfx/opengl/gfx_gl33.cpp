@@ -4,11 +4,11 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <utility>
-#include "../engineconfig.h"
-#include "shaderutil.h"
-#include "enginegfx.h"
+#include "../../engineconfig.h"
+#include "shaderutil_gl33.h"
+#include "gfx_gl33.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "../../stb/stb_image.h"
+#include "../../../stb/stb_image.h"
 using namespace glm;
 
 //
@@ -26,9 +26,9 @@ std::unordered_map<std::string, GLuint> programs;
 std::unordered_map<std::string, GLuint> textures;
 
 void registerProgram(std::string name, std::string vertex, std::string fragment) {
-    vertID = loadShader(std::move(vertex), GL_VERTEX_SHADER);
-    fragID = loadShader(std::move(fragment), GL_FRAGMENT_SHADER);
-    programs.insert({name, createProgram(vertID, fragID)});
+    vertID = loadShaderGL33(std::move(vertex), GL_VERTEX_SHADER);
+    fragID = loadShaderGL33(std::move(fragment), GL_FRAGMENT_SHADER);
+    programs.insert({name, createProgramGL33(vertID, fragID)});
 }
 
 GLuint getProgram(std::string name){

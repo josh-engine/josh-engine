@@ -7,7 +7,7 @@
 
 #include <fstream>
 #include <sstream>
-#include "enginegfx.h"
+#include "opengl/gfx_gl33.h"
 
 Renderable createQuad(bool is3d, GLuint shader, GLuint texture){
     return Renderable(

@@ -4,7 +4,7 @@ project(JoshEngine)
 set(CMAKE_CXX_STANDARD 17)
 
 add_executable(JoshEngine src/main.cpp
-        src/engine/gfx/enginegfx.cpp
+        src/engine/gfx/opengl/gfx_gl33.cpp
         src/engine/engine.cpp
         src/engine/sound/engineaudio.cpp)
 
