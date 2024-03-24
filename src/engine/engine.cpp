@@ -1,24 +1,90 @@
 //
 // Created by Ember Lee on 3/9/24.
 //
+#include "engineconfig.h"
 #include "gfx/opengl/gfx_gl33.h"
 #include "sound/engineaudio.h"
-#include "engineconfig.h"
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "gfx/modelutil.h"
 
 GLFWwindow* window;
-std::vector<void (*)(GLFWwindow** window, double dt)> onUpdate;
+std::vector<void (*)(double dt)> onUpdate;
+std::vector<void (*)(int key, bool pressed, double dt)> onKey;
 std::unordered_map<std::string, GameObject> gameObjects;
 Transform camera;
+bool keys[GLFW_KEY_LAST];
+Renderable skybox;
+std::unordered_map<std::string, GLuint> programs;
+std::unordered_map<std::string, GLuint> textures;
 
 int windowWidth, windowHeight;
 
-void registerOnUpdate(void (*function)(GLFWwindow** window, double dt)){
+void registerProgram(std::string name, std::string vertex, std::string fragment) {
+    GLuint vertID = loadShader(std::move(vertex), GL_VERTEX_SHADER);
+    GLuint fragID = loadShader(std::move(fragment), GL_FRAGMENT_SHADER);
+    programs.insert({name, createProgram(vertID, fragID)});
+}
+
+GLuint getProgram(std::string name){
+    return programs.at(name);
+}
+
+GLuint createTextureWithName(std::string name, std::string filePath){
+    GLuint id = loadTexture(std::move(filePath));
+    if (id != 0){
+        textures.insert({name, id});
+    }
+    return id;
+}
+
+GLuint createTexture(std::string folderPath, std::string fileName){
+    GLuint id = loadTexture(folderPath + fileName);
+    if (id != 0){
+        textures.insert({fileName, id});
+    }
+    return id;
+}
+
+bool textureExists(std::string name){
+    return textures.count(name);
+}
+
+GLuint getTexture(std::string name){
+    if (!textureExists(name)) {
+        std::cerr << "Texture \"" + name + "\" not found, defaulting to missing_tex.png" << std::endl;
+        return textures.at("missing");
+    }
+    return textures.at(name);
+}
+
+GLFWwindow** getWindow(){
+    return &window;
+}
+
+bool isKeyDown(int key){
+    return keys[key];
+}
+
+glm::vec2 getCursorPos(){
+    double xpos, ypos;
+    glfwGetCursorPos(window, (&xpos), (&ypos));
+    return {xpos, ypos};
+}
+
+void setCursorPos(glm::vec2 pos){
+    glfwSetCursorPos(window, pos.x, pos.y);
+}
+
+void registerOnUpdate(void (*function)(double dt)){
     onUpdate.push_back(function);
+}
+
+void registerOnKey(void (*function)(int key, bool pressed, double dt)){
+    onKey.push_back(function);
 }
 
 void putGameObject(std::string name, GameObject g){
@@ -50,6 +116,31 @@ void init(){
     windowHeight = WINDOW_HEIGHT;
     initGFX(&window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // Missing texture init
+    createTextureWithName("missing", "./textures/missing_tex.png");
+    if (!textures.count("missing")){
+        std::cerr << "Essential engine file missing." << std::endl;
+        exit(1);
+    }
+#ifdef DO_SKYBOX
+    // Skybox init
+    registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl");
+    skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
+    if (!skybox.enabled){
+        std::cerr << "Essential engine file missing." << std::endl;
+        exit(1);
+    }
+    skybox.texture = loadCubemap({
+                                         "./skybox/px_right.jpg",
+                                         "./skybox/nx_left.jpg",
+                                         "./skybox/py_up.jpg",
+                                         "./skybox/ny_down.jpg",
+                                         "./skybox/nz_front.jpg",
+                                         "./skybox/pz_back.jpg"
+    });
+    skybox.testDepth = false;
+#endif //DO_SKYBOX
     std::cout << "Graphics init successful!" << std::endl;
 
     initAudio();
@@ -72,7 +163,7 @@ Transform* cameraAccess() {
 }
 
 void mainLoop(){
-    camera = Transform(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0));
+    camera = Transform(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
     // Initial Field of View
     fov = 78.0f;
 
@@ -83,13 +174,23 @@ void mainLoop(){
         double deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
-        for (auto & i : onUpdate){
-            i(&window, deltaTime);
+        for (int k = 0; k < GLFW_KEY_LAST; k++){
+            bool current = glfwGetKey(window, k) == GLFW_PRESS;
+            if (keys[k] != current) {
+                keys[k] = current;
+                for (auto & onKeyFunction : onKey){
+                    onKeyFunction(k, current, deltaTime);
+                }
+            }
+        }
+
+        for (auto & onUpdateFunction : onUpdate){
+            onUpdateFunction(deltaTime);
         }
 
         for (auto & g : gameObjects){
-            for (auto & i : g.second.onUpdate){
-                i(deltaTime, &g.second);
+            for (auto & gameObjectUpdateFunction : g.second.onUpdate){
+                gameObjectUpdateFunction(deltaTime, &g.second);
             }
         }
 
@@ -116,7 +217,9 @@ void mainLoop(){
         updateListener(camera.position, glm::vec3(0), direction, up);
 
         std::vector<Renderable> renderables;
-
+#ifdef DO_SKYBOX
+        renderables.push_back(skybox.addMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>()));
+#endif //DO_SKYBOX
         for (auto item : gameObjects){
             for (auto renderable : item.second.renderables) {
                 if (renderable.enabled) {

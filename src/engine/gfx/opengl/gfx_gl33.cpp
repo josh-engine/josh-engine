@@ -3,9 +3,9 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <utility>
+#include <fstream>
+#include <sstream>
 #include "../../engineconfig.h"
-#include "shaderutil_gl33.h"
 #include "gfx_gl33.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../stb/stb_image.h"
@@ -20,22 +20,43 @@ GLuint cboID;
 GLuint tboID;
 GLuint nboID;
 GLuint iboID;
-GLuint vertID;
-GLuint fragID;
-std::unordered_map<std::string, GLuint> programs;
-std::unordered_map<std::string, GLuint> textures;
+glm::vec3 ambient(max(AMBIENT_RED - 0.5f, 0.1f), max(AMBIENT_GREEN - 0.5f, 0.1f), max(AMBIENT_BLUE - 0.5f, 0.1f));
 
-void registerProgram(std::string name, std::string vertex, std::string fragment) {
-    vertID = loadShaderGL33(std::move(vertex), GL_VERTEX_SHADER);
-    fragID = loadShaderGL33(std::move(fragment), GL_FRAGMENT_SHADER);
-    programs.insert({name, createProgramGL33(vertID, fragID)});
-}
+GLuint loadCubemap(std::vector<std::string> faces) {
+    stbi_set_flip_vertically_on_load(false);
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
-GLuint getProgram(std::string name){
-    return programs.at(name);
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cerr << "Failed to load cubemap texture " << faces[i] << "!" << std::endl;
+            stbi_image_free(data);
+            textureID = 0;
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }
 
 GLuint loadTexture(std::string fileName){
+    stbi_set_flip_vertically_on_load(true);
     unsigned int texture;
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -59,34 +80,6 @@ GLuint loadTexture(std::string fileName){
     }
     stbi_image_free(data);
     return texture;
-}
-
-GLuint createTextureWithName(std::string name, std::string filePath){
-    GLuint id = loadTexture(std::move(filePath));
-    if (id != 0){
-        textures.insert({name, id});
-    }
-    return id;
-}
-
-GLuint createTexture(std::string folderPath, std::string fileName){
-    GLuint id = loadTexture(folderPath + fileName);
-    if (id != 0){
-        textures.insert({fileName, id});
-    }
-    return id;
-}
-
-bool textureExists(std::string name){
-    return textures.count(name);
-}
-
-GLuint getTexture(std::string name){
-    if (!textureExists(name)) {
-        std::cerr << "Texture \"" + name + "\" not found, defaulting to missing_tex.png" << std::endl;
-        return textures.at("missing");
-    }
-    return textures.at(name);
 }
 
 void initGFX(GLFWwindow** window){
@@ -121,18 +114,16 @@ void initGFX(GLFWwindow** window){
     glDepthFunc(GL_LESS);
 
     // Backface culling
-#ifdef BACKFACE_CULL
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
-#endif
 
     // Set up blending
     // UPDATE TRANSPARENCY IS EVIL AND FRAMERATE DROPS TO HELL
     // glEnable(GL_BLEND);
     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    glClearColor(CLEAR_RED, CLEAR_BLUE, CLEAR_GREEN, CLEAR_ALPHA);
-
+#ifndef DO_SKYBOX
+    glClearColor(AMBIENT_RED, AMBIENT_GREEN, AMBIENT_BLUE, CLEAR_ALPHA);
+#endif
     // Vertex Array
     glGenVertexArrays(1, &vaoID); //reserve an ID for our VAO
     glBindVertexArray(vaoID); // bind VAO
@@ -156,12 +147,6 @@ void initGFX(GLFWwindow** window){
     // Indices Buffer
     glGenBuffers(1, &iboID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
-
-    createTextureWithName("missing", "./textures/missing_tex.png");
-    if (!textures.count("missing")){
-        std::cerr << "Essential engine file missing." << std::endl;
-        exit(1);
-    }
 }
 
 /*
@@ -184,12 +169,82 @@ static const GLfloat g_uv_buffer_data[] = {
 };
  */
 
+GLuint loadShader(const std::string file_path, int target){
+    // Create the shader
+    GLuint shaderID = glCreateShader(target);
+
+    // Read the shader code
+    std::string shaderCode;
+    std::ifstream shaderCodeStream(file_path, std::ios::in);
+    if(shaderCodeStream.is_open()){
+        std::stringstream sstr;
+        sstr << shaderCodeStream.rdbuf();
+        shaderCode = sstr.str();
+        shaderCodeStream.close();
+    }else{
+        std::cout << "Couldn't open \"" << file_path << "\", are you sure it exists?" << std::endl;
+        return 0;
+    }
+
+    GLint Result = GL_FALSE;
+    int InfoLogLength;
+
+    // Compile Shader
+    std::cout << "Compiling " << file_path << "..." << std::endl;
+    char const * sourcePointer = shaderCode.c_str();
+    glShaderSource(shaderID, 1, &sourcePointer, NULL);
+    glCompileShader(shaderID);
+
+    // Check Shader
+    glGetShaderiv(shaderID, GL_COMPILE_STATUS, &Result);
+    glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+    if ( InfoLogLength > 0 ){
+        std::vector<char> shaderErrorMessage(InfoLogLength+1);
+        glGetShaderInfoLog(shaderID, InfoLogLength, NULL, &shaderErrorMessage[0]);
+        printf("\e[0;33m%s\e[0m\n", &shaderErrorMessage[0]);
+    }
+
+    return shaderID;
+}
+
+GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
+    GLint Result = GL_FALSE;
+    int InfoLogLength;
+
+    // Link the program
+    std::cout << "Linking program..." << std::endl;
+    GLuint ProgramID = glCreateProgram();
+    glAttachShader(ProgramID, VertexShaderID);
+    glAttachShader(ProgramID, FragmentShaderID);
+    glLinkProgram(ProgramID);
+
+    // Check the program
+    std::cout << "Testing program..." << std::endl;
+    glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
+    glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+    if ( InfoLogLength > 0 ){
+        std::vector<char> ProgramErrorMessage(InfoLogLength+1);
+        glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+        // \e characters are yellow escape and reset so warnings are different color
+        printf("\e[0;33m%s\e[0m\n", &ProgramErrorMessage[0]);
+    }
+
+    glDetachShader(ProgramID, VertexShaderID);
+    glDetachShader(ProgramID, FragmentShaderID);
+
+    std::cout << "Success!" << std::endl;
+
+    return ProgramID;
+}
+
 void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h) {
     glm::mat4 projectionMatrix;
     glm::mat4 mvp;
-
+#ifndef DO_SKYBOX
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+#else //DO_SKYBOX
+    glClear(GL_DEPTH_BUFFER_BIT);
+#endif //DO_SKYBOX
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
@@ -197,12 +252,18 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 
     for (auto renderable : renderables){
         if (renderable.enabled){
+            if (renderable.testDepth){
+                glEnable(GL_DEPTH_TEST);
+            } else {
+                glDisable(GL_DEPTH_TEST);
+            }
+
             if (renderable.is3d){
-                projectionMatrix = glm::perspective(glm::radians(fieldOfViewAngle), (float) w / (float)h, 0.01f, 500.0f);
+                projectionMatrix = glm::perspective(glm::radians(fieldOfViewAngle), (float) w / (float) h, 0.01f, 500.0f);
                 mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
             } else {
-                float scaledHeight = h * (1.0f/w);
-                float scaledWidth = 1.0;
+                float scaledHeight = h * (1.0f / w);
+                float scaledWidth = 1.0f;
                 projectionMatrix = glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,100.0f); // In world coordinates
                 #ifdef CAMERA_AFFECTS_2D
                 mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix;
@@ -227,6 +288,9 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 
             GLint camera = glGetUniformLocation(renderable.shaderProgram, "cameraPosition");
             glUniform3fv(camera, 1, &camerapos[0]);
+
+            GLint amb = glGetUniformLocation(renderable.shaderProgram, "ambience");
+            glUniform3fv(amb, 1, &ambient[0]);
 
             //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
             //glUniform1f(alphaID, renderable.alpha);
@@ -306,7 +370,6 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     GL_STATIC_DRAW
                     );
 
-            // Draw the cube_face !
             glDrawElements(
                     GL_TRIANGLES,      // mode
                     renderable.indices.size(),    // count

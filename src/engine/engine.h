@@ -4,11 +4,10 @@
 
 #ifndef JOSHENGINE_ENGINE_H
 #define JOSHENGINE_ENGINE_H
-#include "gfx/opengl/gfx_gl33.h"
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
-
+#include "gfx/renderable.h"
 
 using namespace glm;
 
@@ -81,12 +80,23 @@ public:
 void init();
 void mainLoop();
 void deinit();
-void registerOnUpdate(void (*function)(GLFWwindow** window, double dt));
+void registerOnUpdate(void (*function)(double dt));
+void registerOnKey(void (*function)(int key, bool pressed, double dt));
 void putGameObject(std::string name, GameObject g);
 GameObject* getGameObject(std::string name);
 void changeFOV(float n);
 int getCurrentWidth();
 int getCurrentHeight();
 Transform* cameraAccess();
+bool isKeyDown(int key);
+GLFWwindow** getWindow();
+glm::vec2 getCursorPos();
+void setCursorPos(glm::vec2 pos);
+GLuint createTextureWithName(std::string name, std::string fileName);
+GLuint createTexture(std::string folderPath, std::string fileName);
+GLuint getTexture(std::string name);
+bool textureExists(std::string name);
+GLuint getProgram(std::string name);
+void registerProgram(std::string name, std::string vertex, std::string fragment);
 
 #endif //JOSHENGINE_ENGINE_H

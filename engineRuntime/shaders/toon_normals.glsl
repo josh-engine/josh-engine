@@ -6,16 +6,13 @@ in vec3 vcol;
 in vec3 vnorm;
 in vec3 vpos;
 
-// Ouput data
 out vec3 color;
 
-// Values that stay constant for the whole mesh.
 uniform sampler2D textureSampler;
-//uniform float alpha;
 
 void main(){
     vec3 normalDirection = normalize(vnorm);
-    vec3 lightDirection = normalize(vec3(1, 1, 0));
+    vec3 lightDirection = normalize(vec3(-1, 1, 0));
     float attenuation = 1.0;
 
     // default: unlit

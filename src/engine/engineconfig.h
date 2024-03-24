@@ -9,12 +9,15 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
-#define CLEAR_RED 0.0f
-#define CLEAR_BLUE 0.5f
-#define CLEAR_GREEN 0.5f
+#define AMBIENT_RED 0.75f
+#define AMBIENT_BLUE 0.8f
+#define AMBIENT_GREEN 0.75f
+
 #define CLEAR_ALPHA 1.0f
 
+#define DO_SKYBOX
+
 //#define CAMERA_AFFECTS_2D
-#define BACKFACE_CULL
+#define GFX_API_OPENGL33
 
 #endif //JOSHENGINE_ENGINECONFIG_H

@@ -1,25 +1,23 @@
 #include <iostream>
-#include "engine/engineconfig.h"
+#include "engine/gfx/renderable.h"
 #include "engine/sound/engineaudio.h"
 #include "engine/engine.h"
 #include "engine/gfx/modelutil.h"
-#include "GLFW/glfw3.h"
 
 bool mouseLocked = true;
 bool pressed = false;
 
-void cameraFly(GLFWwindow** window, double dt){
+void cameraFly(double dt){
     float speed = 3.0f; // 3 units / second
     float mouseSpeed = 10.0f;
 
     Transform* camera = cameraAccess();
 
     if (mouseLocked){
-        double xpos, ypos;
-        glfwGetCursorPos(*window, (&xpos), (&ypos));
-        glfwSetCursorPos(*window, getCurrentWidth()/2.0f, getCurrentHeight()/2.0f);
-        camera->rotation.x += mouseSpeed * dt * float(getCurrentWidth() /2.0f - xpos );
-        camera->rotation.y += mouseSpeed * dt * float(getCurrentHeight()/2.0f - ypos );
+        glm::vec2 cursor = getCursorPos();
+        setCursorPos({getCurrentWidth()/2.0f, getCurrentHeight()/2.0f});
+        camera->rotation.x += mouseSpeed * dt * float(getCurrentWidth() /2.0f - cursor.x);
+        camera->rotation.y += mouseSpeed * dt * float(getCurrentHeight()/2.0f - cursor.y);
         camera->rotation.y = clamp(camera->rotation.y, -70.0f, 70.0f);
     }
 
@@ -37,36 +35,38 @@ void cameraFly(GLFWwindow** window, double dt){
     );
 
     // Move forward
-    if (glfwGetKey(*window, GLFW_KEY_W ) == GLFW_PRESS){
+    if (isKeyDown(GLFW_KEY_W)){
         camera->position += direction * glm::vec3(dt * speed);
     }
     // Move backward
-    if (glfwGetKey(*window, GLFW_KEY_S ) == GLFW_PRESS){
+    if (isKeyDown(GLFW_KEY_S)){
         camera->position -= direction * glm::vec3(dt * speed);
     }
     // Strafe right
-    if (glfwGetKey(*window, GLFW_KEY_D ) == GLFW_PRESS){
+    if (isKeyDown(GLFW_KEY_D)){
         camera->position += right * glm::vec3(dt * speed);
     }
     // Strafe left
-    if (glfwGetKey(*window, GLFW_KEY_A ) == GLFW_PRESS){
+    if (isKeyDown(GLFW_KEY_A)){
         camera->position -= right * glm::vec3(dt * speed);
     }
 
-    if (glfwGetKey(*window, GLFW_KEY_SPACE) == GLFW_PRESS){
+    if (isKeyDown(GLFW_KEY_SPACE)){
         camera->position += glm::vec3(0, dt * speed, 0);
     }
-    if (glfwGetKey(*window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS){
+    if (isKeyDown(GLFW_KEY_LEFT_SHIFT)){
         camera->position -= glm::vec3(0, dt * speed, 0);
     }
 }
 
-void lockUnlock(GLFWwindow** window, double dt){
-    if (glfwGetKey(*window, GLFW_KEY_ESCAPE ) == GLFW_PRESS && !pressed){
-        mouseLocked = !mouseLocked;
-        pressed = true;
-    } else if (glfwGetKey(*window, GLFW_KEY_ESCAPE ) == GLFW_RELEASE) {
-        pressed = false;
+void lockUnlock(int key, bool wasKeyPressed, double dt){
+    if (key == GLFW_KEY_ESCAPE){
+        if (wasKeyPressed && !pressed){
+            mouseLocked = !mouseLocked;
+            pressed = true;
+        } else if (!wasKeyPressed) {
+            pressed = false;
+        }
     }
 }
 
@@ -128,7 +128,7 @@ int main() {
     st2.play();
 
     registerOnUpdate(&cameraFly);
-    registerOnUpdate(&lockUnlock);
+    registerOnKey(&lockUnlock);
 
     registerProgram("toonNorm", "./shaders/vertex.glsl", "./shaders/toon_normals.glsl");
     registerProgram("bnphColor", "./shaders/vertex.glsl", "./shaders/blinn-phong_color.glsl");

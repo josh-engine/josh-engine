@@ -6,7 +6,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_executable(JoshEngine src/main.cpp
         src/engine/gfx/opengl/gfx_gl33.cpp
         src/engine/engine.cpp
-        src/engine/sound/engineaudio.cpp)
+        src/engine/sound/engineaudio.cpp
+        src/engine/gfx/modelutil.cpp)
 
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
