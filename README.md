@@ -12,8 +12,8 @@ This is the work we have to get done:
 - [X] GameObjects working
 - [X] OBJ models and removing duplicate vertices
 - [X] OpenAL sound working
-- [ ] ChaiScript scripting support
-- [ ] PYSON implementation because I said I'd do it for Liam so he would *merge the damn PR*
+- [ ] ~~ChaiScript~~ Scripting support with at least *some* language (any kind of hot reloadable code)
+- [ ] C++ PYSON implementation because I said I'd do it for Liam so he would *merge the damn PR*
 
 ---------------------------------------------------------------------------------------------------------------
 Once everything above this line is done, the engine is ready for a beta!
