@@ -7,21 +7,44 @@
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
+#include <map>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include "gfx/modelutil.h"
+#include "enginedebug.h"
 
 GLFWwindow* window;
 std::vector<void (*)(double dt)> onUpdate;
 std::vector<void (*)(int key, bool pressed, double dt)> onKey;
-std::unordered_map<std::string, GameObject> gameObjects;
+std::map<std::string, GameObject> gameObjects;
 Transform camera;
 bool keys[GLFW_KEY_LAST];
 Renderable skybox;
-std::unordered_map<std::string, GLuint> programs;
-std::unordered_map<std::string, GLuint> textures;
+std::map<std::string, GLuint> programs;
+std::map<std::string, GLuint> textures;
+std::vector<void (*)()> imGuiCalls;
+
+int renderableCount;
+
+int getRenderableCount(){
+    return renderableCount;
+}
 
 int windowWidth, windowHeight;
+
+double frameTime = 0;
+
+double getFrameTime(){
+    return frameTime;
+}
+
+std::map<std::string, GameObject> getGameObjects(){
+    return gameObjects;
+}
+
+void putImGuiCall(void (*argument)()) {
+    imGuiCalls.push_back(argument);
+}
 
 void registerProgram(std::string name, std::string vertex, std::string fragment) {
     GLuint vertID = loadShader(std::move(vertex), GL_VERTEX_SHADER);
@@ -111,6 +134,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 void init(){
+    std::cout << "JoshEngine " << ENGINE_VERSION_STRING << std::endl;
     std::cout << "Starting engine init." << std::endl;
     windowWidth = WINDOW_WIDTH;
     windowHeight = WINDOW_HEIGHT;
@@ -145,11 +169,13 @@ void init(){
 
     initAudio();
     std::cout << "Audio init successful!" << std::endl;
+
+    initDebugTools();
+    std::cout << "Debug init successful!" << std::endl;
 }
 
 void deinit(){
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    deinitGFX(&window);
 }
 
 float fov;
@@ -169,6 +195,8 @@ void mainLoop(){
 
     double currentTime = glfwGetTime();
     double lastTime = currentTime;
+    double lastFrameCheck = glfwGetTime();
+    double frameDrawStart;
     while (glfwWindowShouldClose(window) == 0) {
         currentTime = glfwGetTime();
         double deltaTime = currentTime - lastTime;
@@ -189,8 +217,8 @@ void mainLoop(){
         }
 
         for (auto & g : gameObjects){
-            for (auto & gameObjectUpdateFunction : g.second.onUpdate){
-                gameObjectUpdateFunction(deltaTime, &g.second);
+            for (auto & gameObjectFunction : g.second.onUpdate){
+                gameObjectFunction(deltaTime, &g.second);
             }
         }
 
@@ -216,6 +244,13 @@ void mainLoop(){
 
         updateListener(camera.position, glm::vec3(0), direction, up);
 
+        bool doFrameTimeCheck = currentTime - lastFrameCheck > 1;
+        if (doFrameTimeCheck){
+            lastFrameCheck = glfwGetTime();
+            frameDrawStart = glfwGetTime()*1000;
+        }
+
+
         std::vector<Renderable> renderables;
 #ifdef DO_SKYBOX
         renderables.push_back(skybox.addMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>()));
@@ -228,7 +263,14 @@ void mainLoop(){
             }
         }
 
-        renderFrame(&window, cameraMatrix, camera.position, fov, renderables, windowWidth, windowHeight);
+        renderableCount = renderables.size();
+
+        renderFrame(&window, cameraMatrix, camera.position, fov, renderables, windowWidth, windowHeight, imGuiCalls);
+
+        if (doFrameTimeCheck)
+            frameTime = glfwGetTime()*1000 - frameDrawStart;
+
+
         glfwPollEvents();
     }
 }

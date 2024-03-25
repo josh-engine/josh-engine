@@ -1,3 +1,5 @@
+#include "../../engineconfig.h"
+#ifdef GFX_API_OPENGL33
 #include <iostream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -5,11 +7,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include <sstream>
-#include "../../engineconfig.h"
 #include "gfx_gl33.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../stb/stb_image.h"
-using namespace glm;
+#include "../imgui/imgui.h"
+#include "../imgui/imgui_impl_glfw.h"
+#include "../imgui/imgui_impl_opengl3.h"
 
 //
 // Created by Ember Lee on 3/9/24.
@@ -20,7 +23,7 @@ GLuint cboID;
 GLuint tboID;
 GLuint nboID;
 GLuint iboID;
-glm::vec3 ambient(max(AMBIENT_RED - 0.5f, 0.1f), max(AMBIENT_GREEN - 0.5f, 0.1f), max(AMBIENT_BLUE - 0.5f, 0.1f));
+glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
 
 GLuint loadCubemap(std::vector<std::string> faces) {
     stbi_set_flip_vertically_on_load(false);
@@ -121,6 +124,7 @@ void initGFX(GLFWwindow** window){
     // UPDATE TRANSPARENCY IS EVIL AND FRAMERATE DROPS TO HELL
     // glEnable(GL_BLEND);
     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 #ifndef DO_SKYBOX
     glClearColor(AMBIENT_RED, AMBIENT_GREEN, AMBIENT_BLUE, CLEAR_ALPHA);
 #endif
@@ -147,6 +151,17 @@ void initGFX(GLFWwindow** window){
     // Indices Buffer
     glGenBuffers(1, &iboID);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
+
+    // Set up ImGui
+    // Setup Dear ImGui context
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+
+// Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForOpenGL(*window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+    ImGui_ImplOpenGL3_Init();
 }
 
 /*
@@ -237,7 +252,15 @@ GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
     return ProgramID;
 }
 
-void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h) {
+void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls) {
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    for (auto execute : imGuiCalls){
+        execute();
+    }
+
     glm::mat4 projectionMatrix;
     glm::mat4 mvp;
 #ifndef DO_SKYBOX
@@ -249,6 +272,8 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
+
+    unsigned int currentProgram = 0;
 
     for (auto renderable : renderables){
         if (renderable.enabled){
@@ -266,13 +291,16 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                 float scaledWidth = 1.0f;
                 projectionMatrix = glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,100.0f); // In world coordinates
                 #ifdef CAMERA_AFFECTS_2D
-                mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix;
+                mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
                 #else
                 mvp = projectionMatrix * renderable.objectMatrix();
                 #endif
             }
 
-            glUseProgram(renderable.shaderProgram);
+            if (renderable.shaderProgram != currentProgram){
+                glUseProgram(renderable.shaderProgram);
+                currentProgram = renderable.shaderProgram;
+            }
 
             GLint MatrixID = glGetUniformLocation(renderable.shaderProgram, "MVP");
             glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
@@ -305,10 +333,10 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     GL_STATIC_DRAW
             );
             glVertexAttribPointer(
-                    0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-                    3,                  // each attribute is 3 wide
-                    GL_FLOAT,           // these are floats
-                    GL_FALSE,           // not normalized
+                    0,                  // attribute
+                    3,                  // size
+                    GL_FLOAT,           // type
+                    GL_FALSE,           // normalized?
                     0,                  // stride
                     (void*)0            // array buffer offset
             );
@@ -322,7 +350,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     GL_STATIC_DRAW
             );
             glVertexAttribPointer(
-                    1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+                    1,                                // attribute
                     3,                                // size
                     GL_FLOAT,                         // type
                     GL_FALSE,                         // normalized?
@@ -368,7 +396,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     renderable.indices.size() * sizeof(unsigned int),
                     &renderable.indices[0],
                     GL_STATIC_DRAW
-                    );
+            );
 
             glDrawElements(
                     GL_TRIANGLES,      // mode
@@ -384,19 +412,18 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(0);
 
-    // Projection matrix: 78° Field of View, WW:WH ratio, display range: 0.1 unit <-> 100 units
-
-    // 2D (ortho matrix)
-
-    // Model matrix: an identity matrix (model will be at the origin)
-
-    // Our ModelViewProjection: multiplication of our 3 matrices
-
-    // Get a handle for our "MVP" uniform
-    // Only during the initialisation
-
-    // Send our transformation to the currently bound shader, in the "MVP" uniform
-    // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(*window);
 }
+
+void deinitGFX(GLFWwindow** window){
+    glfwDestroyWindow(*window);
+    glfwTerminate();
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
+#endif //GFX_API_OPENGL33

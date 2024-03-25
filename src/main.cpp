@@ -3,6 +3,7 @@
 #include "engine/sound/engineaudio.h"
 #include "engine/engine.h"
 #include "engine/gfx/modelutil.h"
+#include "engine/enginedebug.h"
 
 bool mouseLocked = true;
 bool pressed = false;
@@ -78,14 +79,15 @@ void updateTriangle(double deltaTime, GameObject* self){
 }
 
 void updateBunny(double deltaTime, GameObject* self){
+    if (self->transform.rotation.y > 360) {
+        self->transform.rotation.y -= 360;
+    }
     self->transform.rotation += vec3(0, 40*deltaTime, 0);
 }
 
-Renderable quad;
-
 void initTriangle(GameObject* selfObject){
     selfObject->transform = Transform(glm::vec3(0, 0, -2));
-    selfObject->renderables.push_back(quad);
+    selfObject->renderables.push_back(createQuad(true, getProgram("basicTexture"), getTexture("uv_tex.png")));
     selfObject->onUpdate.push_back(&updateTriangle);
 }
 
@@ -112,10 +114,7 @@ void initCube(GameObject* selfObject){
 
 void initTriangle3(GameObject* selfObject){
     selfObject->transform = Transform(glm::vec3(-0.5, -0.25, -1), glm::vec3(0), glm::vec3(0.25));
-    Renderable r = quad;
-    r.is3d = false;
-    r.texture = getTexture("missing");
-    selfObject->renderables.push_back(r);
+    selfObject->renderables.push_back(createQuad(false, getProgram("basicTexture"), getTexture("missing")));
 }
 
 int main() {
@@ -130,6 +129,9 @@ int main() {
     registerOnUpdate(&cameraFly);
     registerOnKey(&lockUnlock);
 
+    registerFunctionToDebug("updateBunny", (void*)(&updateBunny));
+    registerFunctionToDebug("updateTriangle", (void*)(&updateTriangle));
+
     registerProgram("toonNorm", "./shaders/vertex.glsl", "./shaders/toon_normals.glsl");
     registerProgram("bnphColor", "./shaders/vertex.glsl", "./shaders/blinn-phong_color.glsl");
     registerProgram("bnphTexture", "./shaders/vertex.glsl", "./shaders/blinn-phong_textured.glsl");
@@ -137,8 +139,6 @@ int main() {
 
     createTexture("./textures/", "uv_tex.png");
     createTextureWithName("cube_texture", "./textures/cubetex.png");
-
-    quad = createQuad(true, getProgram("basicTexture"), getTexture("uv_tex.png"));
 
     putGameObject("triangle_test", GameObject(&initTriangle));
     putGameObject("bunny", GameObject(&initBunny));

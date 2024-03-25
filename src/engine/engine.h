@@ -5,6 +5,7 @@
 #ifndef JOSHENGINE_ENGINE_H
 #define JOSHENGINE_ENGINE_H
 #include <glm/glm.hpp>
+#include <map>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "gfx/renderable.h"
@@ -83,6 +84,8 @@ void deinit();
 void registerOnUpdate(void (*function)(double dt));
 void registerOnKey(void (*function)(int key, bool pressed, double dt));
 void putGameObject(std::string name, GameObject g);
+std::map<std::string, GameObject> getGameObjects();
+void putImGuiCall(void (*argument)());
 GameObject* getGameObject(std::string name);
 void changeFOV(float n);
 int getCurrentWidth();
@@ -98,5 +101,7 @@ GLuint getTexture(std::string name);
 bool textureExists(std::string name);
 GLuint getProgram(std::string name);
 void registerProgram(std::string name, std::string vertex, std::string fragment);
+double getFrameTime();
+int getRenderableCount();
 
 #endif //JOSHENGINE_ENGINE_H

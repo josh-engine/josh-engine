@@ -42,7 +42,6 @@ void initAudio(){
     }
 
     alDistanceModel(AL_INVERSE_DISTANCE);
-
 }
 
 ALuint oggToBuffer(std::string filePath){

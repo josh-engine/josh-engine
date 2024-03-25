@@ -9,6 +9,10 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
+#define ENGINE_VERSION_STRING "in-dev 24w12a"
+
+#define DEBUG_ENABLED
+
 #define AMBIENT_RED 0.75f
 #define AMBIENT_BLUE 0.8f
 #define AMBIENT_GREEN 0.75f
