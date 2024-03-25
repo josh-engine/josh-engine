@@ -68,6 +68,8 @@ void lockUnlock(int key, bool wasKeyPressed, double dt){
         } else if (!wasKeyPressed) {
             pressed = false;
         }
+        // If locked, set mouse to invisible
+        setMouseVisible(!mouseLocked);
     }
 }
 
@@ -122,6 +124,8 @@ int main() {
 
     //Sound soundTest = Sound(glm::vec3(0), glm::vec3(0), "./mice-on-venus.ogg", true, 3, 0.1, 2, 2);
     //soundTest.play();
+
+    setMouseVisible(false); // Mouse starts locked
 
     Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
     st2.play();

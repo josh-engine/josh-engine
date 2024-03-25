@@ -132,25 +132,15 @@ void initGFX(GLFWwindow** window){
     glGenVertexArrays(1, &vaoID); //reserve an ID for our VAO
     glBindVertexArray(vaoID); // bind VAO
 
+    // set up VAO attributes
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+
     // Vertex Buffer
-    glGenBuffers(1, &vboID); // reserve an ID for our VBO
-    glBindBuffer(GL_ARRAY_BUFFER, vboID); // bind VBO
-
-    // Color Buffer
-    glGenBuffers(1, &cboID);
-    glBindBuffer(GL_ARRAY_BUFFER, cboID);
-
-    // Texture Coordinate Buffer
-    glGenBuffers(1, &tboID);
-    glBindBuffer(GL_ARRAY_BUFFER, tboID);
-
-    // Normals Buffer
-    glGenBuffers(1, &nboID);
-    glBindBuffer(GL_ARRAY_BUFFER, nboID);
-
-    // Indices Buffer
-    glGenBuffers(1, &iboID);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
+    glGenBuffers(1, &vboID); // reserve an ID for our VAO
+    glBindBuffer(GL_ARRAY_BUFFER, vboID); // bind VAO as this won't be changing
 
     // Set up ImGui
     // Setup Dear ImGui context
@@ -163,26 +153,6 @@ void initGFX(GLFWwindow** window){
     ImGui_ImplGlfw_InitForOpenGL(*window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
     ImGui_ImplOpenGL3_Init();
 }
-
-/*
-static const GLfloat g_vertex_buffer_data[] = {
-        -1.0f, -1.0f, 1.0f,
-         1.0f, -1.0f, 1.0f,
-        -1.0f,  1.0f, 1.0f
-};
-
-static const GLfloat g_color_buffer_data[] = {
-        1.0f,  0.0f,  0.0f,
-        0.0f,  1.0f,  0.0f,
-        0.0f,  0.0f,  1.0f
-};
-
-static const GLfloat g_uv_buffer_data[] = {
-        0.0f,  0.0f,
-        1.0f,  0.0f,
-        0.0f,  1.0f
-};
- */
 
 GLuint loadShader(const std::string file_path, int target){
     // Create the shader
@@ -252,7 +222,7 @@ GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
     return ProgramID;
 }
 
-void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls) {
+void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -268,19 +238,19 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 #else //DO_SKYBOX
     glClear(GL_DEPTH_BUFFER_BIT);
 #endif //DO_SKYBOX
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
 
     unsigned int currentProgram = 0;
+    bool currentDepth = true;
 
     for (auto renderable : renderables){
         if (renderable.enabled){
-            if (renderable.testDepth){
-                glEnable(GL_DEPTH_TEST);
-            } else {
-                glDisable(GL_DEPTH_TEST);
+            if (renderable.testDepth ^ currentDepth){
+                if (renderable.testDepth)
+                    glEnable(GL_DEPTH_TEST);
+                else
+                    glDisable(GL_DEPTH_TEST);
+
+                currentDepth = renderable.testDepth;
             }
 
             if (renderable.is3d){
@@ -314,24 +284,22 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
             GLint scale = glGetUniformLocation(renderable.shaderProgram, "scaleMatrix");
             glUniformMatrix4fv(scale, 1, GL_FALSE, &renderable.scale[0][0]);
 
-            GLint camera = glGetUniformLocation(renderable.shaderProgram, "cameraPosition");
-            glUniform3fv(camera, 1, &camerapos[0]);
+            GLint campos = glGetUniformLocation(renderable.shaderProgram, "cameraPosition");
+            glUniform3fv(campos, 1, &camerapos[0]);
+
+            GLint camdir = glGetUniformLocation(renderable.shaderProgram, "cameraDirection");
+            glUniform3fv(camdir, 1, &cameradir[0]);
 
             GLint amb = glGetUniformLocation(renderable.shaderProgram, "ambience");
             glUniform3fv(amb, 1, &ambient[0]);
+
 
             //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
             //glUniform1f(alphaID, renderable.alpha);
 
             glBindTexture(GL_TEXTURE_2D, renderable.texture);
 
-            glBindBuffer(GL_ARRAY_BUFFER, vboID);
-            glBufferData(
-                    GL_ARRAY_BUFFER,
-                    renderable.vertices.size() * sizeof(GLfloat),
-                    &renderable.vertices[0],
-                    GL_STATIC_DRAW
-            );
+            glBindBuffer(GL_ARRAY_BUFFER, renderable.vboID);
             glVertexAttribPointer(
                     0,                  // attribute
                     3,                  // size
@@ -341,14 +309,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     (void*)0            // array buffer offset
             );
 
-
-            glBindBuffer(GL_ARRAY_BUFFER, cboID);
-            glBufferData(
-                    GL_ARRAY_BUFFER,
-                    renderable.colors.size() * sizeof(GLfloat),
-                    &renderable.colors[0],
-                    GL_STATIC_DRAW
-            );
+            glBindBuffer(GL_ARRAY_BUFFER, renderable.cboID);
             glVertexAttribPointer(
                     1,                                // attribute
                     3,                                // size
@@ -358,13 +319,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     (void*)0                          // array buffer offset
             );
 
-            glBindBuffer(GL_ARRAY_BUFFER, tboID);
-            glBufferData(
-                    GL_ARRAY_BUFFER,
-                    renderable.uvs.size() * sizeof(GLfloat),
-                    &renderable.uvs[0],
-                    GL_STATIC_DRAW
-            );
+            glBindBuffer(GL_ARRAY_BUFFER, renderable.tboID);
             glVertexAttribPointer(
                     2,                                // attribute
                     2,                                // size
@@ -374,13 +329,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     (void*)0                          // array buffer offset
             );
 
-            glBindBuffer(GL_ARRAY_BUFFER, nboID);
-            glBufferData(
-                    GL_ARRAY_BUFFER,
-                    renderable.normals.size() * sizeof(GLfloat),
-                    &renderable.normals[0],
-                    GL_STATIC_DRAW
-            );
+            glBindBuffer(GL_ARRAY_BUFFER, renderable.nboID);
             glVertexAttribPointer(
                     3,                                // attribute
                     3,                                // size
@@ -390,13 +339,7 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                     (void*)0                          // array buffer offset
             );
 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
-            glBufferData(
-                    GL_ELEMENT_ARRAY_BUFFER,
-                    renderable.indices.size() * sizeof(unsigned int),
-                    &renderable.indices[0],
-                    GL_STATIC_DRAW
-            );
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable.iboID);
 
             glDrawElements(
                     GL_TRIANGLES,      // mode
@@ -406,11 +349,6 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
             );
         }
     }
-
-    glDisableVertexAttribArray(3);
-    glDisableVertexAttribArray(2);
-    glDisableVertexAttribArray(1);
-    glDisableVertexAttribArray(0);
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -103,5 +103,6 @@ GLuint getProgram(std::string name);
 void registerProgram(std::string name, std::string vertex, std::string fragment);
 double getFrameTime();
 int getRenderableCount();
+void setMouseVisible(bool vis);
 
 #endif //JOSHENGINE_ENGINE_H

@@ -9,7 +9,7 @@
 #include <GLFW/glfw3.h>
 
 void initGFX(GLFWwindow** window);
-void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls);
+void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls);
 void deinitGFX(GLFWwindow** window);
 GLuint loadTexture(std::string fileName);
 GLuint loadShader(const std::string file_path, int target);

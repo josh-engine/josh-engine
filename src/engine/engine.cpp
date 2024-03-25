@@ -26,6 +26,11 @@ std::vector<void (*)()> imGuiCalls;
 
 int renderableCount;
 
+void setMouseVisible(bool vis){
+    // Disabled-2 = normal, so if visible is true subtract 2 from mode to get normal.
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED-((int)vis)*2);
+}
+
 int getRenderableCount(){
     return renderableCount;
 }
@@ -253,19 +258,21 @@ void mainLoop(){
 
         std::vector<Renderable> renderables;
 #ifdef DO_SKYBOX
-        renderables.push_back(skybox.addMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>()));
+        skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
+        renderables.push_back(skybox);
 #endif //DO_SKYBOX
         for (auto item : gameObjects){
             for (auto renderable : item.second.renderables) {
                 if (renderable.enabled) {
-                    renderables.push_back(renderable.addMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix()));
+                    renderable.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
+                    renderables.push_back(renderable);
                 }
             }
         }
 
         renderableCount = renderables.size();
 
-        renderFrame(&window, cameraMatrix, camera.position, fov, renderables, windowWidth, windowHeight, imGuiCalls);
+        renderFrame(&window, cameraMatrix, camera.position, direction, fov, renderables, windowWidth, windowHeight, imGuiCalls);
 
         if (doFrameTimeCheck)
             frameTime = glfwGetTime()*1000 - frameDrawStart;
