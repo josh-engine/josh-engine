@@ -2,9 +2,10 @@
 // Created by Ember Lee on 3/9/24.
 //
 
-#ifdef GFX_API_OPENGL33
-#ifndef JOSHENGINE_GFX_GL33_H
-#define JOSHENGINE_GFX_GL33_H
+#include "../../engineconfig.h"
+#ifdef GFX_API_VK
+#ifndef JOSHENGINE_GFX_VK_H
+#define JOSHENGINE_GFX_VK_H
 #include "../renderable.h"
 #include <GLFW/glfw3.h>
 
@@ -16,5 +17,5 @@ unsigned int loadShader(const std::string file_path, int target);
 unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
-#endif //JOSHENGINE_GFX_GL33_H
-#endif //GFX_API_OPENGL33
+#endif //JOSHENGINE_GFX_VK_H
+#endif //GFX_API_VK

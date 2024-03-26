@@ -17,12 +17,12 @@
 //
 // Created by Ember Lee on 3/9/24.
 //
-GLuint vaoID;
+unsigned int vaoID;
 glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
 
-GLuint loadCubemap(std::vector<std::string> faces) {
+unsigned int loadCubemap(std::vector<std::string> faces) {
     stbi_set_flip_vertically_on_load(false);
-    GLuint textureID;
+    unsigned int textureID;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
 
@@ -53,7 +53,7 @@ GLuint loadCubemap(std::vector<std::string> faces) {
     return textureID;
 }
 
-GLuint loadTexture(std::string fileName){
+unsigned int loadTexture(std::string fileName){
     stbi_set_flip_vertically_on_load(true);
     unsigned int texture;
     glGenTextures(1, &texture);
@@ -85,14 +85,13 @@ void initGFX(GLFWwindow** window){
 
     if(!glfwInit())
     {
-        std::cout << "Failed to init GLFW!" << std::endl;
+        throw std::runtime_error("OpenGL 3.3: Could not initialize GLFW!");
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // will use 4.0+ eventually :tm:
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // fucking macOS
 
     *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
-    glfwSetCursorPos(*window, WINDOW_WIDTH/2, WINDOW_HEIGHT/2);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     if(*window == nullptr){
@@ -140,9 +139,9 @@ void initGFX(GLFWwindow** window){
     ImGui_ImplOpenGL3_Init();
 }
 
-GLuint loadShader(const std::string file_path, int target){
+unsigned int loadShader(const std::string file_path, int target){
     // Create the shader
-    GLuint shaderID = glCreateShader(target);
+    unsigned int shaderID = glCreateShader(target);
 
     // Read the shader code
     std::string shaderCode;
@@ -178,13 +177,13 @@ GLuint loadShader(const std::string file_path, int target){
     return shaderID;
 }
 
-GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID){
     GLint Result = GL_FALSE;
     int InfoLogLength;
 
     // Link the program
     std::cout << "Linking program..." << std::endl;
-    GLuint ProgramID = glCreateProgram();
+    unsigned int ProgramID = glCreateProgram();
     glAttachShader(ProgramID, VertexShaderID);
     glAttachShader(ProgramID, FragmentShaderID);
     glLinkProgram(ProgramID);
@@ -209,6 +208,10 @@ GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
 }
 
 void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls) {
+    glm::vec3 packCamera[2] = {camerapos, cameradir};
+    float scaledHeight = h * (1.0f / w);
+    float scaledWidth = 1.0f;
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -219,11 +222,10 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 
     glm::mat4 projectionMatrix;
     glm::mat4 mvp;
-#ifndef DO_SKYBOX
+
+    // According to Khronos.org's wiki page, clearing both buffers
+    // will always be faster even while drawing skybox.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#else //DO_SKYBOX
-    glClear(GL_DEPTH_BUFFER_BIT);
-#endif //DO_SKYBOX
 
     unsigned int currentProgram = 0;
     bool currentDepth = true;
@@ -243,8 +245,6 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                 projectionMatrix = glm::perspective(glm::radians(fieldOfViewAngle), (float) w / (float) h, 0.01f, 500.0f);
                 mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
             } else {
-                float scaledHeight = h * (1.0f / w);
-                float scaledWidth = 1.0f;
                 projectionMatrix = glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,100.0f); // In world coordinates
                 #ifdef CAMERA_AFFECTS_2D
                 mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
@@ -262,8 +262,6 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 
             GLint matrices = glGetUniformLocation(renderable.shaderProgram, "matrices");
             glUniformMatrix4fv(matrices, 4, GL_FALSE, &packMatrices[0][0][0]);
-
-            glm::vec3 packCamera[2] = {camerapos, cameradir};
 
             GLint camera = glGetUniformLocation(renderable.shaderProgram, "cameraProperties");
             glUniform3fv(camera, 1, &packCamera[0][0]);

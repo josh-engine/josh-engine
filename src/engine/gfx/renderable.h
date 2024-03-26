@@ -67,7 +67,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, vboID); // bind VBO
         glBufferData(
                 GL_ARRAY_BUFFER,
-                vertices.size() * sizeof(GLfloat),
+                vertices.size() * sizeof(float),
                 &vertices[0],
                 GL_STATIC_DRAW
         );
@@ -77,7 +77,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, cboID);
         glBufferData(
                 GL_ARRAY_BUFFER,
-                colors.size() * sizeof(GLfloat),
+                colors.size() * sizeof(float),
                 &colors[0],
                 GL_STATIC_DRAW
         );
@@ -87,7 +87,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, tboID);
         glBufferData(
                 GL_ARRAY_BUFFER,
-                uvs.size() * sizeof(GLfloat),
+                uvs.size() * sizeof(float),
                 &uvs[0],
                 GL_STATIC_DRAW
         );
@@ -97,7 +97,7 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, nboID);
         glBufferData(
                 GL_ARRAY_BUFFER,
-                normals.size() * sizeof(GLfloat),
+                normals.size() * sizeof(float),
                 &normals[0],
                 GL_STATIC_DRAW
         );
