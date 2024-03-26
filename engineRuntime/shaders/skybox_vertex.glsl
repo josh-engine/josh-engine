@@ -3,10 +3,10 @@ layout (location = 0) in vec3 vpos;
 
 out vec3 coords;
 
-uniform mat4 MVP;
+uniform mat4 matrices[4];
 
 void main()
 {
     coords = vpos;
-    gl_Position = MVP * vec4(vpos, 1.0);
+    gl_Position = matrices[0] * vec4(vpos, 1.0);
 }

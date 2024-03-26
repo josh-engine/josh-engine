@@ -258,27 +258,18 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
                 currentProgram = renderable.shaderProgram;
             }
 
-            GLint MatrixID = glGetUniformLocation(renderable.shaderProgram, "MVP");
-            glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+            glm::mat4 packMatrices[4] = {mvp, renderable.transform, renderable.rotate, renderable.scale};
 
-            GLint translate = glGetUniformLocation(renderable.shaderProgram, "translationMatrix");
-            glUniformMatrix4fv(translate, 1, GL_FALSE, &renderable.transform[0][0]);
+            GLint matrices = glGetUniformLocation(renderable.shaderProgram, "matrices");
+            glUniformMatrix4fv(matrices, 4, GL_FALSE, &packMatrices[0][0][0]);
 
-            GLint rotate = glGetUniformLocation(renderable.shaderProgram, "rotationMatrix");
-            glUniformMatrix4fv(rotate, 1, GL_FALSE, &renderable.rotate[0][0]);
+            glm::vec3 packCamera[2] = {camerapos, cameradir};
 
-            GLint scale = glGetUniformLocation(renderable.shaderProgram, "scaleMatrix");
-            glUniformMatrix4fv(scale, 1, GL_FALSE, &renderable.scale[0][0]);
-
-            GLint campos = glGetUniformLocation(renderable.shaderProgram, "cameraPosition");
-            glUniform3fv(campos, 1, &camerapos[0]);
-
-            GLint camdir = glGetUniformLocation(renderable.shaderProgram, "cameraDirection");
-            glUniform3fv(camdir, 1, &cameradir[0]);
+            GLint camera = glGetUniformLocation(renderable.shaderProgram, "cameraProperties");
+            glUniform3fv(camera, 1, &packCamera[0][0]);
 
             GLint amb = glGetUniformLocation(renderable.shaderProgram, "ambience");
             glUniform3fv(amb, 1, &ambient[0]);
-
 
             //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
             //glUniform1f(alphaID, renderable.alpha);
