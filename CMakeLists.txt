@@ -19,6 +19,5 @@ add_executable(JoshEngine src/main.cpp
 
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(GLEW REQUIRED)
 find_package(OpenAL REQUIRED)
-target_link_libraries(JoshEngine glfw OpenGL::GL GLEW::GLEW OpenAL::OpenAL)
+target_link_libraries(JoshEngine glfw OpenGL::GL OpenAL::OpenAL)

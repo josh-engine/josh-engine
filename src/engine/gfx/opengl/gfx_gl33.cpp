@@ -1,8 +1,8 @@
 #include "../../engineconfig.h"
 #ifdef GFX_API_OPENGL33
 #include <iostream>
-#include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <OpenGL/gl3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
@@ -18,11 +18,6 @@
 // Created by Ember Lee on 3/9/24.
 //
 GLuint vaoID;
-GLuint vboID;
-GLuint cboID;
-GLuint tboID;
-GLuint nboID;
-GLuint iboID;
 glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
 
 GLuint loadCubemap(std::vector<std::string> faces) {
@@ -106,11 +101,6 @@ void initGFX(GLFWwindow** window){
     }
 
     glfwMakeContextCurrent(*window);
-    glewExperimental = true; // glew is on some crack or something, needed this to compile
-
-    if (glewInit() != GLEW_OK) {
-        std::cout << "Failed to init GLEW!" << std::endl;
-    }
 
     // Set up depth testing
     glEnable(GL_DEPTH_TEST);
@@ -137,10 +127,6 @@ void initGFX(GLFWwindow** window){
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
-
-    // Vertex Buffer
-    glGenBuffers(1, &vboID); // reserve an ID for our VAO
-    glBindBuffer(GL_ARRAY_BUFFER, vboID); // bind VAO as this won't be changing
 
     // Set up ImGui
     // Setup Dear ImGui context
