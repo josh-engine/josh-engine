@@ -127,7 +127,7 @@ int main() {
 
     setMouseVisible(false); // Mouse starts locked
 
-    Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
+    Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
     st2.play();
 
     registerOnUpdate(&cameraFly);
