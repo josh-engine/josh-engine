@@ -41,6 +41,8 @@ VkRenderPass renderPass;
 std::vector<VkPipeline> pipelineVector;
 std::vector<VkPipelineLayout> pipelineLayoutVector;
 
+std::vector<VkFramebuffer> swapchainFramebuffers;
+
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
@@ -527,6 +529,28 @@ void createRenderPass() {
     }
 }
 
+void createFramebuffers(){
+    swapchainFramebuffers.resize(swapChainImageViews.size());
+    for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+        VkImageView attachments[] = {
+                swapChainImageViews[i]
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = renderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = swapChainExtent.width;
+        framebufferInfo.height = swapChainExtent.height;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, &swapchainFramebuffers[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
+    }
+}
+
 void initGFX(GLFWwindow** window){
     windowPtr = window;
     initGLFW();
@@ -538,6 +562,7 @@ void initGFX(GLFWwindow** window){
     createImageViews();
     createRenderPass();
     createProgram(loadShader("./shaders/vulkan/tutorial.vert", JE_VERTEX_SHADER), loadShader("./shaders/vulkan/tutorial.frag", JE_FRAGMENT_SHADER));
+    createFramebuffers();
 }
 
 unsigned int loadCubemap(std::vector<std::string> faces) {
@@ -749,6 +774,9 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 }
 
 void deinitGFX(GLFWwindow** window){
+    for (auto framebuffer : swapchainFramebuffers) {
+        vkDestroyFramebuffer(logicalDevice, framebuffer, nullptr);
+    }
     for (auto graphicsPipelines : pipelineVector) {
         vkDestroyPipeline(logicalDevice, graphicsPipelines, nullptr);
     }
