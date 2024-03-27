@@ -121,7 +121,7 @@ void initTriangle3(GameObject* selfObject){
 
 int main() {
     init();
-
+    /*
     //Sound soundTest = Sound(glm::vec3(0), glm::vec3(0), "./mice-on-venus.ogg", true, 3, 0.1, 2, 2);
     //soundTest.play();
 
@@ -149,7 +149,7 @@ int main() {
     putGameObject("bunny2", GameObject(&initBunny2));
     putGameObject("cube", GameObject(&initCube));
     putGameObject("triangle_test_3", GameObject(&initTriangle3));
-
+*/
     mainLoop();
 
     deinit();
