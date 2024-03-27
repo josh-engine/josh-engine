@@ -145,14 +145,51 @@ unsigned int loadShader(const std::string file_path, int target){
     // Read the shader code
     std::string shaderCode;
     std::ifstream shaderCodeStream(file_path, std::ios::in);
-    if(shaderCodeStream.is_open()){
+    if (shaderCodeStream.is_open()){
         std::stringstream sstr;
         sstr << shaderCodeStream.rdbuf();
         shaderCode = sstr.str();
         shaderCodeStream.close();
-    }else{
-        std::cout << "Couldn't open \"" << file_path << "\", are you sure it exists?" << std::endl;
+    } else {
+        std::cerr << "Couldn't open \"" << file_path << "\", are you sure it exists?" << std::endl;
         return 0;
+    }
+
+    if (shaderCode.starts_with("// JE_TRANSLATE\n#version 420")){
+        std::cout << "Translating " << file_path << "... (JE_TRANSLATE, Vulkan GLSL 4.2 -> OpenGL GLSL 4.1)" << std::endl;
+        std::string tempShaderCode = shaderCode;
+        tempShaderCode.replace(0, 28, "#version 410");
+        std::vector<std::string> lines;
+        std::string line;
+        for (int i = 0; i < tempShaderCode.length(); i++){
+            char character = tempShaderCode[i];
+            if (character != '\n')
+                line += character;
+            else {
+                lines.push_back(line);
+                line = "";
+            }
+        }
+        lines.push_back(line);
+        shaderCode = "";
+        for (int i = 0; i < lines.size(); i++){
+            line = lines[i];
+            if (line.starts_with("layout") && (line.find("uniform") != std::string::npos)){
+                if ((line.find("JE_TRANSLATE") != std::string::npos)){
+                    line = lines[++i];
+                    do {
+                        line.replace(0, 0, "uniform");
+                        shaderCode.append(line + "\n");
+                        line = lines[++i];
+                    } while (!line.starts_with('}'));
+                    continue;
+                } else {
+                    int layoutEnd = line.find("uniform");
+                    line.replace(0, layoutEnd, "");
+                }
+            }
+            shaderCode.append(line + "\n");
+        }
     }
 
     GLint Result = GL_FALSE;
