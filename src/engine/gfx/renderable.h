@@ -7,7 +7,7 @@
 
 #include "../engineconfig.h"
 
-#ifdef GFX_API_OPENGL33
+#ifdef GFX_API_OPENGL41
 #include "GLFW/glfw3.h"
 #endif
 
@@ -33,7 +33,7 @@ public:
     bool is3d;
     bool testDepth;
 
-#ifdef GFX_API_OPENGL33
+#ifdef GFX_API_OPENGL41
     unsigned int vboID; // Positions
     unsigned int cboID; // Colors
     unsigned int tboID; // UV coordinates
@@ -61,7 +61,7 @@ public:
         texture = tex;
         this->testDepth = testDepth;
 
-#ifdef GFX_API_OPENGL33
+#ifdef GFX_API_OPENGL41
         // Vertex Buffer
         glGenBuffers(1, &vboID); // reserve an ID for our VBO
         glBindBuffer(GL_ARRAY_BUFFER, vboID); // bind VBO

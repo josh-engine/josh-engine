@@ -7,6 +7,9 @@
 #include "gfx_vk.h"
 #include <map>
 #include <set>
+#include <fstream>
+#include <sstream>
+#include "spirv-helper.h"
 
 glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
 
@@ -23,6 +26,14 @@ VkQueue graphicsQueue;
 VkQueue presentQueue;
 
 VkSwapchainKHR swapChain;
+std::vector<VkImage> swapChainImages;
+VkFormat swapChainImageFormat;
+VkExtent2D swapChainExtent;
+
+std::vector<VkImageView> swapChainImageViews;
+
+// This is a system to get the same "ID" concept working as with OpenGL.
+std::vector<VkShaderModule> shaderModuleVector;
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -438,6 +449,45 @@ void createSwapchain() {
     if (vkCreateSwapchainKHR(logicalDevice, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create swap chain!");
     }
+
+    vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, nullptr);
+    swapChainImages.resize(imageCount);
+    vkGetSwapchainImagesKHR(logicalDevice, swapChain, &imageCount, swapChainImages.data());
+
+    swapChainImageFormat = surfaceFormat.format;
+    swapChainExtent = extent;
+}
+
+void createImageViews(){
+    swapChainImageViews.resize(swapChainImages.size());
+
+    for (size_t i = 0; i < swapChainImages.size(); i++) {
+        VkImageViewCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        createInfo.image = swapChainImages[i];
+
+        createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        createInfo.format = swapChainImageFormat;
+
+        createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+        createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+
+        if (vkCreateImageView(logicalDevice, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create image views!");
+        }
+    }
+}
+
+void createGraphicsPipeline() {
+
 }
 
 void initGFX(GLFWwindow** window){
@@ -448,6 +498,8 @@ void initGFX(GLFWwindow** window){
     choosePhysicalDevice();
     createLogicalDevice();
     createSwapchain();
+    createImageViews();
+    createGraphicsPipeline();
 }
 
 unsigned int loadCubemap(std::vector<std::string> faces) {
@@ -458,12 +510,83 @@ unsigned int loadTexture(std::string fileName){
 
 }
 
-GLuint loadShader(const std::string file_path, int target){
+static std::vector<char> readFile(const std::string& filename) {
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
+    if (!file.is_open()) {
+        throw std::runtime_error("Vulkan: Failed to open file!");
+    }
+
+    size_t fileSize = (size_t) file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), fileSize);
+    file.close();
+
+    return buffer;
 }
 
-GLuint createProgram(GLuint VertexShaderID, GLuint FragmentShaderID){
+inline bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
 
+unsigned int loadShader(const std::string file_path, int target){
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    std::vector<unsigned int> spirv_comp;
+    std::vector<char> code;
+    if (ends_with(file_path, ".spv")){
+        code = readFile(file_path);
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+    } else {
+        std::ifstream fileStream(file_path);
+        if (!fileStream.good()){
+            throw std::runtime_error("Vulkan: Could not find file \"" + file_path + "\"!");
+        }
+        std::stringstream buffer;
+        buffer << fileStream.rdbuf();
+        std::string fileContents = buffer.str();
+        bool compileSuccess = SpirvHelper::GLSLtoSPV(static_cast<VkShaderStageFlagBits>(target), &fileContents[0], spirv_comp);
+        if (!compileSuccess){
+            throw std::runtime_error("Vulkan: Could not compile \"" + file_path + "\" to SPIR-V!");
+        }
+
+        createInfo.codeSize = spirv_comp.size() * sizeof(uint32_t);
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(spirv_comp.data());
+    }
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+        throw std::runtime_error("Vulkan: Failed to create shader module for " + file_path + "!");
+    }
+
+    shaderModuleVector.push_back(shaderModule);
+    return shaderModuleVector.size()-1;
+}
+
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID){
+    VkShaderModule vertex = shaderModuleVector[VertexShaderID];
+    VkShaderModule fragment = shaderModuleVector[FragmentShaderID];
+
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertex;
+    vertShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragment;
+    fragShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+
+    vkDestroyShaderModule(logicalDevice, fragment, nullptr);
+    vkDestroyShaderModule(logicalDevice, vertex, nullptr);
 }
 
 void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls) {
@@ -471,6 +594,9 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
 }
 
 void deinitGFX(GLFWwindow** window){
+    for (auto imageView : swapChainImageViews) {
+        vkDestroyImageView(logicalDevice, imageView, nullptr);
+    }
     vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
     vkDestroyDevice(logicalDevice, nullptr);
     vkDestroySurfaceKHR(instance, windowSurface, nullptr);

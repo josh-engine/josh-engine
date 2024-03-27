@@ -1,16 +1,21 @@
-#version 330
+// JE_TRANSLATE
+#version 420
 
 layout(location = 0) in vec3 vertexPosition_modelspace;
 layout(location = 1) in vec3 vertexColor;
 layout(location = 2) in vec2 vertexUV;
 layout(location = 3) in vec3 vertexNormal;
 
-uniform mat4 matrices[4];
+layout (binding = 0) uniform JE_TRANSLATE {
+    mat4 matrices[4];
+    vec3 camera[2];
+    vec3 ambience;
+};
 
-out vec3 vcol;
-out vec2 UV;
-out vec3 vnorm;
-out vec3 vpos;
+layout(location = 0) out vec3 vcol;
+layout(location = 1) out vec2 UV;
+layout(location = 2) out vec3 vnorm;
+layout(location = 3) out vec3 vpos;
 
 void main(){
     gl_Position = matrices[0] * vec4(vertexPosition_modelspace,1);

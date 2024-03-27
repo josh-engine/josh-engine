@@ -1,9 +1,15 @@
-#version 330
+// JE_TRANSLATE
+#version 420
+
 layout (location = 0) in vec3 vpos;
 
-out vec3 coords;
+layout (location = 0) out vec3 coords;
 
-uniform mat4 matrices[4];
+layout (binding = 0) uniform JE_TRANSLATE {
+    mat4 matrices[4];
+    vec3 camera[2];
+    vec3 ambience;
+};
 
 void main()
 {

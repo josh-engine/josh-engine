@@ -2,7 +2,7 @@
 // Created by Ember Lee on 3/9/24.
 //
 #include "engineconfig.h"
-#include "gfx/opengl/gfx_gl33.h"
+#include "gfx/opengl/gfx_gl41.h"
 #include "gfx/vk/gfx_vk.h"
 #include "sound/engineaudio.h"
 #include "engine.h"
@@ -53,8 +53,8 @@ void putImGuiCall(void (*argument)()) {
 }
 
 void registerProgram(std::string name, std::string vertex, std::string fragment) {
-    GLuint vertID = loadShader(std::move(vertex), GL_VERTEX_SHADER);
-    GLuint fragID = loadShader(std::move(fragment), GL_FRAGMENT_SHADER);
+    GLuint vertID = loadShader(vertex, JE_VERTEX_SHADER);
+    GLuint fragID = loadShader(fragment, JE_FRAGMENT_SHADER);
     programs.insert({name, createProgram(vertID, fragID)});
 }
 

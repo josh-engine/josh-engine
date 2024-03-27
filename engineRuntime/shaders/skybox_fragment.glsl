@@ -1,9 +1,11 @@
-#version 330
-out vec3 color;
+// JE_TRANSLATE
+#version 420
 
-in vec3 coords;
+layout (location = 0) in vec3 coords;
 
-uniform samplerCube skybox;
+layout (location = 0) out vec3 color;
+
+layout(binding = 1) uniform samplerCube skybox;
 
 void main()
 {

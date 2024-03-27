@@ -1,5 +1,5 @@
 #include "../../engineconfig.h"
-#ifdef GFX_API_OPENGL33
+#ifdef GFX_API_OPENGL41
 #include <iostream>
 #include <GLFW/glfw3.h>
 #include <OpenGL/gl3.h>
@@ -7,7 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include <sstream>
-#include "gfx_gl33.h"
+#include "gfx_gl41.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../stb/stb_image.h"
 #include "../imgui/imgui.h"
@@ -85,18 +85,17 @@ void initGFX(GLFWwindow** window){
 
     if(!glfwInit())
     {
-        throw std::runtime_error("OpenGL 3.3: Could not initialize GLFW!");
+        throw std::runtime_error("OpenGL 4.1: Could not initialize GLFW!");
     }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // will use 4.0+ eventually :tm:
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // fucking macOS
 
     *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
     if(*window == nullptr){
-        std::cout << "Failed to open window!" << std::endl;
-        glfwTerminate();
+        throw std::runtime_error("OpenGL 4.1: Could not open window!");
     }
 
     glfwMakeContextCurrent(*window);
