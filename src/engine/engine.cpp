@@ -136,7 +136,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     windowWidth = width/2;
     windowHeight = height/2;
-    glViewport(0, 0, width, height);
+    resizeViewport(windowWidth, windowHeight);
 }
 
 void init(){
@@ -181,7 +181,7 @@ void init(){
 }
 
 void deinit(){
-    deinitGFX(&window);
+    deinitGFX();
 }
 
 float fov;
@@ -273,7 +273,9 @@ void mainLoop(){
 
         renderableCount = renderables.size();
 
-        renderFrame(&window, cameraMatrix, camera.position, direction, fov, renderables, windowWidth, windowHeight, imGuiCalls);
+        float scaledHeight = windowHeight * (1.0f / windowWidth);
+        float scaledWidth = 1.0f;
+        renderFrame(cameraMatrix, camera.position, direction, glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,100.0f), glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f), renderables, imGuiCalls);
 
         if (doFrameTimeCheck)
             frameTime = glfwGetTime()*1000 - frameDrawStart;

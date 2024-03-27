@@ -20,8 +20,8 @@
 #define CLEAR_ALPHA 1.0f
 
 //#define DO_SKYBOX
-
 //#define CAMERA_AFFECTS_2D
+
 //#define GFX_API_OPENGL41
 #define GFX_API_VK
 

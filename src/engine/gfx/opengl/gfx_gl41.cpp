@@ -14,11 +14,13 @@
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_opengl3.h"
 
-//
-// Created by Ember Lee on 3/9/24.
-//
+GLFWwindow** windowPtr;
 unsigned int vaoID;
 glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
+
+void resizeViewport(int w, int h){
+    glViewport(0, 0, w, h);
+}
 
 unsigned int loadCubemap(std::vector<std::string> faces) {
     stbi_set_flip_vertically_on_load(false);
@@ -82,6 +84,7 @@ unsigned int loadTexture(std::string fileName){
 
 void initGFX(GLFWwindow** window){
     stbi_set_flip_vertically_on_load(true);
+    windowPtr = window;
 
     if(!glfwInit())
     {
@@ -91,10 +94,10 @@ void initGFX(GLFWwindow** window){
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // fucking macOS
 
-    *window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
+    *windowPtr = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    if(*window == nullptr){
+    if(*windowPtr == nullptr){
         throw std::runtime_error("OpenGL 4.1: Could not open window!");
     }
 
@@ -243,10 +246,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     return ProgramID;
 }
 
-void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, float fieldOfViewAngle, std::vector<Renderable> renderables, int w, int h, std::vector<void (*)()> imGuiCalls) {
+void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls) {
     glm::vec3 packCamera[2] = {camerapos, cameradir};
-    float scaledHeight = h * (1.0f / w);
-    float scaledWidth = 1.0f;
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -278,10 +279,10 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
             }
 
             if (renderable.is3d){
-                projectionMatrix = glm::perspective(glm::radians(fieldOfViewAngle), (float) w / (float) h, 0.01f, 500.0f);
+                projectionMatrix = _3dProj;
                 mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
             } else {
-                projectionMatrix = glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,100.0f); // In world coordinates
+                projectionMatrix = _2dProj;
                 #ifdef CAMERA_AFFECTS_2D
                 mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
                 #else
@@ -364,11 +365,11 @@ void renderFrame(GLFWwindow **window, glm::mat4 cameraMatrix, glm::vec3 camerapo
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    glfwSwapBuffers(*window);
+    glfwSwapBuffers(*windowPtr);
 }
 
-void deinitGFX(GLFWwindow** window){
-    glfwDestroyWindow(*window);
+void deinitGFX(){
+    glfwDestroyWindow(*windowPtr);
     glfwTerminate();
 
     ImGui_ImplOpenGL3_Shutdown();
