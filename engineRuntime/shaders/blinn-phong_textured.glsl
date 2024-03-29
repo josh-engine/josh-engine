@@ -1,19 +1,22 @@
 // JE_TRANSLATE
 #version 420
 
-layout(location = 0) in vec3 vcol;
-layout(location = 1) in vec2 UV;
-layout(location = 2) in vec3 vnorm;
-layout(location = 3) in vec3 vpos;
+layout(location = 0) in vec3 vpos;
+layout(location = 1) in vec3 vcol;
+layout(location = 2) in vec2 uv;
+layout(location = 3) in vec3 vnorm;
 
 layout(location = 0) out vec3 color;
 
-layout(binding = 2) uniform sampler2D textureSampler;
+layout(binding = 1) uniform sampler2D textureSampler;
 
-layout (binding = 0) uniform JE_TRANSLATE {
-    mat4 matrices[4];
-    vec3 camera[2];
-    vec3 ambience;
+layout(binding = 0) uniform UBO { // JE_TRANSLATE
+                                  mat4 viewMatrix;
+                                  mat4 _2dProj;
+                                  mat4 _3dProj;
+                                  vec3 cameraPos;
+                                  vec3 cameraDir;
+                                  vec3 ambience;
 };
 
 void main(){
@@ -35,5 +38,5 @@ void main(){
         specular = pow(specAngle, 1);
     }
 
-    color = texture(textureSampler, UV).rgb * (ambience + vcol * lambertian * vec3(1.0));
+    color = texture(textureSampler, uv).rgb * (ambience + vcol * lambertian * vec3(1.0));
 }

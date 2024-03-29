@@ -7,17 +7,15 @@
 #include "renderable.h"
 #include "../engine.h"
 
-Renderable createQuad(bool is3d, unsigned int shader, unsigned int texture){
+Renderable createQuad(unsigned int shader, unsigned int texture){
     return Renderable(
-            is3d, //3d?
             {-1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},    //verts
             { 1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},   //colors
             { 0.0f,  0.0f,          1.0f,  0.0f,           0.0f,  1.0f       ,  1.0f,  1.0f},  //UVs
             { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
             { 0, 1, 2,     1, 3, 2 }, //indices
             shader,    //shader program
-            texture,    //texture
-            true
+            texture    //texture
     );
 }
 
@@ -97,7 +95,7 @@ Renderable repackRenderable(Renderable r){
         normals.push_back(vert.nml.z);
     }
 
-    return {r.is3d, vertices, colors, uvs, normals, indices, r.shaderProgram, r.texture, r.testDepth};
+    return {vertices, colors, uvs, normals, indices, r.shaderProgram, r.texture};
 }
 
 std::vector<std::string> splitStr(std::string in, char del){
@@ -135,9 +133,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
 
     std::string currentLine;
     Renderable currentRenderable;
-    currentRenderable.is3d = true;
     currentRenderable.enabled = true;
-    currentRenderable.testDepth = true;
     currentRenderable.texture = 0;
     currentRenderable.shaderProgram = shaderProgram;
 
@@ -251,9 +247,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
                     renderableList.push_back(repackRenderable(currentRenderable));
                 }
                 currentRenderable = Renderable();
-                currentRenderable.is3d = true;
                 currentRenderable.enabled = true;
-                currentRenderable.testDepth = true;
                 currentRenderable.texture = getTexture(split[1]);
                 if (!textureExists(split[1])){
                     std::cout << "\"" << split[1] << "\" not found in texture map! Please load the associated texture to the map under the name of the .mtl file." << std::endl;

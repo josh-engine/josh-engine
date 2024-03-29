@@ -5,7 +5,7 @@
 #ifndef JOSHENGINE_MODELUTIL
 #define JOSHENGINE_MODELUTIL
 
-Renderable createQuad(bool is3d, GLuint shader, GLuint texture);
+Renderable createQuad(GLuint shader, GLuint texture);
 std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram);
 
 #endif //JOSHENGINE_MODELUTIL

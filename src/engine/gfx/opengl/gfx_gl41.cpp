@@ -18,6 +18,9 @@ GLFWwindow** windowPtr;
 unsigned int vaoID;
 glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
 
+// Same ID system as used in Vulkan implementation, but used atop OpenGL now.
+std::vector<JEShaderProgram_GL41> shaderProgramVector;
+
 void resizeViewport(int w, int h){
     glViewport(0, 0, w, h);
 }
@@ -216,7 +219,7 @@ unsigned int loadShader(const std::string file_path, int target){
     return shaderID;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID){
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth){
     GLint Result = GL_FALSE;
     int InfoLogLength;
 
@@ -243,7 +246,10 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     std::cout << "Success!" << std::endl;
 
-    return ProgramID;
+    unsigned int id = shaderProgramVector.size();
+    shaderProgramVector.emplace_back(ProgramID, testDepth);
+
+    return id;
 }
 
 void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls) {
@@ -257,57 +263,38 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
         execute();
     }
 
-    glm::mat4 projectionMatrix;
-    glm::mat4 mvp;
-
     // According to Khronos.org's wiki page, clearing both buffers
     // will always be faster even while drawing skybox.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    unsigned int currentProgram = 0;
+    int currentProgram = -1;
     bool currentDepth = true;
 
     for (auto renderable : renderables){
         if (renderable.enabled){
-            if (renderable.testDepth ^ currentDepth){
-                if (renderable.testDepth)
-                    glEnable(GL_DEPTH_TEST);
-                else
+            if (shaderProgramVector[renderable.shaderProgram].testDepth != currentDepth){
+                if (shaderProgramVector[renderable.shaderProgram].testDepth){
                     glDisable(GL_DEPTH_TEST);
-
-                currentDepth = renderable.testDepth;
-            }
-
-            if (renderable.is3d){
-                projectionMatrix = _3dProj;
-                mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
-            } else {
-                projectionMatrix = _2dProj;
-                #ifdef CAMERA_AFFECTS_2D
-                mvp = projectionMatrix * cameraMatrix * renderable.objectMatrix();
-                #else
-                mvp = projectionMatrix * renderable.objectMatrix();
-                #endif
+                } else {
+                    glEnable(GL_DEPTH_TEST);
+                }
+                currentDepth = shaderProgramVector[renderable.shaderProgram].testDepth;
             }
 
             if (renderable.shaderProgram != currentProgram){
-                glUseProgram(renderable.shaderProgram);
+                glUseProgram(shaderProgramVector[renderable.shaderProgram].glShaderProgramID);
                 currentProgram = renderable.shaderProgram;
             }
 
-            glm::mat4 packMatrices[4] = {mvp, renderable.transform, renderable.rotate, renderable.scale};
-
-            GLint matrices = glGetUniformLocation(renderable.shaderProgram, "matrices");
-            glUniformMatrix4fv(matrices, 4, GL_FALSE, &packMatrices[0][0][0]);
-
-            GLint camera = glGetUniformLocation(renderable.shaderProgram, "cameraProperties");
-            glUniform3fv(camera, 1, &packCamera[0][0]);
-
-            GLint amb = glGetUniformLocation(renderable.shaderProgram, "ambience");
-            glUniform3fv(amb, 1, &ambient[0]);
-
-            //GLint alphaID = glGetUniformLocation(renderable.shaderProgram, "alpha");
-            //glUniform1f(alphaID, renderable.alpha);
+            glm::mat4 model = renderable.objectMatrix();
+            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_model, 1, GL_FALSE, &model[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_normal, 1, GL_FALSE, &renderable.rotate[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_view, 1, GL_FALSE, &cameraMatrix[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_2dProj, 1, GL_FALSE, &_2dProj[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_3dProj, 1, GL_FALSE, &_3dProj[0][0]);
+            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_cameraPos, 1, &camerapos[0]);
+            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_cameraDir, 1, &cameradir[0]);
+            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_ambience, 1, &ambient[0]);
 
             glBindTexture(GL_TEXTURE_2D, renderable.texture);
 

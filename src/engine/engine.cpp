@@ -9,8 +9,12 @@
 #include <iostream>
 #include <unordered_map>
 #include <map>
+#ifdef GFX_API_VK
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#endif
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <utility>
 #include "gfx/modelutil.h"
 #include "enginedebug.h"
 
@@ -21,8 +25,8 @@ std::map<std::string, GameObject> gameObjects;
 Transform camera;
 bool keys[GLFW_KEY_LAST];
 Renderable skybox;
-std::map<std::string, GLuint> programs;
-std::map<std::string, GLuint> textures;
+std::map<std::string, unsigned int> programs;
+std::map<std::string, unsigned int> textures;
 std::vector<void (*)()> imGuiCalls;
 
 int renderableCount;
@@ -52,29 +56,37 @@ void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
-void registerProgram(std::string name, std::string vertex, std::string fragment) {
-    GLuint vertID = loadShader(vertex, JE_VERTEX_SHADER);
-    GLuint fragID = loadShader(fragment, JE_FRAGMENT_SHADER);
-    programs.insert({name, createProgram(vertID, fragID)});
+void registerProgram(std::string name, std::string vertex, std::string fragment, bool testDepth) {
+    unsigned int vertID = loadShader(std::move(vertex), JE_VERTEX_SHADER);
+    unsigned int fragID = loadShader(std::move(fragment), JE_FRAGMENT_SHADER);
+    programs.insert({name, createProgram(vertID, fragID, testDepth)});
 }
 
-GLuint getProgram(std::string name){
+unsigned int getProgram(std::string name){
     return programs.at(name);
 }
 
-GLuint createTextureWithName(std::string name, std::string filePath){
-    GLuint id = loadTexture(std::move(filePath));
+unsigned int createTextureWithName(std::string name, std::string filePath){
+    unsigned int id = loadTexture(std::move(filePath));
+#ifdef GFX_API_OPENGL41
     if (id != 0){
         textures.insert({name, id});
     }
+#else
+    textures.insert({name, id});
+#endif
     return id;
 }
 
-GLuint createTexture(std::string folderPath, std::string fileName){
-    GLuint id = loadTexture(folderPath + fileName);
+unsigned int createTexture(std::string folderPath, std::string fileName){
+    unsigned int id = loadTexture(folderPath + fileName);
+#ifdef GFX_API_OPENGL41
     if (id != 0){
         textures.insert({fileName, id});
     }
+#else
+    textures.insert({fileName, id});
+#endif
     return id;
 }
 
@@ -82,7 +94,7 @@ bool textureExists(std::string name){
     return textures.count(name);
 }
 
-GLuint getTexture(std::string name){
+unsigned int getTexture(std::string name){
     if (!textureExists(name)) {
         std::cerr << "Texture \"" + name + "\" not found, defaulting to missing_tex.png" << std::endl;
         return textures.at("missing");
@@ -153,6 +165,7 @@ void init(){
         std::cerr << "Essential engine file missing." << std::endl;
         exit(1);
     }
+
 #ifdef DO_SKYBOX
     // Skybox init
     registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl");

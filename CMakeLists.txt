@@ -16,7 +16,9 @@ add_executable(JoshEngine src/main.cpp
         src/engine/gfx/imgui/imgui_tables.cpp
         src/engine/gfx/imgui/imgui_widgets.cpp
         src/engine/enginedebug.cpp
-        src/engine/gfx/vk/gfx_vk.cpp)
+        src/engine/gfx/vk/gfx_vk.cpp
+        src/engine/gfx/renderable.cpp
+)
 
 # Vulkan Required Includes
 find_package(Vulkan REQUIRED)

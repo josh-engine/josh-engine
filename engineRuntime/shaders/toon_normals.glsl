@@ -1,15 +1,9 @@
 // JE_TRANSLATE
 #version 420
 
-// Interpolated values from the vertex shaders
-layout(location = 0) in vec3 vcol;
-layout(location = 1) in vec2 UV;
-layout(location = 2) in vec3 vnorm;
-layout(location = 3) in vec3 vpos;
+layout(location = 3) in vec3 vnorm;
 
 layout(location = 0) out vec3 color;
-
-layout(binding = 2) uniform sampler2D textureSampler;
 
 void main(){
     vec3 normalDirection = normalize(vnorm);
