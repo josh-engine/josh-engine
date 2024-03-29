@@ -288,7 +288,13 @@ void mainLoop(){
 
         float scaledHeight = windowHeight * (1.0f / windowWidth);
         float scaledWidth = 1.0f;
-        renderFrame(cameraMatrix, camera.position, direction, glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,100.0f), glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f), renderables, imGuiCalls);
+        glm::mat4 _2dProj;
+#ifdef GFX_API_OPENGL41
+        _2dProj = glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,1.0f);
+#elifdef GFX_API_VK
+        _2dProj = glm::ortho(-scaledWidth,scaledWidth,scaledHeight,-scaledHeight,0.0f,1.0f);
+#endif
+        renderFrame(cameraMatrix, camera.position, direction, _2dProj, glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f), renderables, imGuiCalls);
 
         if (doFrameTimeCheck)
             frameTime = glfwGetTime()*1000 - frameDrawStart;
