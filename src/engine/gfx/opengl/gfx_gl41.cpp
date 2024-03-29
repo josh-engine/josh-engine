@@ -253,8 +253,6 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 }
 
 void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls) {
-    glm::vec3 packCamera[2] = {camerapos, cameradir};
-
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -268,17 +266,17 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     int currentProgram = -1;
-    bool currentDepth = true;
+    bool currentDepth = false;
 
     for (auto renderable : renderables){
         if (renderable.enabled){
             if (shaderProgramVector[renderable.shaderProgram].testDepth != currentDepth){
-                if (shaderProgramVector[renderable.shaderProgram].testDepth){
-                    glDisable(GL_DEPTH_TEST);
-                } else {
-                    glEnable(GL_DEPTH_TEST);
-                }
                 currentDepth = shaderProgramVector[renderable.shaderProgram].testDepth;
+                if (shaderProgramVector[renderable.shaderProgram].testDepth){
+                    glEnable(GL_DEPTH_TEST);
+                } else {
+                    glDisable(GL_DEPTH_TEST);
+                }
             }
 
             if (renderable.shaderProgram != currentProgram){

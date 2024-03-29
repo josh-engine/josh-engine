@@ -168,7 +168,7 @@ void init(){
 
 #ifdef DO_SKYBOX
     // Skybox init
-    registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl");
+    registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl", false);
     skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
     if (!skybox.enabled){
         std::cerr << "Essential engine file missing." << std::endl;
@@ -182,7 +182,6 @@ void init(){
                                          "./skybox/nz_front.jpg",
                                          "./skybox/pz_back.jpg"
     });
-    skybox.testDepth = false;
 #endif //DO_SKYBOX
     std::cout << "Graphics init successful!" << std::endl;
 

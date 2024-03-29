@@ -13,7 +13,6 @@
 
 #define DEBUG_ENABLED
 
-
 #define AMBIENT_RED 0.75f
 #define AMBIENT_BLUE 0.8f
 #define AMBIENT_GREEN 0.75f

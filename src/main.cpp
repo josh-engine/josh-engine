@@ -2,7 +2,7 @@
 #include "engine/engine.h"
 #include "engine/sound/engineaudio.h"
 #include "engine/gfx/modelutil.h"
-//#include "engine/enginedebug.h"
+#include "engine/enginedebug.h"
 
 bool mouseLocked = true;
 bool pressed = false;
@@ -118,34 +118,6 @@ void initTriangle3(GameObject* selfObject){
     selfObject->renderables.push_back(createQuad(getProgram("ui"), getTexture("missing")));
 }
 
-void vulkanTestObject(GameObject* self){
-    // HELLO TRIANGLE
-    /*
-    self->renderables.push_back(Renderable(true,
-                                           {0.0f, -0.5f, 0.0f,
-                                            0.5f,  0.5f, 0.0f,
-                                            -0.5f, 0.5f, 0.0f},
-                                           {1.0f, 0.0f, 0.0f,
-                                            0.0f, 1.0f, 0.0f,
-                                            0.0f, 0.0f, 1.0f},
-                                           {0.0f, 0.0f,
-                                            0.0f, 0.0f,
-                                            0.0f, 0.0f},
-                                           {0.0f, 0.0f, 1.0f,
-                                            0.0f, 0.0f, 1.0f,
-                                            0.0f, 0.0f, 1.0f},
-                                           {0, 1, 2},
-                                           getProgram("VK_TEST"),
-                                           0,
-                                           true));
-    */
-    // Quad
-    self->transform = Transform(glm::vec3(0, 0, -1), glm::vec3(0), glm::vec3(1));
-    //self->renderables.push_back(createQuad(true, getProgram("VK_TEST"), 0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonNorm"));
-    self->renderables.insert(self->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-}
-
 int main() {
     init();
 
@@ -157,8 +129,8 @@ int main() {
     registerOnUpdate(&cameraFly);
     registerOnKey(&lockUnlock);
 
-    //registerFunctionToDebug("updateBunny", (void*)(&updateBunny));
-    //registerFunctionToDebug("updateTriangle", (void*)(&updateTriangle));
+    registerFunctionToDebug("updateBunny", (void*)(&updateBunny));
+    registerFunctionToDebug("updateTriangle", (void*)(&updateTriangle));
 
     registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", true);
     registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", true);
@@ -174,8 +146,6 @@ int main() {
     putGameObject("bunny2", GameObject(&initBunny2));
     putGameObject("cube", GameObject(&initCube));
     putGameObject("triangle_test_3", GameObject(&initTriangle3));
-
-    //putGameObject("Vulkan Test Object", GameObject(&vulkanTestObject));
 
     mainLoop();
 
