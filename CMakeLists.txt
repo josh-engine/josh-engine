@@ -18,6 +18,7 @@ add_executable(JoshEngine src/main.cpp
         src/engine/enginedebug.cpp
         src/engine/gfx/vk/gfx_vk.cpp
         src/engine/gfx/renderable.cpp
+        src/engine/gfx/imgui/imgui_impl_vulkan.cpp
 )
 
 # Vulkan Required Includes

@@ -265,7 +265,7 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
     // will always be faster even while drawing skybox.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    int currentProgram = -1;
+    unsigned int currentProgram = -1; // eheheheh, i love doing funny things.
     bool currentDepth = false;
 
     for (auto renderable : renderables){
@@ -279,9 +279,9 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
                 }
             }
 
-            if (renderable.shaderProgram != currentProgram){
-                glUseProgram(shaderProgramVector[renderable.shaderProgram].glShaderProgramID);
-                currentProgram = renderable.shaderProgram;
+            if (shaderProgramVector[renderable.shaderProgram].glShaderProgramID != currentProgram){
+                currentProgram = shaderProgramVector[renderable.shaderProgram].glShaderProgramID;
+                glUseProgram(currentProgram);
             }
 
             glm::mat4 model = renderable.objectMatrix();

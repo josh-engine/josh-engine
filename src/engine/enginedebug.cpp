@@ -5,6 +5,7 @@
 #include <string>
 #ifdef DEBUG_ENABLED
 #include "enginedebug.h"
+#include "engineconfig.h"
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
 #include <unordered_map>
@@ -32,7 +33,11 @@ void setupImGuiWindow(){
     ImGui::Begin("Debug Menu");
 
     ImGui::Text("JoshEngine %s", ENGINE_VERSION_STRING);
-    ImGui::NewLine();
+#ifdef GFX_API_OPENGL41
+    ImGui::Text("Running on OpenGL 4.1");
+#elifdef GFX_API_VK
+    ImGui::Text("Running on Vulkan");
+#endif
 
     ImGui::Checkbox("Stats View", &statView);
     ImGui::Checkbox("GameObjects View", &gmObjView);

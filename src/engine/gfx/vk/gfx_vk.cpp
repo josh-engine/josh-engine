@@ -14,6 +14,9 @@
 #include "spirv-helper.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../stb/stb_image.h"
+#include "../imgui/imgui_impl_glfw.h"
+#include "../imgui/imgui_impl_vulkan.h"
+#include "../imgui/imgui.h"
 
 glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
 
@@ -79,6 +82,8 @@ std::vector<VkImageView> textureImageViews;
 std::vector<VkDescriptorPool> perTextureDescriptorPools;
 std::vector<std::vector<VkDescriptorSet>> perTextureDescriptorSets;
 VkSampler textureSampler;
+
+VkDescriptorPool imGuiDescriptorPool;
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -817,7 +822,7 @@ void createUniformBuffers() {
     }
 }
 
-void createDescriptorPool(unsigned int textureID) {
+void createDescriptorPool(VkDescriptorPool* pool, VkDescriptorPoolCreateFlagBits flags) {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -829,8 +834,9 @@ void createDescriptorPool(unsigned int textureID) {
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+    poolInfo.flags = flags;
 
-    if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &perTextureDescriptorPools[textureID]) != VK_SUCCESS) {
+    if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, pool) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create descriptor pool!");
     }
 }
@@ -1043,6 +1049,38 @@ void initGFX(GLFWwindow** window){
     createUniformBuffers();
 
     createTextureSampler();
+
+    QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+    SwapChainSupportDetails swapchainSupport = querySwapChainSupport(physicalDevice);
+
+    createDescriptorPool(&imGuiDescriptorPool, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui_ImplGlfw_InitForVulkan(*windowPtr, true);
+
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = instance;
+    init_info.PhysicalDevice = physicalDevice;
+    init_info.Device = logicalDevice;
+    init_info.QueueFamily = indices.graphicsFamily.value();
+    init_info.Queue = graphicsQueue;
+    init_info.PipelineCache = VK_NULL_HANDLE;
+    init_info.DescriptorPool = imGuiDescriptorPool;
+    init_info.RenderPass = renderPass;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = swapchainSupport.capabilities.minImageCount;
+    init_info.ImageCount = swapchainSupport.capabilities.minImageCount+1;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = nullptr;
+    init_info.CheckVkResultFn = nullptr;
+    ImGui_ImplVulkan_Init(&init_info);
+
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+    ImGui_ImplVulkan_CreateFontsTexture();
+    endSingleTimeCommands(commandBuffer);
+
+    vkDeviceWaitIdle(logicalDevice);
 }
 
 void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height) {
@@ -1126,7 +1164,7 @@ unsigned int loadTexture(std::string fileName){
 
     textureImageViews[id] = createImageView(textureImages[id], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    createDescriptorPool(id);
+    createDescriptorPool(&perTextureDescriptorPools[id], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
     createDescriptorSets(id);
 
@@ -1466,6 +1504,17 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
 
     vkResetCommandBuffer(commandBuffers[currentFrame],  0);
 
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    for (auto execute : imGuiCalls){
+        execute();
+    }
+
+    ImGui::Render();
+
+
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = 0; // Optional
@@ -1537,6 +1586,8 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
         vkCmdDrawIndexed(commandBuffers[currentFrame], r.indices.size(), 1, 0, 0, 0);
     }
 
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[currentFrame]);
+
     vkCmdEndRenderPass(commandBuffers[currentFrame]);
     if (vkEndCommandBuffer(commandBuffers[currentFrame]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to record command buffer!");
@@ -1586,6 +1637,12 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
 
 void deinitGFX(){
     cleanupSwapchain();
+
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    vkDestroyDescriptorPool(logicalDevice, imGuiDescriptorPool, nullptr);
 
     vkDestroySampler(logicalDevice, textureSampler, nullptr);
 
