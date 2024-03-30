@@ -23,7 +23,7 @@
 
 #define CLEAR_ALPHA 1.0f
 
-//#define DO_SKYBOX
+#define DO_SKYBOX
 
 //#define GFX_API_OPENGL41
 #define GFX_API_VK

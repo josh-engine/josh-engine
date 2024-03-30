@@ -270,10 +270,12 @@ void mainLoop(){
 
 
         std::vector<Renderable> renderables;
+
 #ifdef DO_SKYBOX
         skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
         renderables.push_back(skybox);
 #endif //DO_SKYBOX
+
         for (auto item : gameObjects){
             for (auto renderable : item.second.renderables) {
                 if (renderable.enabled) {
