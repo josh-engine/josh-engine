@@ -10,12 +10,14 @@ void main(){
     vec3 lightDirection = normalize(vec3(-1, 1, 0));
     float attenuation = 1.0;
 
+    vec3 vnormCol = (normalDirection + vec3(1.0))/2.0;
+
     // default: unlit
-    color = normalDirection - vec3(0.3);
+    color = vnormCol - vec3(0.3);
 
     // low priority: diffuse illumination
     if (attenuation * max(0.0, dot(normalDirection, lightDirection)) >= 0.5)
     {
-        color = normalDirection;
+        color = vnormCol;
     }
 }

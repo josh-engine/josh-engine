@@ -740,7 +740,7 @@ void createCommandPool() {
 
     VkCommandPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
 
     if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
@@ -1287,14 +1287,20 @@ inline bool ends_with(std::string const & value, std::string const & ending)
 }
 
 unsigned int loadShader(const std::string file_path, int target){
+    unsigned int id = shaderModuleVector.size();
+    shaderModuleVector.push_back({});
+
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+
     std::vector<unsigned int> spirv_comp;
     std::vector<char> code;
+
     if (ends_with(file_path, ".spv")){
         code = readFile(file_path);
         createInfo.codeSize = code.size();
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        std::cout << "Loading " << file_path << " (compiled SPIR-V bytecode)..." << std::endl;
     } else {
         std::ifstream fileStream(file_path);
         if (!fileStream.good()){
@@ -1303,6 +1309,7 @@ unsigned int loadShader(const std::string file_path, int target){
         std::stringstream buffer;
         buffer << fileStream.rdbuf();
         std::string fileContents = buffer.str();
+        std::cout << "Compiling " << file_path << " to SPIR-V..." << std::endl;
         bool compileSuccess = SpirvHelper::GLSLtoSPV(static_cast<VkShaderStageFlagBits>(target), &fileContents[0], spirv_comp);
         if (!compileSuccess){
             throw std::runtime_error("Vulkan: Could not compile \"" + file_path + "\" to SPIR-V!");
@@ -1312,13 +1319,11 @@ unsigned int loadShader(const std::string file_path, int target){
         createInfo.pCode = reinterpret_cast<const uint32_t*>(spirv_comp.data());
     }
 
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+    if (vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModuleVector[id]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create shader module for " + file_path + "!");
     }
 
-    shaderModuleVector.push_back(shaderModule);
-    return shaderModuleVector.size()-1;
+    return id;
 }
 
 unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth){
@@ -1482,6 +1487,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     vkDestroyShaderModule(logicalDevice, fragment, nullptr);
     vkDestroyShaderModule(logicalDevice, vertex, nullptr);
 
+    std::cout << "Successfully created new pipeline." << std::endl;
+
     return pipelineID;
 }
 
@@ -1606,7 +1613,6 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
     }
 
     ImGui::Render();
-
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
