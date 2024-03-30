@@ -7,7 +7,7 @@
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
 
-unsigned int createVBOFunctionMirror(void* r){
+unsigned int createVBOFunctionMirror(void* r) {
     return createVBO((Renderable*)r);
 }
 

@@ -7,7 +7,7 @@
 #include "renderable.h"
 #include "../engine.h"
 
-Renderable createQuad(unsigned int shader, unsigned int texture){
+Renderable createQuad(unsigned int shader, unsigned int texture) {
     return Renderable(
             {-1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},    //verts
             { 1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},   //colors
@@ -26,24 +26,24 @@ public:
     glm::vec2 uvs;
     glm::vec3 nml;
 
-    repackVertexObject(glm::vec3 position, glm::vec3 colors, glm::vec2 texcoords, glm::vec3 normals){
+    repackVertexObject(glm::vec3 position, glm::vec3 colors, glm::vec2 texcoords, glm::vec3 normals) {
         pos = position;
         col = colors;
         uvs = texcoords;
         nml = normals;
     }
 
-    bool equals(repackVertexObject r){
+    bool equals(repackVertexObject r) {
         return r.pos == pos && r.col == col && r.uvs == uvs && r.nml == nml;
     }
 };
 
-Renderable repackRenderable(Renderable r){
+Renderable repackRenderable(Renderable r) {
     std::vector<repackVertexObject> repackList = {};
     std::vector<unsigned int> indices = {};
 
     // Generate unique lists
-    for (int i = 0; i < r.vertices.size()/3; i++){
+    for (int i = 0; i < r.vertices.size()/3; i++) {
         // new vertex object with current properties
         repackVertexObject currentVertexObject(
                 {r.vertices[i*3], r.vertices[(i*3)+1], r.vertices[(i*3)+2]},
@@ -53,8 +53,8 @@ Renderable repackRenderable(Renderable r){
 
         // assume not duplicate
         bool add = true;
-        for (int j = 0; j < repackList.size(); j++){
-            if (currentVertexObject.equals(repackList[j++])){
+        for (int j = 0; j < repackList.size(); j++) {
+            if (currentVertexObject.equals(repackList[j++])) {
                 // if this is a duplicate, don't add it to the list and push the current index in repack
                 add = false;
                 // There's probably a reason j-1 works.
@@ -78,7 +78,7 @@ Renderable repackRenderable(Renderable r){
     std::vector<float> uvs;
     std::vector<float> normals;
 
-    for (auto vert : repackList){
+    for (auto vert : repackList) {
         vertices.push_back(vert.pos.x);
         vertices.push_back(vert.pos.y);
         vertices.push_back(vert.pos.z);
@@ -98,7 +98,7 @@ Renderable repackRenderable(Renderable r){
     return {vertices, colors, uvs, normals, indices, r.shaderProgram, r.texture};
 }
 
-std::vector<std::string> splitStr(std::string in, char del){
+std::vector<std::string> splitStr(std::string in, char del) {
     std::string store;
 
     std::stringstream stream(in);
@@ -110,8 +110,8 @@ std::vector<std::string> splitStr(std::string in, char del){
     }
 
     std::vector<std::string> v2;
-    for (auto a : v){
-        if (a != ""){
+    for (auto a : v) {
+        if (a != "") {
             v2.push_back(a);
         }
     }
@@ -119,9 +119,9 @@ std::vector<std::string> splitStr(std::string in, char del){
     return v2;
 }
 
-std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
+std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram) {
     std::ifstream fileStream(path);
-    if (!fileStream.good()){
+    if (!fileStream.good()) {
         return {{}};
     }
     std::stringstream buffer;
@@ -142,7 +142,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
     std::vector<glm::vec2> modelUVs = {{0, 0}};
     std::vector<glm::vec3> modelNormals = {{0, 1, 0}};
 
-    for (char currentChar : fileContents){
+    for (char currentChar : fileContents) {
         if (currentChar != '\n') currentLine += currentChar;
         else {
             std::vector<std::string> split = splitStr(currentLine, ' ');
@@ -164,9 +164,9 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
                 modelNormals.push_back({std::stof(split[1]), std::stof(split[2]), std::stof(split[3])});
             } else if (split[0] == "f")  {
                 // face
-                for (int i = 1; i <= 3; i++){
+                for (int i = 1; i <= 3; i++) {
                     // for each index combo
-                    if (split[i].find("//") != std::string::npos){
+                    if (split[i].find("//") != std::string::npos) {
                         // formatted as v//n
                         std::vector<std::string> vertexSplit = splitStr(split[i], '/');
                         unsigned int vertexIndex = std::stoi(vertexSplit[0]);
@@ -237,11 +237,11 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
                         currentRenderable.colors.push_back(1);
                     }
                 }
-            } else if (split[0] == "s"){
+            } else if (split[0] == "s") {
                 // smooth shaded enabled (ignore this case)
-            } else if (split[0] == "mtllib"){
+            } else if (split[0] == "mtllib") {
                 // load material (ignore this case)
-            } else if (split[0] == "usemtl" || split[0] == "o"){
+            } else if (split[0] == "usemtl" || split[0] == "o") {
                 // use specific material
                 if (!currentRenderable.vertices.empty()) {
                     renderableList.push_back(repackRenderable(currentRenderable));
@@ -249,12 +249,12 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram){
                 currentRenderable = Renderable();
                 currentRenderable.enabled = true;
                 currentRenderable.texture = getTexture(split[1]);
-                if (!textureExists(split[1])){
+                if (!textureExists(split[1])) {
                     std::cout << "\"" << split[1] << "\" not found in texture map! Please load the associated texture to the map under the name of the .mtl file." << std::endl;
                 }
                 currentRenderable.shaderProgram = shaderProgram;
             }
-            else if (split[0] == "vp" || split[0] == "l"){
+            else if (split[0] == "vp" || split[0] == "l") {
                 std::cerr << "OBJ model at " << path << " uses unsupported parameter space vertex or line element! Cancelling load." << std::endl;
                 return {};
             } else {

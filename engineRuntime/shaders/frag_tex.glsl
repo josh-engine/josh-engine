@@ -13,7 +13,7 @@ layout(location = 0) out vec3 color;
 // Values that stay constant for the whole mesh.
 layout(binding = 1) uniform sampler2D textureSampler;
 
-void main(){
+void main() {
     // Output color = color of the texture at the specified UV
     color = texture(textureSampler, uv).rgb*vcol;
 }

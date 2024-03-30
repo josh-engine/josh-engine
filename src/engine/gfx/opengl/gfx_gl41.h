@@ -25,7 +25,7 @@ struct JEShaderProgram_GL41 {
     int location_ambience;
     unsigned int glShaderProgramID;
 
-    JEShaderProgram_GL41(unsigned int glShader, bool testDepth){
+    JEShaderProgram_GL41(unsigned int glShader, bool testDepth) {
         this->testDepth = testDepth;
         location_model = glGetUniformLocation(glShader, "model");
         location_normal = glGetUniformLocation(glShader, "normal");

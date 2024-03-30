@@ -5,7 +5,7 @@ layout(location = 3) in vec3 vnorm;
 
 layout(location = 0) out vec3 color;
 
-void main(){
+void main() {
     vec3 normalDirection = normalize(vnorm);
     vec3 lightDirection = normalize(vec3(-1, 1, 0));
     float attenuation = 1.0;

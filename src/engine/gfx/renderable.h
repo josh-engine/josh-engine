@@ -94,15 +94,15 @@ public:
     std::vector<JEInterleavedVertex> interleavedVertices;
 #endif
 
-    glm::mat4 objectMatrix(){
+    glm::mat4 objectMatrix() {
         return (transform * rotate * scale);
     }
 
-    Renderable(){
+    Renderable() {
         enabled = false;
     }
 
-    Renderable(std::vector<float> verts, std::vector<float> cols, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex){
+    Renderable(std::vector<float> verts, std::vector<float> cols, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex) {
         enabled = true;
         vertices = std::move(verts);
         colors = std::move(cols);
@@ -164,7 +164,7 @@ public:
         );
 #endif //GFX_API_OPENGL41
 #ifdef GFX_API_VK
-        for (int i = 0; i < vertices.size()/3; i++){
+        for (int i = 0; i < vertices.size()/3; i++) {
             interleavedVertices.push_back({
                                                   {vertices[3*i],  vertices[(3*i)+1], vertices[(3*i)+2]},
                                                   {colors[(3*i)],  colors[(3*i)+1],   colors[(3*i)+2]},
@@ -176,7 +176,7 @@ public:
 #endif //GFX_API_VK
     }
 
-    void setMatrices(glm::mat4 transform, glm::mat4 rotation, glm::mat4 scale){
+    void setMatrices(glm::mat4 transform, glm::mat4 rotation, glm::mat4 scale) {
         this->transform = transform;
         this->rotate = rotation;
         this->scale = scale;

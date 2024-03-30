@@ -1,4 +1,3 @@
-#include <iostream>
 #include "engine/engine.h"
 #include "engine/sound/engineaudio.h"
 #include "engine/gfx/modelutil.h"
@@ -7,13 +6,13 @@
 bool mouseLocked = true;
 bool pressed = false;
 
-void cameraFly(double dt){
+void cameraFly(double dt) {
     float speed = 3.0f; // 3 units / second
     float mouseSpeed = 10.0f;
 
     Transform* camera = cameraAccess();
 
-    if (mouseLocked){
+    if (mouseLocked) {
         glm::vec2 cursor = getCursorPos();
         setCursorPos({getCurrentWidth()/2.0f, getCurrentHeight()/2.0f});
         camera->rotation.x += mouseSpeed * dt * float(getCurrentWidth() /2.0f - cursor.x);
@@ -35,33 +34,33 @@ void cameraFly(double dt){
     );
 
     // Move forward
-    if (isKeyDown(GLFW_KEY_W)){
+    if (isKeyDown(GLFW_KEY_W)) {
         camera->position += direction * glm::vec3(dt * speed);
     }
     // Move backward
-    if (isKeyDown(GLFW_KEY_S)){
+    if (isKeyDown(GLFW_KEY_S)) {
         camera->position -= direction * glm::vec3(dt * speed);
     }
     // Strafe right
-    if (isKeyDown(GLFW_KEY_D)){
+    if (isKeyDown(GLFW_KEY_D)) {
         camera->position += right * glm::vec3(dt * speed);
     }
     // Strafe left
-    if (isKeyDown(GLFW_KEY_A)){
+    if (isKeyDown(GLFW_KEY_A)) {
         camera->position -= right * glm::vec3(dt * speed);
     }
 
-    if (isKeyDown(GLFW_KEY_SPACE)){
+    if (isKeyDown(GLFW_KEY_SPACE)) {
         camera->position += glm::vec3(0, dt * speed, 0);
     }
-    if (isKeyDown(GLFW_KEY_LEFT_SHIFT)){
+    if (isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
         camera->position -= glm::vec3(0, dt * speed, 0);
     }
 }
 
-void lockUnlock(int key, bool wasKeyPressed, double dt){
-    if (key == GLFW_KEY_ESCAPE){
-        if (wasKeyPressed && !pressed){
+void lockUnlock(int key, bool wasKeyPressed, double dt) {
+    if (key == GLFW_KEY_ESCAPE) {
+        if (wasKeyPressed && !pressed) {
             mouseLocked = !mouseLocked;
             pressed = true;
         } else if (!wasKeyPressed) {
@@ -72,48 +71,48 @@ void lockUnlock(int key, bool wasKeyPressed, double dt){
     }
 }
 
-void updateTriangle(double deltaTime, GameObject* self){
+void updateTriangle(double deltaTime, GameObject* self) {
     if (self->transform.position.y > 2) {
         self->transform.position.y = 0;
     }
     self->transform.position += vec3(0, 1*deltaTime, 0);
 }
 
-void updateBunny(double deltaTime, GameObject* self){
+void updateBunny(double deltaTime, GameObject* self) {
     if (self->transform.rotation.y > 360) {
         self->transform.rotation.y -= 360;
     }
     self->transform.rotation += vec3(0, 40*deltaTime, 0);
 }
 
-void initTriangle(GameObject* selfObject){
+void initTriangle(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, -2));
     selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png")));
     selfObject->onUpdate.push_back(&updateTriangle);
 }
 
-void initBunny(GameObject* selfObject){
+void initBunny(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0));
     std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonNorm"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     selfObject->onUpdate.push_back(&updateBunny);
 }
 
-void initBunny2(GameObject* selfObject){
+void initBunny2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-2, 0, 0));
     std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     selfObject->onUpdate.push_back(&updateBunny);
 }
 
-void initCube(GameObject* selfObject){
+void initCube(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(3, 1, 0));
     std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getProgram("bnphTexture"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     selfObject->onUpdate.push_back(&updateBunny);
 }
 
-void initTriangle3(GameObject* selfObject){
+void initTriangle3(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-0.5, -0.25, -1), glm::vec3(0), glm::vec3(0.25));
     selfObject->renderables.push_back(createQuad(getProgram("ui"), getTexture("missing")));
 }

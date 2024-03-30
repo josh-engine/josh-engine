@@ -12,11 +12,11 @@ ALCdevice* device;
 ALCcontext* context;
 glm::vec3 lpos;
 
-glm::vec3 getListenerPos(){
+glm::vec3 getListenerPos() {
     return lpos;
 }
 
-void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, glm::vec3 upVec){
+void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, glm::vec3 upVec) {
     lpos = position;
     alListener3f(AL_POSITION, position.x, position.y, position.z);
     alListener3f(AL_VELOCITY, velocity.x, velocity.y, velocity.z);
@@ -24,7 +24,7 @@ void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, g
     alListenerfv(AL_ORIENTATION, orientation);
 }
 
-void initAudio(){
+void initAudio() {
     device = alcOpenDevice(nullptr);
     if (!device) {
         std::cerr << "Failed to initiate OpenAL device!" << std::endl;
@@ -44,7 +44,7 @@ void initAudio(){
     alDistanceModel(AL_INVERSE_DISTANCE);
 }
 
-ALuint oggToBuffer(std::string filePath){
+ALuint oggToBuffer(std::string filePath) {
     int channels, sampleRate, samples;
     short* data;
     int error;

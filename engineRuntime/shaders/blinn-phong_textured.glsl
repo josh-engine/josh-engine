@@ -19,7 +19,7 @@ layout(binding = 0) uniform UBO { // JE_TRANSLATE
                                   vec3 ambience;
 };
 
-void main(){
+void main() {
     vec3 normal = normalize(vnorm);
     vec3 lightDir = vec3(-1, 1, 0);
     float distance = length(lightDir);

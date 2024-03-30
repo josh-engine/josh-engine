@@ -1,3 +1,15 @@
+/*
+ * Created by Ember Lee on 3/26/24
+ * (Mostly) finished by Ember Lee on 3/29/24
+ * Implementation based on vulkan-tutorial.org.
+ * I didn't look at a lot of reference material online, so there is definitely bound to be some problems.
+ * Final total of lines in this file: 1787 (1799 minus 12 for this comment block)
+ * OpenGL is still faster but hey at least I tried.
+ * Fix anything here if you'd like but please don't break OpenGL shader compat
+ * (and don't increase the OpenGL version again unless writing a new backend, please.)
+ * (that was in desperation and mac only supports up to 4.1.)
+ */
+
 #include "../../engineconfig.h"
 #ifdef GFX_API_VK
 #include <iostream>
@@ -122,12 +134,12 @@ const bool enableValidationLayers = true;
 
 bool framebufferResized = false;
 
-void resizeViewport(int w, int h){
+void resizeViewport(int w, int h) {
     framebufferResized = true;
 }
 
-void initGLFW(){
-    if (!glfwInit()){
+void initGLFW() {
+    if (!glfwInit()) {
         throw std::runtime_error("Vulkan: Could not initialize GLFW!");
     }
 
@@ -275,7 +287,7 @@ void createInstance() {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    if (enableValidationLayers && !platformSupportsValidationLayers()){
+    if (enableValidationLayers && !platformSupportsValidationLayers()) {
         throw std::runtime_error("Vulkan: Debug enabled, but platform does not support validation layers!");
     }
 
@@ -429,7 +441,7 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) {
 }
 
 int scoreDevice(VkPhysicalDevice device) {
-    //get the stuff
+    // get the stuff
     VkPhysicalDeviceProperties deviceProperties;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
     VkPhysicalDeviceFeatures deviceFeatures;
@@ -463,7 +475,7 @@ int scoreDevice(VkPhysicalDevice device) {
     }
 }
 
-void choosePhysicalDevice(){
+void choosePhysicalDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
@@ -497,7 +509,7 @@ void choosePhysicalDevice(){
     }
 }
 
-void createLogicalDevice(){
+void createLogicalDevice() {
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -541,7 +553,7 @@ void createLogicalDevice(){
     vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
 }
 
-void createSurface(){
+void createSurface() {
     if (glfwCreateWindowSurface(instance, *windowPtr, nullptr, &windowSurface) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create window surface!");
     }
@@ -619,7 +631,7 @@ VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlagBit
     return imageView;
 }
 
-void createImageViews(){
+void createImageViews() {
     swapchainImageViews.resize(swapchainImages.size());
 
     for (uint32_t i = 0; i < swapchainImages.size(); i++) {
@@ -712,7 +724,7 @@ void createRenderPass() {
     }
 }
 
-void createFramebuffers(){
+void createFramebuffers() {
     swapchainFramebuffers.resize(swapchainImageViews.size());
     for (size_t i = 0; i < swapchainImageViews.size(); i++) {
         std::array<VkImageView, 2> attachments = {
@@ -1026,7 +1038,7 @@ void createTextureSampler() {
     }
 }
 
-void initGFX(GLFWwindow** window){
+void initGFX(GLFWwindow** window) {
     windowPtr = window;
     initGLFW();
     createInstance();
@@ -1120,7 +1132,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     stbi_set_flip_vertically_on_load(false);
 
     stbi_uc* images[6];
-    for (int i = 0; i < 6; i++){
+    for (int i = 0; i < 6; i++) {
         images[i] = stbi_load(faces[i].c_str(), &texWidth[i], &texHeight[i], &texChannels[i], STBI_rgb_alpha);
     }
 
@@ -1143,7 +1155,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     }
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
-    for (auto & image : images){
+    for (auto & image : images) {
         stbi_image_free(image);
     }
 
@@ -1212,7 +1224,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     return id;
 }
 
-unsigned int loadTexture(std::string fileName){
+unsigned int loadTexture(std::string fileName) {
     int texWidth, texHeight, texChannels;
     unsigned int id = textureImages.size();
 
@@ -1286,7 +1298,7 @@ inline bool ends_with(std::string const & value, std::string const & ending)
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-unsigned int loadShader(const std::string file_path, int target){
+unsigned int loadShader(const std::string file_path, int target) {
     unsigned int id = shaderModuleVector.size();
     shaderModuleVector.push_back({});
 
@@ -1296,14 +1308,14 @@ unsigned int loadShader(const std::string file_path, int target){
     std::vector<unsigned int> spirv_comp;
     std::vector<char> code;
 
-    if (ends_with(file_path, ".spv")){
+    if (ends_with(file_path, ".spv")) {
         code = readFile(file_path);
         createInfo.codeSize = code.size();
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
         std::cout << "Loading " << file_path << " (compiled SPIR-V bytecode)..." << std::endl;
     } else {
         std::ifstream fileStream(file_path);
-        if (!fileStream.good()){
+        if (!fileStream.good()) {
             throw std::runtime_error("Vulkan: Could not find file \"" + file_path + "\"!");
         }
         std::stringstream buffer;
@@ -1311,7 +1323,7 @@ unsigned int loadShader(const std::string file_path, int target){
         std::string fileContents = buffer.str();
         std::cout << "Compiling " << file_path << " to SPIR-V..." << std::endl;
         bool compileSuccess = SpirvHelper::GLSLtoSPV(static_cast<VkShaderStageFlagBits>(target), &fileContents[0], spirv_comp);
-        if (!compileSuccess){
+        if (!compileSuccess) {
             throw std::runtime_error("Vulkan: Could not compile \"" + file_path + "\" to SPIR-V!");
         }
 
@@ -1326,7 +1338,7 @@ unsigned int loadShader(const std::string file_path, int target){
     return id;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth){
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth) {
     unsigned int pipelineID = pipelineLayoutVector.size();
     pipelineLayoutVector.push_back({});
     pipelineVector.push_back({});
@@ -1412,23 +1424,12 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     colorBlendAttachment.blendEnable = VK_FALSE;
-    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD; // Optional
-    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
-    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
-    colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
-    colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
     colorBlending.attachmentCount = 1;
     colorBlending.pAttachments = &colorBlendAttachment;
-    colorBlending.blendConstants[0] = 0.0f; // Optional
-    colorBlending.blendConstants[1] = 0.0f; // Optional
-    colorBlending.blendConstants[2] = 0.0f; // Optional
-    colorBlending.blendConstants[3] = 0.0f; // Optional
 
     VkPushConstantRange push_constant;
     push_constant.offset = 0;
@@ -1476,9 +1477,6 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
-
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
-    pipelineInfo.basePipelineIndex = -1; // Optional
 
     if (vkCreateGraphicsPipelines(logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipelineVector[pipelineID]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create graphics pipeline!");
@@ -1528,7 +1526,7 @@ void recreateSwapchain() {
     createFramebuffers();
 }
 
-unsigned int createVBO(Renderable* r){
+unsigned int createVBO(Renderable* r) {
     int id = vertexBuffers.size();
     vertexBuffers.push_back({});
     vertexBufferMemoryRefs.push_back({});
@@ -1608,7 +1606,7 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    for (auto execute : imGuiCalls){
+    for (auto execute : imGuiCalls) {
         execute();
     }
 
@@ -1616,8 +1614,6 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0; // Optional
-    beginInfo.pInheritanceInfo = nullptr; // Optional
 
     if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to begin recording command buffer!");
@@ -1641,7 +1637,7 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
 
     vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    for (auto r : renderables){
+    for (auto r : renderables) {
         if (r.enabled) {
             vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
                               pipelineVector[r.shaderProgram]);
@@ -1665,18 +1661,6 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
             vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, thisObjectVertexBuffer, offsets);
 
             vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);
-
-            glm::mat4 mvp;
-            /*
-            if (r.is3d){
-                mvp = _3dProj * cameraMatrix * r.objectMatrix();
-            } else {
-    #ifdef CAMERA_AFFECTS_2D
-                mvp = _2dProj * cameraMatrix * renderable.objectMatrix();
-    #else
-                mvp = _2dProj * r.objectMatrix();
-    #endif
-            }*/
 
             JEPushConstants_VK constants = {r.objectMatrix(), r.rotate};
 
@@ -1740,7 +1724,7 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
     currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void deinitGFX(){
+void deinitGFX() {
     cleanupSwapchain();
 
     ImGui_ImplVulkan_Shutdown();
@@ -1751,19 +1735,19 @@ void deinitGFX(){
 
     vkDestroySampler(logicalDevice, textureSampler, nullptr);
 
-    for (auto descriptorPool : perTextureDescriptorPools){
+    for (auto descriptorPool : perTextureDescriptorPools) {
         vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
     }
 
-    for (auto textureImageView : textureImageViews){
+    for (auto textureImageView : textureImageViews) {
         vkDestroyImageView(logicalDevice, textureImageView, nullptr);
     }
 
-    for (auto texture : textureImages){
+    for (auto texture : textureImages) {
         vkDestroyImage(logicalDevice, texture, nullptr);
     }
 
-    for (auto textureMem : textureMemoryRefs){
+    for (auto textureMem : textureMemoryRefs) {
         vkFreeMemory(logicalDevice, textureMem, nullptr);
     }
 

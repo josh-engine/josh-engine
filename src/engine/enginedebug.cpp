@@ -16,19 +16,19 @@ std::unordered_map<void*, std::string> functionNameMap;
 #endif //DEBUG_ENABLED
 
 
-void initDebugTools(){
+void initDebugTools() {
 #ifdef DEBUG_ENABLED
     putImGuiCall(&setupImGuiWindow);
 #endif //DEBUG_ENABLED
 }
 
-void registerFunctionToDebug(std::string name, void* function){
+void registerFunctionToDebug(std::string name, void* function) {
 #ifdef DEBUG_ENABLED
     functionNameMap.insert({function, name});
 #endif //DEBUG_ENABLED
 }
 
-void setupImGuiWindow(){
+void setupImGuiWindow() {
 #ifdef DEBUG_ENABLED
     ImGui::Begin("Debug Menu");
 
@@ -44,7 +44,7 @@ void setupImGuiWindow(){
 
     ImGui::End();
 
-    if (gmObjView){
+    if (gmObjView) {
         ImGui::Begin("GameObjects");
 
         std::map<std::string, GameObject> gameObjects = getGameObjects();
@@ -57,7 +57,7 @@ void setupImGuiWindow(){
             ImGui::EndCombo();
         }
 
-        if (!selectedGameObject.empty()){
+        if (!selectedGameObject.empty()) {
             GameObject gmObj = gameObjects.at(selectedGameObject);
 
             ImGui::Text("Transform");
@@ -91,7 +91,7 @@ void setupImGuiWindow(){
         ImGui::End();
     }
 
-    if (statView){
+    if (statView) {
         ImGui::Begin("Stats");
 
         ImGui::Text("Frame time: %ims (~%i fps)", (int)getFrameTime(), (int)(1/(getFrameTime()/1000)));

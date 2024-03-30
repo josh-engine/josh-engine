@@ -25,7 +25,7 @@ layout(location = 1) out vec3 vcol;
 layout(location = 2) out vec2 uv;
 layout(location = 3) out vec3 vnorm;
 
-void main(){
+void main() {
     gl_Position = (_3dProj * viewMatrix * model) * vec4(vertexPosition_modelspace,1);
     vec4 pos = (model * vec4(vertexPosition_modelspace,1));
     vec4 normalv4 = (normal * vec4(vertexNormal,1));
