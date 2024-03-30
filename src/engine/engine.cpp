@@ -161,9 +161,10 @@ int getCurrentHeight() {
     return windowHeight;
 }
 
-void framebuffer_size_callback(GLFWwindow* unused, int width, int height) {
-    windowWidth = width/2;
-    windowHeight = height/2;
+void framebuffer_size_callback(GLFWwindow* windowInstance, int unused1, int unused2) {
+    // Because of displays like Apple's Retina having multiple pixel values per pixel (or some bs like that)
+    // the framebuffer is not always the window size. We need to make sure the real window size is saved.
+    glfwGetWindowSize(windowInstance, &windowWidth, &windowHeight);
     resizeViewport(windowWidth, windowHeight);
 }
 

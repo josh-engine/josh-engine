@@ -21,7 +21,9 @@ unsigned int vaoID;
 std::vector<JEShaderProgram_GL41> shaderProgramVector;
 
 void resizeViewport(int w, int h) {
-    glViewport(0, 0, w, h);
+    int width, height;
+    glfwGetFramebufferSize(*windowPtr, &width, &height);
+    glViewport(0, 0, width, height);
 }
 
 unsigned int loadCubemap(std::vector<std::string> faces) {
