@@ -471,7 +471,7 @@ void choosePhysicalDevice(){
 #ifdef DEBUG_ENABLED
         throw std::runtime_error("Vulkan: Failed to find GPUs with Vulkan support! Either gfx_vk.cpp is screwed up, or your computer doesn't have Vulkan support.");
 #else
-        throw std::runtime_error("Vulkan: Failed to find GPUs with Vulkan support! If you are a user reading this error, please tell the developer to compile a version with GFX_API_OPENGL33 as the Graphics API flag in src/engine/engineconfig.h.");
+        throw std::runtime_error("Vulkan: Failed to find GPUs with Vulkan support! If you are a user reading this error, please tell the developer to compile a version with GFX_API_OPENGL41 as the Graphics API flag in src/engine/engineconfig.h.");
 #endif
     }
 
@@ -1764,6 +1764,7 @@ void deinitGFX(){
     for (auto vertexBuffer : vertexBuffers) {
         vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
     }
+
     for (auto vertexMemoryAlloc : vertexBufferMemoryRefs) {
         vkFreeMemory(logicalDevice, vertexMemoryAlloc, nullptr);
     }
@@ -1771,6 +1772,7 @@ void deinitGFX(){
     for (auto indexBuffer : indexBuffers) {
         vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
     }
+
     for (auto indexMemoryAlloc : indexBufferMemoryRefs) {
         vkFreeMemory(logicalDevice, indexMemoryAlloc, nullptr);
     }
@@ -1786,6 +1788,7 @@ void deinitGFX(){
     for (auto graphicsPipelines : pipelineVector) {
         vkDestroyPipeline(logicalDevice, graphicsPipelines, nullptr);
     }
+
     for (auto graphicsPipelineLayout : pipelineLayoutVector) {
         vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
     }

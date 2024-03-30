@@ -361,4 +361,4 @@ void deinitGFX(){
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
-#endif //GFX_API_OPENGL33
+#endif //GFX_API_OPENGL41
