@@ -25,7 +25,7 @@
 
 #define DO_SKYBOX
 
-//#define GFX_API_OPENGL41
-#define GFX_API_VK
+#define GFX_API_OPENGL41
+//#define GFX_API_VK
 
 #endif //JOSHENGINE_ENGINECONFIG_H
