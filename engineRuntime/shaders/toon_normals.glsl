@@ -1,26 +1,23 @@
-#version 330 core
+// JE_TRANSLATE
+#version 420
 
-// Interpolated values from the vertex shaders
-in vec2 UV;
-in vec3 vcol;
-in vec3 vnorm;
-in vec3 vpos;
+layout(location = 3) in vec3 vnorm;
 
-out vec3 color;
+layout(location = 0) out vec3 color;
 
-uniform sampler2D textureSampler;
-
-void main(){
+void main() {
     vec3 normalDirection = normalize(vnorm);
     vec3 lightDirection = normalize(vec3(-1, 1, 0));
     float attenuation = 1.0;
 
+    vec3 vnormCol = (normalDirection + vec3(1.0))/2.0;
+
     // default: unlit
-    color = normalDirection - vec3(0.3);
+    color = vnormCol - vec3(0.3);
 
     // low priority: diffuse illumination
     if (attenuation * max(0.0, dot(normalDirection, lightDirection)) >= 0.5)
     {
-        color = normalDirection;
+        color = vnormCol;
     }
 }

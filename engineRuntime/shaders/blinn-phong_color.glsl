@@ -1,16 +1,23 @@
-#version 330 core
+// JE_TRANSLATE
+#version 420
 
-in vec2 UV;
-in vec3 vcol;
-in vec3 vnorm;
-in vec3 vpos;
+layout(location = 0) in vec3 vpos;
+layout(location = 1) in vec3 vcol;
+layout(location = 2) in vec2 uv;
+layout(location = 3) in vec3 vnorm;
 
-out vec3 color;
+layout(location = 0) out vec3 color;
 
-uniform sampler2D textureSampler;
-uniform vec3 ambience;
+layout(binding = 0) uniform UBO { // JE_TRANSLATE
+                                  mat4 viewMatrix;
+                                  mat4 _2dProj;
+                                  mat4 _3dProj;
+                                  vec3 cameraPos;
+                                  vec3 cameraDir;
+                                  vec3 ambience;
+};
 
-void main(){
+void main() {
     vec3 normal = normalize(vnorm);
     vec3 lightDir = vec3(-1, 1, 0);
     float distance = length(lightDir);

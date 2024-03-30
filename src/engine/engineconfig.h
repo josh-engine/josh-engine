@@ -17,11 +17,15 @@
 #define AMBIENT_BLUE 0.8f
 #define AMBIENT_GREEN 0.75f
 
+//#define AMBIENT_RED 0.0f
+//#define AMBIENT_BLUE 0.0f
+//#define AMBIENT_GREEN 0.0f
+
 #define CLEAR_ALPHA 1.0f
 
 #define DO_SKYBOX
 
-//#define CAMERA_AFFECTS_2D
-#define GFX_API_OPENGL33
+//#define GFX_API_OPENGL41
+#define GFX_API_VK
 
 #endif //JOSHENGINE_ENGINECONFIG_H

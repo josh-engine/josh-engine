@@ -18,35 +18,35 @@ public:
     glm::vec3 rotation;
     glm::vec3 scale;
 
-    Transform(){
+    Transform() {
         position = vec3(0.0f);
         rotation = vec3(0.0f);
         scale = vec3(1.0f);
     }
 
-    Transform(glm::vec3 pos){
+    Transform(glm::vec3 pos) {
         position = pos;
         rotation = vec3(0.0f);
         scale = vec3(1.0f);
     }
 
-    Transform(glm::vec3 pos, glm::vec3 rot){
+    Transform(glm::vec3 pos, glm::vec3 rot) {
         position = pos;
         rotation = rot;
         scale = vec3(1.0f);
     }
 
-    Transform(glm::vec3 pos, glm::vec3 rot, glm::vec3 sca){
+    Transform(glm::vec3 pos, glm::vec3 rot, glm::vec3 sca) {
         position = pos;
         rotation = rot;
         scale = sca;
     }
 
-    glm::mat4 getTranslateMatrix(){
+    glm::mat4 getTranslateMatrix() {
         return glm::translate(glm::mat4(1.0f), position);
     }
 
-    glm::mat4 getRotateMatrix(){
+    glm::mat4 getRotateMatrix() {
         glm::vec3 radianRotation = glm::radians(rotation);
         auto rotationMatrix = glm::identity<mat4>();
         //TODO: There HAS to be a better way to do this.
@@ -56,7 +56,7 @@ public:
         return rotationMatrix;
     }
 
-    glm::mat4 getScaleMatrix(){
+    glm::mat4 getScaleMatrix() {
         return glm::scale(glm::mat4(1.0f), scale);
     }
 };
@@ -67,12 +67,12 @@ public:
     std::vector<void (*)(double dt, GameObject* g)> onUpdate = {};
     std::vector<Renderable> renderables = {};
 
-    explicit GameObject(void (*initFunc)(GameObject *g)){
+    explicit GameObject(void (*initFunc)(GameObject *g)) {
         transform = Transform();
         initFunc(this);
     }
 
-    GameObject(Transform t, void (*initFunc)(GameObject *g)){
+    GameObject(Transform t, void (*initFunc)(GameObject *g)) {
         transform = t;
         initFunc(this);
     }
@@ -95,12 +95,12 @@ bool isKeyDown(int key);
 GLFWwindow** getWindow();
 glm::vec2 getCursorPos();
 void setCursorPos(glm::vec2 pos);
-GLuint createTextureWithName(std::string name, std::string fileName);
-GLuint createTexture(std::string folderPath, std::string fileName);
-GLuint getTexture(std::string name);
+unsigned int createTextureWithName(std::string name, std::string fileName);
+unsigned int createTexture(std::string folderPath, std::string fileName);
+unsigned int getTexture(std::string name);
 bool textureExists(std::string name);
-GLuint getProgram(std::string name);
-void registerProgram(std::string name, std::string vertex, std::string fragment);
+unsigned int getProgram(std::string name);
+void registerProgram(std::string name, std::string vertex, std::string fragment, bool testDepth);
 double getFrameTime();
 int getRenderableCount();
 void setMouseVisible(bool vis);

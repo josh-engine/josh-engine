@@ -17,7 +17,7 @@ public:
     glm::vec3 position;
     glm::vec3 velocity;
     bool isLooping;
-    Sound(glm::vec3 pos, glm::vec3 vel, std::string filePath, bool loop, float halfVolumeDistance, float min, float max, float gain){
+    Sound(glm::vec3 pos, glm::vec3 vel, std::string filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
         isLooping = loop;
         position = pos;
         velocity = vel;
@@ -40,11 +40,11 @@ public:
         alSource3f(sourceID, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
         alSourcei(sourceID, AL_LOOPING, isLooping);
     }
-    void play(){
+    void play() {
         alSourceQueueBuffers(sourceID, 1, &bufferID);
         alSourcePlay(sourceID);
     }
-    void stop(){
+    void stop() {
         alSourceStop(sourceID);
     }
 };

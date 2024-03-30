@@ -1,19 +1,19 @@
-#version 330 core
+// JE_TRANSLATE
+#version 420
 
 // Interpolated values from the vertex shaders
-in vec2 UV;
-in vec3 vcol;
-in vec3 vnorm;
-in vec3 vpos;
+layout(location = 0) in vec3 vpos;
+layout(location = 1) in vec3 vcol;
+layout(location = 2) in vec2 uv;
+layout(location = 3) in vec3 vnorm;
 
 // Ouput data
-out vec3 color;
+layout(location = 0) out vec3 color;
 
 // Values that stay constant for the whole mesh.
-uniform sampler2D textureSampler;
-//uniform float alpha;
+layout(binding = 1) uniform sampler2D textureSampler;
 
-void main(){
+void main() {
     // Output color = color of the texture at the specified UV
-    color = texture(textureSampler, UV).rgb*vcol;
+    color = texture(textureSampler, uv).rgb*vcol;
 }
