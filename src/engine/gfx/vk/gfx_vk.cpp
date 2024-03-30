@@ -30,8 +30,6 @@
 #include "../imgui/imgui_impl_vulkan.h"
 #include "../imgui/imgui.h"
 
-glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
-
 GLFWwindow** windowPtr;
 
 VkInstance instance;
@@ -1584,7 +1582,7 @@ unsigned int createVBO(Renderable* r) {
     return id;
 }
 
-void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls) {
+void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls){
     _3dProj[1][1] *= -1;
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -1627,12 +1625,12 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
     renderPassInfo.renderArea.extent = swapchainExtent;
 
     std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{AMBIENT_RED, AMBIENT_GREEN, AMBIENT_BLUE, CLEAR_ALPHA}};
+    clearValues[0].color = {{CLEAR_RED, CLEAR_GREEN, CLEAR_BLUE, CLEAR_ALPHA}};
     clearValues[1].depthStencil = {1.0f, 0};
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    JEUniformBufferObject_VK ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, ambient};
+    JEUniformBufferObject_VK ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
     memcpy(uniformBuffersMapped[currentFrame], &ubo, sizeof(ubo));
 
     vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);

@@ -17,6 +17,8 @@ layout(binding = 0) uniform UBO { // JE_TRANSLATE
     mat4 _3dProj;
     vec3 cameraPos;
     vec3 cameraDir;
+    vec3 sunDir;
+    vec3 sunColor;
     vec3 ambience;
 };
 

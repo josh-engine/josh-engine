@@ -22,6 +22,8 @@ struct JEShaderProgram_GL41 {
     int location_3dProj;
     int location_cameraPos;
     int location_cameraDir;
+    int location_sunDir;
+    int location_sunColor;
     int location_ambience;
     unsigned int glShaderProgramID;
 
@@ -34,13 +36,15 @@ struct JEShaderProgram_GL41 {
         location_3dProj = glGetUniformLocation(glShader, "_3dProj");
         location_cameraPos = glGetUniformLocation(glShader, "cameraPos");
         location_cameraDir = glGetUniformLocation(glShader, "cameraDir");
+        location_sunDir = glGetUniformLocation(glShader, "sunDir");
+        location_sunColor = glGetUniformLocation(glShader, "sunColor");
         location_ambience = glGetUniformLocation(glShader, "ambience");
         glShaderProgramID = glShader;
     }
 };
 
 void initGFX(GLFWwindow** window);
-void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls);
+void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls);
 void deinitGFX();
 unsigned int loadTexture(std::string fileName);
 unsigned int loadShader(const std::string file_path, int target);

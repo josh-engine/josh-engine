@@ -120,6 +120,9 @@ void initTriangle3(GameObject* selfObject) {
 int main() {
     init();
 
+    //     sun-ish direction from skybox, slightly warm white
+    setSunProperties(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0.9));
+
     setMouseVisible(false); // Mouse starts locked
 
     Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);

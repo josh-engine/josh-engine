@@ -9,17 +9,19 @@ layout(location = 3) in vec3 vnorm;
 layout(location = 0) out vec3 color;
 
 layout(binding = 0) uniform UBO { // JE_TRANSLATE
-                                  mat4 viewMatrix;
-                                  mat4 _2dProj;
-                                  mat4 _3dProj;
-                                  vec3 cameraPos;
-                                  vec3 cameraDir;
-                                  vec3 ambience;
+    mat4 viewMatrix;
+    mat4 _2dProj;
+    mat4 _3dProj;
+    vec3 cameraPos;
+    vec3 cameraDir;
+    vec3 sunDir;
+    vec3 sunColor;
+    vec3 ambience;
 };
 
 void main() {
     vec3 normal = normalize(vnorm);
-    vec3 lightDir = vec3(-1, 1, 0);
+    vec3 lightDir = normalize(sunDir);
     float distance = length(lightDir);
     distance = distance * distance;
     lightDir = normalize(lightDir);
@@ -36,5 +38,5 @@ void main() {
         specular = pow(specAngle, 1);
     }
 
-    color = ambience + vcol * lambertian * vec3(1.0);
+    color = ambience + vcol * lambertian * sunColor;
 }

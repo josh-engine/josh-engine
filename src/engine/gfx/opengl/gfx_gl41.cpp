@@ -16,7 +16,6 @@
 
 GLFWwindow** windowPtr;
 unsigned int vaoID;
-glm::vec3 ambient(glm::max(AMBIENT_RED - 0.5f, 0.1f), glm::max(AMBIENT_GREEN - 0.5f, 0.1f), glm::max(AMBIENT_BLUE - 0.5f, 0.1f));
 
 // Same ID system as used in Vulkan implementation, but used atop OpenGL now.
 std::vector<JEShaderProgram_GL41> shaderProgramVector;
@@ -254,7 +253,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     return id;
 }
 
-void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls) {
+void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls) {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -294,6 +293,8 @@ void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradi
             glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_3dProj, 1, GL_FALSE, &_3dProj[0][0]);
             glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_cameraPos, 1, &camerapos[0]);
             glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_cameraDir, 1, &cameradir[0]);
+            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_sunDir, 1, &sundir[0]);
+            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_sunColor, 1, &suncol[0]);
             glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_ambience, 1, &ambient[0]);
 
             glBindTexture(GL_TEXTURE_2D, renderable.texture);

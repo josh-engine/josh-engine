@@ -13,13 +13,9 @@
 
 #define DEBUG_ENABLED
 
-#define AMBIENT_RED 0.75f
-#define AMBIENT_BLUE 0.8f
-#define AMBIENT_GREEN 0.75f
-
-//#define AMBIENT_RED 0.0f
-//#define AMBIENT_BLUE 0.0f
-//#define AMBIENT_GREEN 0.0f
+#define CLEAR_RED 0.75f
+#define CLEAR_GREEN 0.75f
+#define CLEAR_BLUE 0.8f
 
 #define CLEAR_ALPHA 1.0f
 

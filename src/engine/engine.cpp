@@ -31,6 +31,23 @@ std::vector<void (*)()> imGuiCalls;
 
 int renderableCount;
 
+glm::vec3 sunDirection(0, 1, 0);
+glm::vec3 sunColor(0, 0, 0);
+glm::vec3 ambient(glm::max(CLEAR_RED - 0.5f, 0.1f), glm::max(CLEAR_GREEN - 0.5f, 0.1f), glm::max(CLEAR_BLUE - 0.5f, 0.1f));
+
+void setSunProperties(glm::vec3 position, glm::vec3 color){
+    sunDirection = position;
+    sunColor = color;
+}
+
+void setAmbient(float r, float g, float b){
+    ambient = glm::vec3(r, g, b);
+}
+
+void setAmbient(glm::vec3 rgb){
+    ambient = rgb;
+}
+
 void setMouseVisible(bool vis) {
     // Disabled-2 = normal, so if visible is true subtract 2 from mode to get normal.
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED-((int)vis)*2);
@@ -294,7 +311,7 @@ void mainLoop() {
 #elif defined(GFX_API_VK) // why the heck is elifdef a C++23 thing? i would have expected that to exist way earlier...
         _2dProj = glm::ortho(-scaledWidth,scaledWidth,scaledHeight,-scaledHeight,0.0f,1.0f);
 #endif
-        renderFrame(cameraMatrix, camera.position, direction, _2dProj, glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f), renderables, imGuiCalls);
+        renderFrame(camera.position, direction, sunDirection, sunColor, ambient, cameraMatrix, _2dProj, glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f), renderables, imGuiCalls);
 
         if (doFrameTimeCheck)
             frameTime = glfwGetTime()*1000 - frameDrawStart;

@@ -104,5 +104,8 @@ void registerProgram(std::string name, std::string vertex, std::string fragment,
 double getFrameTime();
 int getRenderableCount();
 void setMouseVisible(bool vis);
+void setSunProperties(glm::vec3 position, glm::vec3 color);
+void setAmbient(float r, float g, float b);
+void setAmbient(glm::vec3 rgb);
 
 #endif //JOSHENGINE_ENGINE_H

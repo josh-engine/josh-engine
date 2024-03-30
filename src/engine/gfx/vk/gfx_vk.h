@@ -29,11 +29,13 @@ struct JEUniformBufferObject_VK {
     alignas(16) glm::mat4 _3dProj;
     alignas(16) glm::vec3 cameraPos;
     alignas(16) glm::vec3 cameraDir;
+    alignas(16) glm::vec3 sunDir;
+    alignas(16) glm::vec3 sunPos;
     alignas(16) glm::vec3 ambience;
 };
 
 void initGFX(GLFWwindow** window);
-void renderFrame(glm::mat4 cameraMatrix, glm::vec3 camerapos, glm::vec3 cameradir, glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls);
+void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls);
 void deinitGFX();
 unsigned int loadTexture(std::string fileName);
 unsigned int loadShader(const std::string file_path, int target);
