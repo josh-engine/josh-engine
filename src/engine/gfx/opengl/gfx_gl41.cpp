@@ -1,13 +1,10 @@
 #include "../../engineconfig.h"
 #ifdef GFX_API_OPENGL41
+#include "gfx_gl41.h"
 #include <iostream>
-#include <GLFW/glfw3.h>
 #include <OpenGL/gl3.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <fstream>
 #include <sstream>
-#include "gfx_gl41.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "../../../stb/stb_image.h"
 #include "../imgui/imgui.h"
@@ -15,12 +12,11 @@
 #include "../imgui/imgui_impl_opengl3.h"
 
 GLFWwindow** windowPtr;
-unsigned int vaoID;
 
-// Same ID system as used in Vulkan implementation, but used atop OpenGL now.
+// Same ID system as used in Vulkan implementation, but used atop OpenGL now. The irony is wild.
 std::vector<JEShaderProgram_GL41> shaderProgramVector;
 
-void resizeViewport(int w, int h) {
+void resizeViewport() {
     int width, height;
     glfwGetFramebufferSize(*windowPtr, &width, &height);
     glViewport(0, 0, width, height);
@@ -59,7 +55,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     return textureID;
 }
 
-unsigned int loadTexture(std::string fileName) {
+unsigned int loadTexture(const std::string& fileName) {
     stbi_set_flip_vertically_on_load(true);
     unsigned int texture;
     glGenTextures(1, &texture);
@@ -120,12 +116,15 @@ void initGFX(GLFWwindow** window) {
     // glEnable(GL_BLEND);
     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // Enable SRGB framebuffer to attempt Vulkan parity
     glEnable(GL_FRAMEBUFFER_SRGB);
 
 #ifndef DO_SKYBOX
     glClearColor(AMBIENT_RED, AMBIENT_GREEN, AMBIENT_BLUE, CLEAR_ALPHA);
 #endif
     // Vertex Array
+    // local function member since this thing is pretty much just fire and forget type beat in our case
+    unsigned int vaoID;
     glGenVertexArrays(1, &vaoID); //reserve an ID for our VAO
     glBindVertexArray(vaoID); // bind VAO
 
@@ -136,18 +135,13 @@ void initGFX(GLFWwindow** window) {
     glEnableVertexAttribArray(3);
 
     // Set up ImGui
-    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-
-// Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForOpenGL(*window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+    ImGui_ImplGlfw_InitForOpenGL(*window, true);
     ImGui_ImplOpenGL3_Init();
 }
 
-unsigned int loadShader(const std::string file_path, int target) {
+unsigned int loadShader(const std::string& file_path, int target) {
     // Create the shader
     unsigned int shaderID = glCreateShader(target);
 
@@ -165,13 +159,12 @@ unsigned int loadShader(const std::string file_path, int target) {
     }
 
     if (shaderCode.starts_with("// JE_TRANSLATE\n#version 420")) {
-        std::cout << "Translating " << file_path << "... (JE_TRANSLATE, Vulkan GLSL 4.2 -> OpenGL GLSL 4.1)" << std::endl;
+        std::cout << "Translating " << file_path << "... (JE_TRANSLATE, Vulkan GLSL 420 -> OpenGL GLSL 410)" << std::endl;
         std::string tempShaderCode = shaderCode;
         tempShaderCode.replace(0, 28, "#version 410");
         std::vector<std::string> lines;
         std::string line;
-        for (int i = 0; i < tempShaderCode.length(); i++) {
-            char character = tempShaderCode[i];
+        for (char character : tempShaderCode) {
             if (character != '\n')
                 line += character;
             else {
@@ -193,7 +186,7 @@ unsigned int loadShader(const std::string file_path, int target) {
                     } while (!line.starts_with('}'));
                     continue;
                 } else {
-                    int layoutEnd = line.find("uniform");
+                    unsigned long layoutEnd = line.find("uniform");
                     line.replace(0, layoutEnd, "");
                 }
             }
@@ -201,21 +194,19 @@ unsigned int loadShader(const std::string file_path, int target) {
         }
     }
 
-    GLint Result = GL_FALSE;
     int InfoLogLength;
 
     // Compile Shader
     std::cout << "Compiling " << file_path << "..." << std::endl;
     char const * sourcePointer = shaderCode.c_str();
-    glShaderSource(shaderID, 1, &sourcePointer, NULL);
+    glShaderSource(shaderID, 1, &sourcePointer, nullptr);
     glCompileShader(shaderID);
 
     // Check Shader
-    glGetShaderiv(shaderID, GL_COMPILE_STATUS, &Result);
     glGetShaderiv(shaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
     if ( InfoLogLength > 0 ) {
         std::vector<char> shaderErrorMessage(InfoLogLength+1);
-        glGetShaderInfoLog(shaderID, InfoLogLength, NULL, &shaderErrorMessage[0]);
+        glGetShaderInfoLog(shaderID, InfoLogLength, nullptr, &shaderErrorMessage[0]);
         printf("\e[0;33m%s\e[0m\n", &shaderErrorMessage[0]);
     }
 
@@ -223,7 +214,6 @@ unsigned int loadShader(const std::string file_path, int target) {
 }
 
 unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth) {
-    GLint Result = GL_FALSE;
     int InfoLogLength;
 
     // Link the program
@@ -235,11 +225,10 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     // Check the program
     std::cout << "Testing program..." << std::endl;
-    glGetProgramiv(ProgramID, GL_LINK_STATUS, &Result);
     glGetProgramiv(ProgramID, GL_INFO_LOG_LENGTH, &InfoLogLength);
     if ( InfoLogLength > 0 ) {
         std::vector<char> ProgramErrorMessage(InfoLogLength+1);
-        glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
+        glGetProgramInfoLog(ProgramID, InfoLogLength, nullptr, &ProgramErrorMessage[0]);
         // \e characters are yellow escape and reset so warnings are different color
         printf("\e[0;33m%s\e[0m\n", &ProgramErrorMessage[0]);
     }
@@ -255,7 +244,11 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     return id;
 }
 
-void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls) {
+void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
+    // According to Khronos.org's wiki page, clearing both buffers
+    // will always be faster even while drawing skybox.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -264,106 +257,106 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         execute();
     }
 
-    // According to Khronos.org's wiki page, clearing both buffers
-    // will always be faster even while drawing skybox.
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    ImGui::Render();
 
-    unsigned int currentProgram = -1; // eheheheh, i love doing funny things.
+    int currentProgram = -1, currentTexture = -1;
     bool currentDepth = false;
 
-    for (auto renderable : renderables) {
-        if (renderable.enabled) {
-            if (shaderProgramVector[renderable.shaderProgram].testDepth != currentDepth) {
-                currentDepth = shaderProgramVector[renderable.shaderProgram].testDepth;
-                if (shaderProgramVector[renderable.shaderProgram].testDepth) {
+    for (auto r : renderables) {
+        if (r.enabled) {
+            if (shaderProgramVector[r.shaderProgram].testDepth != currentDepth) {
+                currentDepth = shaderProgramVector[r.shaderProgram].testDepth;
+                if (shaderProgramVector[r.shaderProgram].testDepth) {
                     glEnable(GL_DEPTH_TEST);
                 } else {
                     glDisable(GL_DEPTH_TEST);
                 }
             }
 
-            if (shaderProgramVector[renderable.shaderProgram].glShaderProgramID != currentProgram) {
-                currentProgram = shaderProgramVector[renderable.shaderProgram].glShaderProgramID;
+            if (shaderProgramVector[r.shaderProgram].glShaderProgramID != currentProgram) {
+                currentProgram = static_cast<int>(shaderProgramVector[r.shaderProgram].glShaderProgramID);
                 glUseProgram(currentProgram);
             }
 
-            glm::mat4 model = renderable.objectMatrix();
-            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_model, 1, GL_FALSE, &model[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_normal, 1, GL_FALSE, &renderable.rotate[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_view, 1, GL_FALSE, &cameraMatrix[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_2dProj, 1, GL_FALSE, &_2dProj[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[renderable.shaderProgram].location_3dProj, 1, GL_FALSE, &_3dProj[0][0]);
-            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_cameraPos, 1, &camerapos[0]);
-            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_cameraDir, 1, &cameradir[0]);
-            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_sunDir, 1, &sundir[0]);
-            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_sunColor, 1, &suncol[0]);
-            glUniform3fv(shaderProgramVector[renderable.shaderProgram].location_ambience, 1, &ambient[0]);
+            if (r.texture != currentTexture) {
+                glBindTexture(GL_TEXTURE_2D, r.texture);
+                currentTexture = static_cast<int>(r.texture);
+            }
 
-            glBindTexture(GL_TEXTURE_2D, renderable.texture);
+            glm::mat4 model = r.objectMatrix();
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model, 1, GL_FALSE, &model[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_normal, 1, GL_FALSE, &r.rotate[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_view, 1, GL_FALSE, &cameraMatrix[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_2dProj, 1, GL_FALSE, &_2dProj[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_3dProj, 1, GL_FALSE, &_3dProj[0][0]);
+            glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraPos, 1, &camerapos[0]);
+            glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraDir, 1, &cameradir[0]);
+            glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunDir, 1, &sundir[0]);
+            glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunColor, 1, &suncol[0]);
+            glUniform3fv(shaderProgramVector[r.shaderProgram].location_ambience, 1, &ambient[0]);
 
-            glBindBuffer(GL_ARRAY_BUFFER, renderable.vboID);
+            glBindBuffer(GL_ARRAY_BUFFER, r.vboID);
             glVertexAttribPointer(
                     0,                  // attribute
                     3,                  // size
                     GL_FLOAT,           // type
                     GL_FALSE,           // normalized?
                     0,                  // stride
-                    (void*)0            // array buffer offset
+                    nullptr
             );
 
-            glBindBuffer(GL_ARRAY_BUFFER, renderable.cboID);
+            glBindBuffer(GL_ARRAY_BUFFER, r.cboID);
             glVertexAttribPointer(
                     1,                                // attribute
                     3,                                // size
                     GL_FLOAT,                         // type
                     GL_FALSE,                         // normalized?
                     0,                                // stride
-                    (void*)0                          // array buffer offset
+                    nullptr
             );
 
-            glBindBuffer(GL_ARRAY_BUFFER, renderable.tboID);
+            glBindBuffer(GL_ARRAY_BUFFER, r.tboID);
             glVertexAttribPointer(
                     2,                                // attribute
                     2,                                // size
                     GL_FLOAT,                         // type
                     GL_FALSE,                         // normalized?
                     0,                                // stride
-                    (void*)0                          // array buffer offset
+                    nullptr
             );
 
-            glBindBuffer(GL_ARRAY_BUFFER, renderable.nboID);
+            glBindBuffer(GL_ARRAY_BUFFER, r.nboID);
             glVertexAttribPointer(
                     3,                                // attribute
                     3,                                // size
                     GL_FLOAT,                         // type
                     GL_FALSE,                         // normalized?
                     0,                                // stride
-                    (void*)0                          // array buffer offset
+                    nullptr
             );
 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderable.iboID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r.iboID);
 
             glDrawElements(
                     GL_TRIANGLES,      // mode
-                    renderable.indices.size(),    // count
+                    static_cast<GLsizei>(r.indices.size()),    // count
                     GL_UNSIGNED_INT,   // type
-                    (void*)0           // element array buffer offset
+                    nullptr           // element array buffer offset
             );
         }
     }
 
-    ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(*windowPtr);
 }
 
 void deinitGFX() {
-    glfwDestroyWindow(*windowPtr);
-    glfwTerminate();
-
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    glfwDestroyWindow(*windowPtr);
+    glfwTerminate();
 }
 #endif //GFX_API_OPENGL41

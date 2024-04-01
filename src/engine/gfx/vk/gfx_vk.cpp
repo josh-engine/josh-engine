@@ -12,12 +12,11 @@
 
 #include "../../engineconfig.h"
 #ifdef GFX_API_VK
+#include "gfx_vk.h"
 #include <iostream>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <glm/glm.hpp>
-#include "gfx_vk.h"
 #include <map>
 #include <set>
 #include <fstream>
@@ -28,7 +27,6 @@
 #include "../../../stb/stb_image.h"
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_vulkan.h"
-#include "../imgui/imgui.h"
 
 GLFWwindow** windowPtr;
 
@@ -105,7 +103,7 @@ struct QueueFamilyIndices {
 };
 
 struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
+    VkSurfaceCapabilitiesKHR capabilities{};
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
@@ -132,7 +130,7 @@ const bool enableValidationLayers = true;
 
 bool framebufferResized = false;
 
-void resizeViewport(int w, int h) {
+void resizeViewport() {
     framebufferResized = true;
 }
 
@@ -291,7 +289,7 @@ void createInstance() {
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
     if (enableValidationLayers) {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+        createInfo.enabledLayerCount = validationLayers.size();
         createInfo.ppEnabledLayerNames = validationLayers.data();
 
         debugCreateInfo = {};
@@ -451,7 +449,7 @@ int scoreDevice(VkPhysicalDevice device) {
     score += ((int)(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))*1000;
 
     // big textures go brrrr
-    score += deviceProperties.limits.maxImageDimension2D/25;
+    score += (int)(deviceProperties.limits.maxImageDimension2D/25);
 
     QueueFamilyIndices indices = findQueueFamilies(device);
 
@@ -642,9 +640,8 @@ VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTil
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
 
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-            return format;
-        } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features ||
+           (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)) {
             return format;
         }
     }
@@ -710,7 +707,7 @@ void createRenderPass() {
     std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    renderPassInfo.attachmentCount = attachments.size();
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
@@ -733,7 +730,7 @@ void createFramebuffers() {
         VkFramebufferCreateInfo framebufferInfo{};
         framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.attachmentCount = attachments.size();
         framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = swapchainExtent.width;
         framebufferInfo.height = swapchainExtent.height;
@@ -810,7 +807,7 @@ void createDescriptorSetLayout() {
     std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, samplerLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+    layoutInfo.bindingCount = bindings.size();
     layoutInfo.pBindings = bindings.data();
 
     if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
@@ -841,7 +838,7 @@ void createDescriptorPool(VkDescriptorPool* pool, VkDescriptorPoolCreateFlagBits
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.poolSizeCount = poolSizes.size();
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     poolInfo.flags = flags;
@@ -894,7 +891,7 @@ void createDescriptorSets(unsigned int textureID) {
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pImageInfo = &imageInfo;
 
-        vkUpdateDescriptorSets(logicalDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
     }
 }
 
@@ -1064,8 +1061,8 @@ void initGFX(GLFWwindow** window) {
 
     createDescriptorPool(&imGuiDescriptorPool, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
+    IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
     ImGui_ImplGlfw_InitForVulkan(*windowPtr, true);
 
     ImGui_ImplVulkan_InitInfo init_info = {};
@@ -1222,7 +1219,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     return id;
 }
 
-unsigned int loadTexture(std::string fileName) {
+unsigned int loadTexture(const std::string& fileName) {
     int texWidth, texHeight, texChannels;
     unsigned int id = textureImages.size();
 
@@ -1284,33 +1281,38 @@ static std::vector<char> readFile(const std::string& filename) {
     size_t fileSize = (size_t) file.tellg();
     std::vector<char> buffer(fileSize);
     file.seekg(0);
-    file.read(buffer.data(), fileSize);
+    file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
     file.close();
 
     return buffer;
 }
 
-inline bool ends_with(std::string const & value, std::string const & ending)
+inline bool ends_with(std::string const& value, std::string const & ending)
 {
     if (ending.size() > value.size()) return false;
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-unsigned int loadShader(const std::string file_path, int target) {
+unsigned int loadShader(const std::string& file_path, int target) {
     unsigned int id = shaderModuleVector.size();
     shaderModuleVector.push_back({});
 
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
+    // Shaders only compile if this is defined outside the if statement.
+    // This was developed on an M2 MacBook, running MoltenVK 0.2.2013 (according to vulkan.gpuinfo.org)
+    // I don't know why this is, but it happens.
     std::vector<unsigned int> spirv_comp;
+    // For the sake of "hope it works" because I don't want to go actually manually compile SPIR-V,
+    // I'm leaving this outside of the if statement too.
     std::vector<char> code;
 
     if (ends_with(file_path, ".spv")) {
+        std::cout << "Loading " << file_path << " (compiled SPIR-V bytecode)..." << std::endl;
         code = readFile(file_path);
         createInfo.codeSize = code.size();
         createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-        std::cout << "Loading " << file_path << " (compiled SPIR-V bytecode)..." << std::endl;
     } else {
         std::ifstream fileStream(file_path);
         if (!fileStream.good()) {
@@ -1324,7 +1326,6 @@ unsigned int loadShader(const std::string file_path, int target) {
         if (!compileSuccess) {
             throw std::runtime_error("Vulkan: Could not compile \"" + file_path + "\" to SPIR-V!");
         }
-
         createInfo.codeSize = spirv_comp.size() * sizeof(uint32_t);
         createInfo.pCode = reinterpret_cast<const uint32_t*>(spirv_comp.data());
     }
@@ -1365,16 +1366,17 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+    dynamicState.dynamicStateCount = dynamicStates.size();
     dynamicState.pDynamicStates = dynamicStates.data();
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
     auto bindingDescription = JEInterleavedVertex::getBindingDescription();
     auto attributeDescriptions = JEInterleavedVertex::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
@@ -1502,12 +1504,12 @@ void cleanupSwapchain() {
     vkDestroyImage(logicalDevice, depthImage, nullptr);
     vkFreeMemory(logicalDevice, depthImageMemory, nullptr);
 
-    for (size_t i = 0; i < swapchainFramebuffers.size(); i++) {
-        vkDestroyFramebuffer(logicalDevice, swapchainFramebuffers[i], nullptr);
+    for (auto & swapchainFramebuffer : swapchainFramebuffers) {
+        vkDestroyFramebuffer(logicalDevice, swapchainFramebuffer, nullptr);
     }
 
-    for (size_t i = 0; i < swapchainImageViews.size(); i++) {
-        vkDestroyImageView(logicalDevice, swapchainImageViews[i], nullptr);
+    for (auto & swapchainImageView : swapchainImageViews) {
+        vkDestroyImageView(logicalDevice, swapchainImageView, nullptr);
     }
 
     vkDestroySwapchainKHR(logicalDevice, swapchain, nullptr);
@@ -1525,13 +1527,13 @@ void recreateSwapchain() {
 }
 
 unsigned int createVBO(Renderable* r) {
-    int id = vertexBuffers.size();
+    unsigned int id = vertexBuffers.size();
     vertexBuffers.push_back({});
     vertexBufferMemoryRefs.push_back({});
     indexBuffers.push_back({});
     indexBufferMemoryRefs.push_back({});
 
-    VkDeviceSize bufferSize = sizeof(r->interleavedVertices[0]) * r->interleavedVertices.size();
+    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex) * r->interleavedVertices.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize,
@@ -1550,13 +1552,14 @@ unsigned int createVBO(Renderable* r) {
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                  vertexBuffers[id],
                  vertexBufferMemoryRefs[id]);
+
     copyBuffer(stagingBuffer, vertexBuffers[id], bufferSize);
 
     vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 
     // Index buffers
-    bufferSize = sizeof(r->indices[0]) * r->indices.size();
+    bufferSize = sizeof(unsigned int) * r->indices.size();
 
     createBuffer(bufferSize,
                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1582,7 +1585,7 @@ unsigned int createVBO(Renderable* r) {
     return id;
 }
 
-void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, std::vector<Renderable> renderables, std::vector<void (*)()> imGuiCalls){
+void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls){
     _3dProj[1][1] *= -1;
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -1627,7 +1630,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {{CLEAR_RED, CLEAR_GREEN, CLEAR_BLUE, CLEAR_ALPHA}};
     clearValues[1].depthStencil = {1.0f, 0};
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    renderPassInfo.clearValueCount = clearValues.size();
     renderPassInfo.pClearValues = clearValues.data();
 
     JEUniformBufferObject_VK ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
@@ -1635,39 +1638,45 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
     vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(swapchainExtent.width);
+    viewport.height = static_cast<float>(swapchainExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport);
+
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swapchainExtent;
+    vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
+
+    int activeProgram = -1, activeDescriptorSet = -1;
+
     for (auto r : renderables) {
         if (r.enabled) {
-            vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              pipelineVector[r.shaderProgram]);
+            if (r.shaderProgram != activeProgram) {
+                vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                  pipelineVector[r.shaderProgram]);
+                activeProgram = static_cast<int>(r.shaderProgram);
+            }
 
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = static_cast<float>(swapchainExtent.width);
-            viewport.height = static_cast<float>(swapchainExtent.height);
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            vkCmdSetViewport(commandBuffers[currentFrame], 0, 1, &viewport);
-
-            VkRect2D scissor{};
-            scissor.offset = {0, 0};
-            scissor.extent = swapchainExtent;
-            vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
+            if (r.texture != activeDescriptorSet){
+                vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        pipelineLayoutVector[r.shaderProgram], 0, 1,
+                                        &perTextureDescriptorSets[r.texture][currentFrame], 0, nullptr);
+                activeDescriptorSet = static_cast<int>(r.texture);
+            }
 
             VkBuffer thisObjectVertexBuffer[] = {vertexBuffers[r.vboID]};
             VkDeviceSize offsets[] = {0};
             vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, thisObjectVertexBuffer, offsets);
-
             vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);
 
             JEPushConstants_VK constants = {r.objectMatrix(), r.rotate};
-
             vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[r.shaderProgram],
                                VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
-
-            vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipelineLayoutVector[r.shaderProgram], 0, 1,
-                                    &perTextureDescriptorSets[r.texture][currentFrame], 0, nullptr);
 
             vkCmdDrawIndexed(commandBuffers[currentFrame], r.indices.size(), 1, 0, 0, 0);
         }
@@ -1680,18 +1689,17 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         throw std::runtime_error("Vulkan: Failed to record command buffer!");
     }
 
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
+    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
     VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
-
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -1699,13 +1707,12 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         throw std::runtime_error("Vulkan: Failed to submit draw command buffer!");
     }
 
+    VkSwapchainKHR swapchains[] = {swapchain};
+
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
-
-    VkSwapchainKHR swapchains[] = {swapchain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapchains;
     presentInfo.pImageIndices = &imageIndex;
@@ -1719,7 +1726,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         throw std::runtime_error("Vulkan: Failed to present swap chain image!");
     }
 
-    currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    currentFrame = (++currentFrame) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void deinitGFX() {

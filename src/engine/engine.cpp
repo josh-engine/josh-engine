@@ -165,7 +165,7 @@ void framebuffer_size_callback(GLFWwindow* windowInstance, int unused1, int unus
     // Because of displays like Apple's Retina having multiple pixel values per pixel (or some bs like that)
     // the framebuffer is not always the window size. We need to make sure the real window size is saved.
     glfwGetWindowSize(windowInstance, &windowWidth, &windowHeight);
-    resizeViewport(windowWidth, windowHeight);
+    resizeViewport();
 }
 
 void init() {
