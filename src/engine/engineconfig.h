@@ -9,7 +9,7 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
-#define ENGINE_VERSION_STRING "in-dev 24w12a"
+#define ENGINE_VERSION_STRING "in-dev 24w14a"
 
 #define DEBUG_ENABLED
 
