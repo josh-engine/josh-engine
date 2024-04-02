@@ -34,9 +34,15 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
         unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
         if (data)
         {
+#ifdef GL41_SRGB_VK_PARITY
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                          0, GL_SRGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
             );
+#else
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+#endif
             stbi_image_free(data);
         }
         else
@@ -70,7 +76,11 @@ unsigned int loadTexture(const std::string& fileName) {
     unsigned char *data = stbi_load(fileName.c_str(), &width, &height, &nrChannels, 0);
     if (data)
     {
+#ifdef GL41_SRGB_VK_PARITY
         glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8-4+nrChannels, width, height, 0, GL_RGBA-4+nrChannels, GL_UNSIGNED_BYTE, data);
+#else
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA-4+nrChannels, width, height, 0, GL_RGBA-4+nrChannels, GL_UNSIGNED_BYTE, data);
+#endif
         glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
@@ -93,6 +103,9 @@ void initGFX(GLFWwindow** window) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // fucking macOS
+#ifdef MSAA_ENABLED
+    glfwWindowHint(GLFW_SAMPLES, MSAA_SAMPLES);
+#endif
 
     *windowPtr = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -116,11 +129,17 @@ void initGFX(GLFWwindow** window) {
     // glEnable(GL_BLEND);
     // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+#ifdef GL41_SRGB_VK_PARITY
     // Enable SRGB framebuffer to attempt Vulkan parity
     glEnable(GL_FRAMEBUFFER_SRGB);
+#endif
+
+#ifdef MSAA_ENABLED
+    glEnable(GL_MULTISAMPLE);
+#endif
 
 #ifndef DO_SKYBOX
-    glClearColor(AMBIENT_RED, AMBIENT_GREEN, AMBIENT_BLUE, CLEAR_ALPHA);
+    glClearColor(CLEAR_RED, CLEAR_GREEN, CLEAR_BLUE, CLEAR_ALPHA);
 #endif
     // Vertex Array
     // local function member since this thing is pretty much just fire and forget type beat in our case

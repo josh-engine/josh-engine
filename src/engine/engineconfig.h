@@ -24,4 +24,9 @@
 #define GFX_API_OPENGL41
 //#define GFX_API_VK
 
+#define GL41_SRGB_VK_PARITY
+
+#define MSAA_ENABLED
+#define MSAA_SAMPLES 4
+
 #endif //JOSHENGINE_ENGINECONFIG_H
