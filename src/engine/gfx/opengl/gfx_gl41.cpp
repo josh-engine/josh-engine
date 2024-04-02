@@ -244,6 +244,10 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     return id;
 }
 
+// Slight performance boost, OpenGL's state machine persists between renderFrame calls.
+int currentProgram = -1, currentTexture = -1;
+bool currentDepth = false;
+
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     // According to Khronos.org's wiki page, clearing both buffers
     // will always be faster even while drawing skybox.
@@ -259,23 +263,20 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
     ImGui::Render();
 
-    int currentProgram = -1, currentTexture = -1;
-    bool currentDepth = false;
-
     for (auto r : renderables) {
         if (r.enabled) {
             if (shaderProgramVector[r.shaderProgram].testDepth != currentDepth) {
-                currentDepth = shaderProgramVector[r.shaderProgram].testDepth;
                 if (shaderProgramVector[r.shaderProgram].testDepth) {
                     glEnable(GL_DEPTH_TEST);
                 } else {
                     glDisable(GL_DEPTH_TEST);
                 }
+                currentDepth = shaderProgramVector[r.shaderProgram].testDepth;
             }
 
             if (shaderProgramVector[r.shaderProgram].glShaderProgramID != currentProgram) {
+                glUseProgram(shaderProgramVector[r.shaderProgram].glShaderProgramID);
                 currentProgram = static_cast<int>(shaderProgramVector[r.shaderProgram].glShaderProgramID);
-                glUseProgram(currentProgram);
             }
 
             if (r.texture != currentTexture) {
