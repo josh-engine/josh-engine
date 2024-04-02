@@ -3,7 +3,7 @@
  * (Mostly) finished by Ember Lee on 3/29/24
  * Implementation based on vulkan-tutorial.org.
  * I didn't look at a lot of reference material online, so there is definitely bound to be some problems.
- * Final total of lines in this file: 1787 (1799 minus 12 for this comment block)
+ * Final total of lines in this file: 1953 (1965 minus 12 for this comment block)
  * OpenGL is still faster but hey at least I tried.
  * Fix anything here if you'd like but please don't break OpenGL shader compat
  * (and don't increase the OpenGL version again unless writing a new backend, please.)
@@ -94,6 +94,12 @@ std::vector<VkSampler> textureSamplers;
 
 VkDescriptorPool imGuiDescriptorPool;
 
+VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+
+VkImage colorImage;
+VkDeviceMemory colorImageMemory;
+VkImageView colorImageView;
+
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
@@ -133,6 +139,33 @@ bool framebufferResized = false;
 
 void resizeViewport() {
     framebufferResized = true;
+}
+
+VkSampleCountFlagBits getMaxSamples() {
+    VkPhysicalDeviceProperties physicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+    VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+    if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
+    if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
+    if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
+    if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
+    if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
+    if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
+
+    return VK_SAMPLE_COUNT_1_BIT;
+}
+
+VkSampleCountFlagBits getClosestSampleCount(){
+#ifdef MSAA_ENABLED
+    unsigned int maxSamples = getMaxSamples();
+    if (maxSamples > MSAA_SAMPLES){
+        return static_cast<VkSampleCountFlagBits>(MSAA_SAMPLES);
+    } else {
+        return static_cast<VkSampleCountFlagBits>(maxSamples);
+    }
+#endif
+    return VK_SAMPLE_COUNT_1_BIT;
 }
 
 void initGLFW() {
@@ -493,9 +526,11 @@ void choosePhysicalDevice() {
         int score = scoreDevice(device);
         candidates.insert({score, device});
     }
+
     // Check if the best candidate is suitable at all
     if (candidates.rbegin()->first > 0) {
         physicalDevice = candidates.rbegin()->second;
+        msaaSamples = getClosestSampleCount();
 #ifdef DEBUG_ENABLED
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
@@ -661,7 +696,7 @@ VkFormat findDepthFormat() {
 void createRenderPass() {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapchainImageFormat;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachment.samples = msaaSamples;
 
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -670,7 +705,7 @@ void createRenderPass() {
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
@@ -678,7 +713,7 @@ void createRenderPass() {
 
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = findDepthFormat();
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.samples = msaaSamples;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -690,11 +725,26 @@ void createRenderPass() {
     depthAttachmentRef.attachment = 1;
     depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+    VkAttachmentDescription colorAttachmentResolve{};
+    colorAttachmentResolve.format = swapchainImageFormat;
+    colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
+    colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmentResolveRef{};
+    colorAttachmentResolveRef.attachment = 2;
+    colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
     subpass.pDepthStencilAttachment = &depthAttachmentRef;
+    subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -705,7 +755,7 @@ void createRenderPass() {
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
+    std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = attachments.size();
@@ -723,9 +773,10 @@ void createRenderPass() {
 void createFramebuffers() {
     swapchainFramebuffers.resize(swapchainImageViews.size());
     for (size_t i = 0; i < swapchainImageViews.size(); i++) {
-        std::array<VkImageView, 2> attachments = {
-                swapchainImageViews[i],
-                depthImageView
+        std::array<VkImageView, 3> attachments = {
+                colorImageView,
+                depthImageView,
+                swapchainImageViews[i]
         };
 
         VkFramebufferCreateInfo framebufferInfo{};
@@ -896,7 +947,7 @@ void createDescriptorSets(unsigned int textureID) {
     }
 }
 
-void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int mipLevels) {
+void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int mipLevels, VkSampleCountFlagBits samples) {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = imageType;
@@ -909,7 +960,7 @@ void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkForma
     imageInfo.tiling = tiling;
     imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     imageInfo.usage = usage;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.samples = samples;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &image) != VK_SUCCESS) {
@@ -1001,9 +1052,16 @@ void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayo
 
 void createDepthResources() {
     VkFormat depthFormat = findDepthFormat();
-    createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory, 1);
+    createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory, 1, msaaSamples);
     depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1, 1);
+}
+
+void createColorResources() {
+    VkFormat colorFormat = swapchainImageFormat;
+
+    createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage, colorImageMemory, 1, msaaSamples);
+    colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
 void createTextureSampler(unsigned int id, unsigned int mipLevels) {
@@ -1049,6 +1107,7 @@ void initGFX(GLFWwindow** window) {
     createSyncObjects();
 
     createDepthResources();
+    createColorResources();
     createFramebuffers();
 
     createUniformBuffers();
@@ -1074,7 +1133,7 @@ void initGFX(GLFWwindow** window) {
     init_info.Subpass = 0;
     init_info.MinImageCount = swapchainSupport.capabilities.minImageCount;
     init_info.ImageCount = swapchainSupport.capabilities.minImageCount+1;
-    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.MSAASamples = msaaSamples;
     init_info.Allocator = nullptr;
     init_info.CheckVkResultFn = nullptr;
     ImGui_ImplVulkan_Init(&init_info);
@@ -1342,7 +1401,7 @@ unsigned int loadTexture(const std::string& fileName) {
 
     stbi_image_free(pixels);
 
-    createImage(texWidth, texHeight, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImages[textureID], textureMemoryRefs[textureID], textureMipLevels[textureID]);
+    createImage(texWidth, texHeight, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImages[textureID], textureMemoryRefs[textureID], textureMipLevels[textureID], VK_SAMPLE_COUNT_1_BIT);
 
     transitionImageLayout(textureImages[textureID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, textureMipLevels[textureID]);
 
@@ -1514,7 +1573,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    multisampling.rasterizationSamples = msaaSamples;
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -1599,6 +1658,10 @@ void cleanupSwapchain() {
     vkDestroyImage(logicalDevice, depthImage, nullptr);
     vkFreeMemory(logicalDevice, depthImageMemory, nullptr);
 
+    vkDestroyImageView(logicalDevice, colorImageView, nullptr);
+    vkDestroyImage(logicalDevice, colorImage, nullptr);
+    vkFreeMemory(logicalDevice, colorImageMemory, nullptr);
+
     for (auto & swapchainFramebuffer : swapchainFramebuffers) {
         vkDestroyFramebuffer(logicalDevice, swapchainFramebuffer, nullptr);
     }
@@ -1618,6 +1681,7 @@ void recreateSwapchain() {
     createSwapchain();
     createImageViews();
     createDepthResources();
+    createColorResources();
     createFramebuffers();
 }
 
