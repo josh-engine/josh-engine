@@ -266,6 +266,13 @@ int currentProgram = -1, currentTexture = -1;
 bool currentDepth = false, transparency = false, backfaceCull = true;
 
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
+    // Disable transparency so we don't fail clearing the depth buffer
+    if (transparency){
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        transparency = false;
+    }
+
     // According to Khronos.org's wiki page, clearing both buffers
     // will always be faster even while drawing skybox.
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

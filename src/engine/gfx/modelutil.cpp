@@ -4,10 +4,11 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <utility>
 #include "renderable.h"
 #include "../engine.h"
 
-Renderable createQuad(unsigned int shader, unsigned int texture) {
+Renderable createQuad(unsigned int shader, unsigned int texture, bool manualDepthSort) {
     return Renderable(
             {-1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},    //verts
             { 1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},   //colors
@@ -15,8 +16,13 @@ Renderable createQuad(unsigned int shader, unsigned int texture) {
             { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
             { 0, 1, 2,     1, 3, 2 }, //indices
             shader,    //shader program
-            texture    //texture
+            texture,    //texture
+            manualDepthSort //used for transparency
     );
+}
+
+Renderable createQuad(unsigned int shader, unsigned int texture) {
+    return createQuad(shader, texture, false);
 }
 
 class repackVertexObject {
@@ -95,7 +101,7 @@ Renderable repackRenderable(Renderable r) {
         normals.push_back(vert.nml.z);
     }
 
-    return {vertices, colors, uvs, normals, indices, r.shaderProgram, r.texture};
+    return {vertices, colors, uvs, normals, indices, r.shaderProgram, r.texture, r.manualDepthSort};
 }
 
 std::vector<std::string> splitStr(std::string in, char del) {
@@ -119,7 +125,7 @@ std::vector<std::string> splitStr(std::string in, char del) {
     return v2;
 }
 
-std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram) {
+std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram, bool manualDepthSort) {
     std::ifstream fileStream(path);
     if (!fileStream.good()) {
         return {{}};
@@ -136,6 +142,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram) {
     currentRenderable.enabled = true;
     currentRenderable.texture = 0;
     currentRenderable.shaderProgram = shaderProgram;
+    currentRenderable.manualDepthSort = manualDepthSort;
 
     // Stupid solution to everything starting at 1.
     std::vector<glm::vec3> modelVertices = {{0, 0, 0}};
@@ -253,6 +260,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram) {
                     std::cout << "\"" << split[1] << "\" not found in texture map! Please load the associated texture to the map under the name of the .mtl file." << std::endl;
                 }
                 currentRenderable.shaderProgram = shaderProgram;
+                currentRenderable.manualDepthSort = manualDepthSort;
             }
             else if (split[0] == "vp" || split[0] == "l") {
                 std::cerr << "OBJ model at " << path << " uses unsupported parameter space vertex or line element! Cancelling load." << std::endl;
@@ -264,4 +272,8 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram) {
     }
     renderableList.push_back(repackRenderable(currentRenderable));
     return renderableList;
+}
+
+std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram) {
+    return loadObj(std::move(path), shaderProgram, false);
 }

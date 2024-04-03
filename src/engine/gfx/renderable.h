@@ -81,6 +81,8 @@ public:
 
     bool enabled;
 
+    bool manualDepthSort;
+
 #ifdef GFX_API_OPENGL41
     unsigned int vboID; // Positions
     unsigned int cboID; // Colors
@@ -102,7 +104,7 @@ public:
         enabled = false;
     }
 
-    Renderable(std::vector<float> verts, std::vector<float> cols, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex) {
+    Renderable(std::vector<float> verts, std::vector<float> cols, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex, bool manualDepthSort) {
         enabled = true;
         vertices = std::move(verts);
         colors = std::move(cols);
@@ -111,6 +113,7 @@ public:
         indices = std::move(ind);
         shaderProgram = shid; // Once in a blue moon do you realize what you just named a variable... I'm keeping it.
         texture = tex;
+        this->manualDepthSort = manualDepthSort;
 
 #ifdef GFX_API_OPENGL41
         // Vertex Buffer

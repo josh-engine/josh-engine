@@ -287,6 +287,7 @@ void mainLoop() {
 
 
         std::vector<Renderable> renderables;
+        std::map<double, Renderable> individualSortRenderables;
 
 #ifdef DO_SKYBOX
         skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
@@ -297,9 +298,17 @@ void mainLoop() {
             for (auto renderable : item.second.renderables) {
                 if (renderable.enabled) {
                     renderable.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
-                    renderables.push_back(renderable);
+                    if (renderable.manualDepthSort)
+                        individualSortRenderables.insert({-glm::distance(camera.position, item.second.transform.position), renderable});
+                    else
+                        renderables.push_back(renderable);
                 }
             }
+        }
+
+        // eheheheh ordered map
+        for (auto r : individualSortRenderables){
+            renderables.push_back(r.second);
         }
 
         renderableCount = renderables.size();

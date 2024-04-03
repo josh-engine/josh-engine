@@ -87,13 +87,13 @@ void updateBunny(double deltaTime, GameObject* self) {
 
 void initTriangle(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, -2));
-    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png")));
+    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png"), true));
     selfObject->onUpdate.push_back(&updateTriangle);
 }
 
 void initTriangle2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, 1));
-    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png")));
+    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png"), true));
     selfObject->onUpdate.push_back(&updateTriangle);
 }
 
@@ -149,7 +149,7 @@ int main() {
 
     registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", true, false, false);
     registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", true, false, false);
-    registerProgram("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", false, false, false);
+    registerProgram("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", true, false, false);
     registerProgram("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", true, false, false);
     registerProgram("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", true, true, true);
 

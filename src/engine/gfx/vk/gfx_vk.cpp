@@ -1491,7 +1491,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
     return id;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported) {
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported, bool doubleSided) {
     unsigned int pipelineID = pipelineLayoutVector.size();
     pipelineLayoutVector.push_back({});
     pipelineVector.push_back({});
@@ -1565,7 +1565,11 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
 
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    if (doubleSided){
+        rasterizer.cullMode = VK_CULL_MODE_NONE;
+    } else {
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    }
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     rasterizer.depthBiasEnable = VK_FALSE;
@@ -1603,7 +1607,11 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = testDepth;
-    depthStencil.depthWriteEnable = VK_TRUE;
+    if (transparencySupported) {
+        depthStencil.depthWriteEnable = VK_FALSE;
+    } else {
+        depthStencil.depthWriteEnable = VK_TRUE;
+    }
     depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f;
