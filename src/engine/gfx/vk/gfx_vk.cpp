@@ -1792,6 +1792,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     if (vkBeginCommandBuffer(commandBuffers[currentFrame], &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to begin recording command buffer!");
@@ -1833,13 +1834,10 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
     for (auto r : renderables) {
         if (r.enabled) {
-            if (r.shaderProgram != activeProgram) {
+            if (r.shaderProgram != activeProgram || r.texture != activeDescriptorSet) {
                 vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   pipelineVector[r.shaderProgram]);
                 activeProgram = static_cast<int>(r.shaderProgram);
-            }
-
-            if (r.texture != activeDescriptorSet){
                 vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         pipelineLayoutVector[r.shaderProgram], 0, 1,
                                         &perTextureDescriptorSets[r.texture][currentFrame], 0, nullptr);
