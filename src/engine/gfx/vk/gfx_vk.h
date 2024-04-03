@@ -39,7 +39,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 void deinitGFX();
 unsigned int loadTexture(const std::string& fileName);
 unsigned int loadShader(const std::string& file_path, int target);
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth);
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 unsigned int createVBO(Renderable* r);

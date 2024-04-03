@@ -125,9 +125,7 @@ void initGFX(GLFWwindow** window) {
     glCullFace(GL_BACK);
 
     // Set up blending
-    // UPDATE TRANSPARENCY IS EVIL AND FRAMERATE DROPS TO HELL
-    // glEnable(GL_BLEND);
-    // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 #ifdef GL41_SRGB_VK_PARITY
     // Enable SRGB framebuffer to attempt Vulkan parity
@@ -232,7 +230,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
     return shaderID;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth) {
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported, bool doubleSided) {
     int InfoLogLength;
 
     // Link the program
@@ -258,14 +256,14 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     std::cout << "Success!" << std::endl;
 
     unsigned int id = shaderProgramVector.size();
-    shaderProgramVector.emplace_back(ProgramID, testDepth);
+    shaderProgramVector.emplace_back(ProgramID, testDepth, transparencySupported, doubleSided);
 
     return id;
 }
 
 // Slight performance boost, OpenGL's state machine persists between renderFrame calls.
 int currentProgram = -1, currentTexture = -1;
-bool currentDepth = false;
+bool currentDepth = false, transparency = false, backfaceCull = true;
 
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     // According to Khronos.org's wiki page, clearing both buffers
@@ -291,6 +289,26 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                     glDisable(GL_DEPTH_TEST);
                 }
                 currentDepth = shaderProgramVector[r.shaderProgram].testDepth;
+            }
+
+            if (shaderProgramVector[r.shaderProgram].doubleSided == backfaceCull){
+                if (shaderProgramVector[r.shaderProgram].doubleSided) {
+                    glDisable(GL_CULL_FACE);
+                } else {
+                    glEnable(GL_CULL_FACE);
+                }
+                backfaceCull = !shaderProgramVector[r.shaderProgram].doubleSided;
+            }
+
+            if (shaderProgramVector[r.shaderProgram].transparencySupported != transparency){
+                if (shaderProgramVector[r.shaderProgram].transparencySupported){
+                    glEnable(GL_BLEND);
+                    glDepthMask(GL_FALSE);
+                } else {
+                    glDisable(GL_BLEND);
+                    glDepthMask(GL_TRUE);
+                }
+                transparency = shaderProgramVector[r.shaderProgram].transparencySupported;
             }
 
             if (shaderProgramVector[r.shaderProgram].glShaderProgramID != currentProgram) {

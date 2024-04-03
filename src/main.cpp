@@ -91,6 +91,12 @@ void initTriangle(GameObject* selfObject) {
     selfObject->onUpdate.push_back(&updateTriangle);
 }
 
+void initTriangle2(GameObject* selfObject) {
+    selfObject->transform = Transform(glm::vec3(0, 0, 1));
+    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png")));
+    selfObject->onUpdate.push_back(&updateTriangle);
+}
+
 void initBunny(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0));
     std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonNorm"));
@@ -100,6 +106,13 @@ void initBunny(GameObject* selfObject) {
 
 void initBunny2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-2, 0, 0));
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"));
+    selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
+    selfObject->onUpdate.push_back(&updateBunny);
+}
+
+void initBunny3(GameObject* selfObject) {
+    selfObject->transform = Transform(glm::vec3(0, 0, -4));
     std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     selfObject->onUpdate.push_back(&updateBunny);
@@ -134,20 +147,22 @@ int main() {
     registerFunctionToDebug("updateBunny", (void*)(&updateBunny));
     registerFunctionToDebug("updateTriangle", (void*)(&updateTriangle));
 
-    registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", true);
-    registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", true);
-    registerProgram("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", false);
-    registerProgram("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", true);
-    registerProgram("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex.glsl", true);
+    registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", true, false, false);
+    registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", true, false, false);
+    registerProgram("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", false, false, false);
+    registerProgram("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", true, false, false);
+    registerProgram("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", true, true, true);
 
     createTexture("./textures/", "uv_tex.png");
     createTextureWithName("cube_texture", "./textures/cubetex.png");
 
     putGameObject("triangle_test", GameObject(&initTriangle));
+    putGameObject("triangle_test_2", GameObject(&initTriangle2));
     putGameObject("bunny", GameObject(&initBunny));
     putGameObject("bunny2", GameObject(&initBunny2));
+    putGameObject("bunny3", GameObject(&initBunny3));
     putGameObject("cube", GameObject(&initCube));
-    putGameObject("triangle_test_3", GameObject(&initTriangle3));
+    putGameObject("ui_item", GameObject(&initTriangle3));
 
     mainLoop();
 

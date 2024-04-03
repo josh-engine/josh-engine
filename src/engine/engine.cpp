@@ -73,10 +73,10 @@ void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
-void registerProgram(std::string name, std::string vertex, std::string fragment, bool testDepth) {
+void registerProgram(std::string name, std::string vertex, std::string fragment, bool testDepth, bool transparencySupported, bool doubleSided) {
     unsigned int vertID = loadShader(std::move(vertex), JE_VERTEX_SHADER);
     unsigned int fragID = loadShader(std::move(fragment), JE_FRAGMENT_SHADER);
-    programs.insert({name, createProgram(vertID, fragID, testDepth)});
+    programs.insert({name, createProgram(vertID, fragID, testDepth, transparencySupported, doubleSided)});
 }
 
 unsigned int getProgram(std::string name) {
@@ -185,7 +185,7 @@ void init() {
 
 #ifdef DO_SKYBOX
     // Skybox init
-    registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl", false);
+    registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl", false, false, false);
     skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
     if (!skybox.enabled) {
         std::cerr << "Essential engine file missing." << std::endl;

@@ -15,6 +15,9 @@
 
 struct JEShaderProgram_GL41 {
     bool testDepth;
+    bool transparencySupported;
+    bool doubleSided;
+
     int location_model;
     int location_normal;
     int location_view;
@@ -25,10 +28,13 @@ struct JEShaderProgram_GL41 {
     int location_sunDir;
     int location_sunColor;
     int location_ambience;
+
     unsigned int glShaderProgramID;
 
-    JEShaderProgram_GL41(unsigned int glShader, bool testDepth) {
+    JEShaderProgram_GL41(unsigned int glShader, bool testDepth, bool transparencySupported, bool doubleSided) {
         this->testDepth = testDepth;
+        this->transparencySupported = transparencySupported;
+        this->doubleSided = doubleSided;
         location_model = glGetUniformLocation(glShader, "model");
         location_normal = glGetUniformLocation(glShader, "normal");
         location_view = glGetUniformLocation(glShader, "viewMatrix");
@@ -48,7 +54,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 void deinitGFX();
 unsigned int loadTexture(const std::string& fileName);
 unsigned int loadShader(const std::string& file_path, int target);
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth);
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported, bool doubleSided);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 

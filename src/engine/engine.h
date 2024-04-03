@@ -100,7 +100,7 @@ unsigned int createTexture(std::string folderPath, std::string fileName);
 unsigned int getTexture(std::string name);
 bool textureExists(std::string name);
 unsigned int getProgram(std::string name);
-void registerProgram(std::string name, std::string vertex, std::string fragment, bool testDepth);
+void registerProgram(std::string name, std::string vertex, std::string fragment, bool testDepth, bool transparencySupported, bool doubleSided);
 double getFrameTime();
 int getRenderableCount();
 void setMouseVisible(bool vis);
