@@ -15,6 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <utility>
+#include <queue>
 #include "gfx/modelutil.h"
 #include "enginedebug.h"
 
@@ -223,6 +224,8 @@ Transform* cameraAccess() {
     return &camera;
 }
 
+auto compareLambda = [](std::pair<double, Renderable> left, std::pair<double, Renderable> right){return left.first < right.first;};
+
 void mainLoop() {
     camera = Transform(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
     // Initial Field of View
@@ -285,9 +288,8 @@ void mainLoop() {
             frameDrawStart = glfwGetTime()*1000;
         }
 
-
         std::vector<Renderable> renderables;
-        std::map<double, Renderable> individualSortRenderables;
+        std::priority_queue<std::pair<double, Renderable>, std::deque<std::pair<double, Renderable>>, decltype(compareLambda)> individualSortRenderables;
 
 #ifdef DO_SKYBOX
         skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
@@ -299,16 +301,18 @@ void mainLoop() {
                 if (renderable.enabled) {
                     renderable.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
                     if (renderable.manualDepthSort)
-                        individualSortRenderables.insert({-glm::distance(camera.position, item.second.transform.position), renderable});
+                        individualSortRenderables.push(std::make_pair(glm::distance(camera.position, item.second.transform.position), renderable));
                     else
                         renderables.push_back(renderable);
                 }
             }
         }
 
-        // eheheheh ordered map
-        for (auto r : individualSortRenderables){
+        int a = individualSortRenderables.size();
+        for (int i = 0; i < a; i++){
+            std::pair<double, Renderable> r = individualSortRenderables.top();
             renderables.push_back(r.second);
+            individualSortRenderables.pop();
         }
 
         renderableCount = renderables.size();

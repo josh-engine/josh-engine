@@ -8,6 +8,7 @@
 #include <al.h>
 #include <string>
 
+void setVolume(float volume);
 ALuint oggToBuffer(std::string filePath);
 
 class Sound {

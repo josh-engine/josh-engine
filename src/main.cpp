@@ -134,7 +134,7 @@ int main() {
     init();
 
     //     sun-ish direction from skybox, slightly warm white
-    setSunProperties(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0.9));
+    setSunProperties(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0.85));
 
     setMouseVisible(false); // Mouse starts locked
 

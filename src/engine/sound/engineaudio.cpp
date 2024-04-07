@@ -12,6 +12,10 @@ ALCdevice* device;
 ALCcontext* context;
 glm::vec3 lpos;
 
+void setVolume(float volume) {
+    alListenerf(AL_GAIN, volume);
+}
+
 glm::vec3 getListenerPos() {
     return lpos;
 }
