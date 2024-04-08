@@ -47,7 +47,7 @@ void setupImGuiWindow() {
     if (gmObjView) {
         ImGui::Begin("GameObjects");
 
-        std::map<std::string, GameObject> gameObjects = getGameObjects();
+        std::unordered_map<std::string, GameObject> gameObjects = getGameObjects();
 
         if (ImGui::BeginCombo("GameObject", selectedGameObject.c_str(), 0)) {
             for (auto object: gameObjects) {

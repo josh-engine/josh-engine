@@ -22,7 +22,7 @@
 GLFWwindow* window;
 std::vector<void (*)(double dt)> onUpdate;
 std::vector<void (*)(int key, bool pressed, double dt)> onKey;
-std::map<std::string, GameObject> gameObjects;
+std::unordered_map<std::string, GameObject> gameObjects;
 Transform camera;
 bool keys[GLFW_KEY_LAST];
 Renderable skybox;
@@ -66,7 +66,7 @@ double getFrameTime() {
     return frameTime;
 }
 
-std::map<std::string, GameObject> getGameObjects() {
+std::unordered_map<std::string, GameObject> getGameObjects() {
     return gameObjects;
 }
 

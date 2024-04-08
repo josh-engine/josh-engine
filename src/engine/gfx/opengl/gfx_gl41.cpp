@@ -262,7 +262,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 }
 
 // Slight performance boost, OpenGL's state machine persists between renderFrame calls.
-int currentProgram = -1, currentTexture = -1;
+int currentTexture = -1;
 bool currentDepth = false, transparency = false, backfaceCull = true;
 
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
@@ -272,6 +272,9 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         glDepthMask(GL_TRUE);
         transparency = false;
     }
+
+    // Can't persist program because uniforms change each frame.
+    int currentProgram = -1;
 
     // According to Khronos.org's wiki page, clearing both buffers
     // will always be faster even while drawing skybox.
@@ -320,6 +323,16 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
             if (shaderProgramVector[r.shaderProgram].glShaderProgramID != currentProgram) {
                 glUseProgram(shaderProgramVector[r.shaderProgram].glShaderProgramID);
+
+                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_view, 1, GL_FALSE, &cameraMatrix[0][0]);
+                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_2dProj, 1, GL_FALSE, &_2dProj[0][0]);
+                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_3dProj, 1, GL_FALSE, &_3dProj[0][0]);
+                glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraPos, 1, &camerapos[0]);
+                glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraDir, 1, &cameradir[0]);
+                glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunDir, 1, &sundir[0]);
+                glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunColor, 1, &suncol[0]);
+                glUniform3fv(shaderProgramVector[r.shaderProgram].location_ambience, 1, &ambient[0]);
+
                 currentProgram = static_cast<int>(shaderProgramVector[r.shaderProgram].glShaderProgramID);
             }
 
@@ -331,14 +344,6 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
             glm::mat4 model = r.objectMatrix();
             glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model, 1, GL_FALSE, &model[0][0]);
             glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_normal, 1, GL_FALSE, &r.rotate[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_view, 1, GL_FALSE, &cameraMatrix[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_2dProj, 1, GL_FALSE, &_2dProj[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_3dProj, 1, GL_FALSE, &_3dProj[0][0]);
-            glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraPos, 1, &camerapos[0]);
-            glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraDir, 1, &cameradir[0]);
-            glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunDir, 1, &sundir[0]);
-            glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunColor, 1, &suncol[0]);
-            glUniform3fv(shaderProgramVector[r.shaderProgram].location_ambience, 1, &ambient[0]);
 
             glBindBuffer(GL_ARRAY_BUFFER, r.vboID);
             glVertexAttribPointer(
