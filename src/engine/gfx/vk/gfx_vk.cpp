@@ -3,7 +3,7 @@
  * (Mostly) finished by Ember Lee on 3/29/24
  * Implementation based on vulkan-tutorial.org.
  * I didn't look at a lot of reference material online, so there is definitely bound to be some problems.
- * Final total of lines in this file: 1953 (1965 minus 12 for this comment block)
+ * Final total of lines in this file: 1969 (1981 minus 12 for this comment block)
  * OpenGL is still faster but hey at least I tried.
  * Fix anything here if you'd like but please don't break OpenGL shader compat
  * (and don't increase the OpenGL version again unless writing a new backend, please.)
@@ -1762,6 +1762,8 @@ unsigned int createVBO(Renderable* r) {
     return id;
 }
 
+VkDeviceSize offsets[] = {0};
+
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls){
     _3dProj[1][1] *= -1;
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -1844,13 +1846,11 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                 activeDescriptorSet = static_cast<int>(r.texture);
             }
 
-            VkBuffer thisObjectVertexBuffer[] = {vertexBuffers[r.vboID]};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, thisObjectVertexBuffer, offsets);
+            vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r.vboID], offsets);
             vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);
 
             JEPushConstants_VK constants = {r.objectMatrix(), r.rotate};
-            vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[r.shaderProgram],
+            vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
                                VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
 
             vkCmdDrawIndexed(commandBuffers[currentFrame], r.indices.size(), 1, 0, 0, 0);
@@ -1864,32 +1864,28 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         throw std::runtime_error("Vulkan: Failed to record command buffer!");
     }
 
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitSemaphores = &imageAvailableSemaphores[currentFrame];
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffers[currentFrame];
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
+    submitInfo.pSignalSemaphores = &renderFinishedSemaphores[currentFrame];
 
     if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to submit draw command buffer!");
     }
 
-    VkSwapchainKHR swapchains[] = {swapchain};
-
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
+    presentInfo.pWaitSemaphores = &renderFinishedSemaphores[currentFrame];
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapchains;
+    presentInfo.pSwapchains = &swapchain;
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
