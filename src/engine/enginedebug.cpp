@@ -94,7 +94,7 @@ void setupImGuiWindow() {
     if (statView) {
         ImGui::Begin("Stats");
 
-        ImGui::Text("Frame time: %ims (~%i fps)", (int)getFrameTime(), (int)(1/(getFrameTime()/1000)));
+        ImGui::Text("Frame time: %ims (~%i fps)", static_cast<int>(getFrameTime()), static_cast<int>(1/(getFrameTime()/1000)));
         ImGui::Text("Renderables: %i", getRenderableCount());
 
         ImGui::End();

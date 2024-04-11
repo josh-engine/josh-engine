@@ -29,7 +29,7 @@ find_package(glslang REQUIRED)
 find_package(OpenGL REQUIRED)
 
 # Engine Required Includes
-find_package(glfw3 3.3 REQUIRED)
+find_package(glfw3 3.4 REQUIRED)
 find_package(OpenAL REQUIRED)
 
 target_link_libraries(JoshEngine glfw OpenGL::GL OpenAL::OpenAL Vulkan::Vulkan glslang::glslang glslang::SPIRV)

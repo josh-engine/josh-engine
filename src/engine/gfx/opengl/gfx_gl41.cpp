@@ -114,7 +114,13 @@ void initGFX(GLFWwindow** window) {
         throw std::runtime_error("OpenGL 4.1: Could not open window!");
     }
 
-    glfwMakeContextCurrent(*window);
+    glfwMakeContextCurrent(*windowPtr);
+
+#ifdef VSYNC
+    glfwSwapInterval(1);
+#else
+    glfwSwapInterval(0);
+#endif
 
     // Set up depth testing
     glEnable(GL_DEPTH_TEST);
@@ -154,7 +160,7 @@ void initGFX(GLFWwindow** window) {
     // Set up ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui_ImplGlfw_InitForOpenGL(*window, true);
+    ImGui_ImplGlfw_InitForOpenGL(*windowPtr, true);
     ImGui_ImplOpenGL3_Init();
 }
 
@@ -292,7 +298,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
     for (auto r : renderables) {
         if (r.enabled) {
-            if (shaderProgramVector[r.shaderProgram].testDepth != currentDepth) {
+            if (shaderProgramVector[r.shaderProgram].testDepth ^ currentDepth) {
                 if (shaderProgramVector[r.shaderProgram].testDepth) {
                     glEnable(GL_DEPTH_TEST);
                 } else {
@@ -310,7 +316,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                 backfaceCull = !shaderProgramVector[r.shaderProgram].doubleSided;
             }
 
-            if (shaderProgramVector[r.shaderProgram].transparencySupported != transparency){
+            if (shaderProgramVector[r.shaderProgram].transparencySupported ^ transparency){
                 if (shaderProgramVector[r.shaderProgram].transparencySupported){
                     glEnable(GL_BLEND);
                     glDepthMask(GL_FALSE);
@@ -324,14 +330,15 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
             if (shaderProgramVector[r.shaderProgram].glShaderProgramID != currentProgram) {
                 glUseProgram(shaderProgramVector[r.shaderProgram].glShaderProgramID);
 
-                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_view, 1, GL_FALSE, &cameraMatrix[0][0]);
-                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_2dProj, 1, GL_FALSE, &_2dProj[0][0]);
-                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_3dProj, 1, GL_FALSE, &_3dProj[0][0]);
-                glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraPos, 1, &camerapos[0]);
-                glUniform3fv(shaderProgramVector[r.shaderProgram].location_cameraDir, 1, &cameradir[0]);
-                glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunDir, 1, &sundir[0]);
-                glUniform3fv(shaderProgramVector[r.shaderProgram].location_sunColor, 1, &suncol[0]);
-                glUniform3fv(shaderProgramVector[r.shaderProgram].location_ambience, 1, &ambient[0]);
+                // We only need to bind per-frame uniforms once per shader
+                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_view,      1, GL_FALSE, &cameraMatrix[0][0]);
+                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_2dProj,    1, GL_FALSE, &_2dProj[0][0]     );
+                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_3dProj,    1, GL_FALSE, &_3dProj[0][0]     );
+                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_cameraPos, 1,           &camerapos[0]      );
+                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_cameraDir, 1,           &cameradir[0]      );
+                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_sunDir,    1,           &sundir[0]         );
+                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_sunColor,  1,           &suncol[0]         );
+                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_ambience,  1,           &ambient[0]        );
 
                 currentProgram = static_cast<int>(shaderProgramVector[r.shaderProgram].glShaderProgramID);
             }
@@ -342,7 +349,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
             }
 
             glm::mat4 model = r.objectMatrix();
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model, 1, GL_FALSE, &model[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model,  1, GL_FALSE, &model[0][0]   );
             glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_normal, 1, GL_FALSE, &r.rotate[0][0]);
 
             glBindBuffer(GL_ARRAY_BUFFER, r.vboID);
@@ -380,7 +387,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                     3,                                // attribute
                     3,                                // size
                     GL_FLOAT,                         // type
-                    GL_FALSE,                         // normalized?
+                    GL_TRUE,                          // normalized?
                     0,                                // stride
                     nullptr
             );

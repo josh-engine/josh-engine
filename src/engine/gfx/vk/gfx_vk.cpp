@@ -433,9 +433,15 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
 
 VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
     for (const auto& availablePresentMode : availablePresentModes) {
+#ifdef VSYNC
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
             return availablePresentMode;
         }
+#else
+        if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+            return availablePresentMode;
+        }
+#endif
     }
 
     return VK_PRESENT_MODE_FIFO_KHR;
@@ -480,10 +486,10 @@ int scoreDevice(VkPhysicalDevice device) {
     int score = 0;
 
     // dgpu = bueno
-    score += ((int)(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))*1000;
+    score += (static_cast<int>(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))*1000;
 
     // big textures go brrrr
-    score += (int)(deviceProperties.limits.maxImageDimension2D/25);
+    score += static_cast<int>(deviceProperties.limits.maxImageDimension2D/25);
 
     QueueFamilyIndices indices = findQueueFamilies(device);
 

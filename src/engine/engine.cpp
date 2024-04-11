@@ -282,7 +282,7 @@ void mainLoop() {
 
         updateListener(camera.position, glm::vec3(0), direction, up);
 
-        bool doFrameTimeCheck = currentTime - lastFrameCheck > 1;
+        bool doFrameTimeCheck = currentTime - lastFrameCheck > 0.1;
         if (doFrameTimeCheck) {
             lastFrameCheck = glfwGetTime();
             frameDrawStart = glfwGetTime()*1000;

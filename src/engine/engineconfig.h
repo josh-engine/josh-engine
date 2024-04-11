@@ -9,7 +9,7 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
-#define ENGINE_VERSION_STRING "in-dev 24w15a"
+#define ENGINE_VERSION_STRING "in-dev 24w15b"
 
 #define DEBUG_ENABLED
 
@@ -28,5 +28,7 @@
 
 #define MSAA_ENABLED
 #define MSAA_SAMPLES 4
+
+#define VSYNC
 
 #endif //JOSHENGINE_ENGINECONFIG_H

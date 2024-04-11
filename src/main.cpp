@@ -14,9 +14,9 @@ void cameraFly(double dt) {
 
     if (mouseLocked) {
         glm::vec2 cursor = getCursorPos();
-        setCursorPos({getCurrentWidth()/2.0f, getCurrentHeight()/2.0f});
-        camera->rotation.x += mouseSpeed * dt * float(getCurrentWidth() /2.0f - cursor.x);
-        camera->rotation.y += mouseSpeed * dt * float(getCurrentHeight()/2.0f - cursor.y);
+        setCursorPos({static_cast<float>(getCurrentWidth())/2.0f, static_cast<float>(getCurrentHeight())/2.0f});
+        camera->rotation.x += mouseSpeed * static_cast<float>(dt) * (static_cast<float>(getCurrentWidth()) /2.0f - cursor.x);
+        camera->rotation.y += mouseSpeed * static_cast<float>(dt) * (static_cast<float>(getCurrentHeight())/2.0f - cursor.y);
         camera->rotation.y = clamp(camera->rotation.y, -70.0f, 70.0f);
     }
 
@@ -35,26 +35,26 @@ void cameraFly(double dt) {
 
     // Move forward
     if (isKeyDown(GLFW_KEY_W)) {
-        camera->position += direction * glm::vec3(dt * speed);
+        camera->position += direction * glm::vec3(static_cast<float>(dt) * speed);
     }
     // Move backward
     if (isKeyDown(GLFW_KEY_S)) {
-        camera->position -= direction * glm::vec3(dt * speed);
+        camera->position -= direction * glm::vec3(static_cast<float>(dt) * speed);
     }
     // Strafe right
     if (isKeyDown(GLFW_KEY_D)) {
-        camera->position += right * glm::vec3(dt * speed);
+        camera->position += right * glm::vec3(static_cast<float>(dt) * speed);
     }
     // Strafe left
     if (isKeyDown(GLFW_KEY_A)) {
-        camera->position -= right * glm::vec3(dt * speed);
+        camera->position -= right * glm::vec3(static_cast<float>(dt) * speed);
     }
 
     if (isKeyDown(GLFW_KEY_SPACE)) {
-        camera->position += glm::vec3(0, dt * speed, 0);
+        camera->position += glm::vec3(0, static_cast<float>(dt) * speed, 0);
     }
     if (isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
-        camera->position -= glm::vec3(0, dt * speed, 0);
+        camera->position -= glm::vec3(0, static_cast<float>(dt) * speed, 0);
     }
 }
 
@@ -144,8 +144,8 @@ int main() {
     registerOnUpdate(&cameraFly);
     registerOnKey(&lockUnlock);
 
-    registerFunctionToDebug("updateBunny", (void*)(&updateBunny));
-    registerFunctionToDebug("updateTriangle", (void*)(&updateTriangle));
+    registerFunctionToDebug("updateBunny",    reinterpret_cast<void*>(&updateBunny));
+    registerFunctionToDebug("updateTriangle", reinterpret_cast<void*>(&updateTriangle));
 
     registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", true, false, false);
     registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", true, false, false);
