@@ -141,9 +141,9 @@ void resizeViewport() {
     framebufferResized = true;
 }
 
-VkSampleCountFlagBits getMaxSamples() {
+VkSampleCountFlagBits getMaxSamples(VkPhysicalDevice vkPhysicalDevice) {
     VkPhysicalDeviceProperties physicalDeviceProperties;
-    vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+    vkGetPhysicalDeviceProperties(vkPhysicalDevice, &physicalDeviceProperties);
 
     VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
     if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
@@ -156,9 +156,9 @@ VkSampleCountFlagBits getMaxSamples() {
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-VkSampleCountFlagBits getClosestSampleCount(){
+VkSampleCountFlagBits getClosestSampleCount(VkPhysicalDevice vkPhysicalDevice){
 #ifdef MSAA_ENABLED
-    unsigned int maxSamples = getMaxSamples();
+    unsigned int maxSamples = getMaxSamples(vkPhysicalDevice);
     if (maxSamples > MSAA_SAMPLES){
         return static_cast<VkSampleCountFlagBits>(MSAA_SAMPLES);
     } else {
@@ -491,6 +491,9 @@ int scoreDevice(VkPhysicalDevice device) {
     // big textures go brrrr
     score += static_cast<int>(deviceProperties.limits.maxImageDimension2D/25);
 
+    // higher msaa = bueno
+    score += static_cast<int>(getMaxSamples(device)*10);
+
     QueueFamilyIndices indices = findQueueFamilies(device);
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
@@ -536,7 +539,7 @@ void choosePhysicalDevice() {
     // Check if the best candidate is suitable at all
     if (candidates.rbegin()->first > 0) {
         physicalDevice = candidates.rbegin()->second;
-        msaaSamples = getClosestSampleCount();
+        msaaSamples = getClosestSampleCount(physicalDevice);
 #ifdef DEBUG_ENABLED
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);

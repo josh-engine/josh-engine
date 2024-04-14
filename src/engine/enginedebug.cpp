@@ -35,7 +35,7 @@ void setupImGuiWindow() {
     ImGui::Text("JoshEngine %s", ENGINE_VERSION_STRING);
 #ifdef GFX_API_OPENGL41
     ImGui::Text("Running on OpenGL 4.1");
-#elifdef GFX_API_VK
+#elif defined(GFX_API_VK)
     ImGui::Text("Running on Vulkan");
 #endif
 
