@@ -22,22 +22,31 @@ add_executable(JoshEngine src/main.cpp
         src/test.cpp
 )
 
-# Vulkan Required Includes
-find_package(Vulkan REQUIRED)
-find_package(glslang REQUIRED)
-
-# OpenGL Required Includes
-find_package(OpenGL REQUIRED)
-
 # Engine Required Includes
 find_package(glfw3 3.4 REQUIRED)
 find_package(OpenAL REQUIRED)
-
 target_link_libraries(JoshEngine
         glfw
-        OpenGL::GL
         OpenAL::OpenAL
+)
+
+# Vulkan
+#[[ Remove this to switch to another API-> ]]
+find_package(Vulkan REQUIRED)
+find_package(glslang REQUIRED)
+add_compile_definitions(GFX_API_VK)
+target_link_libraries(JoshEngine
         Vulkan::Vulkan
         glslang::glslang
         glslang::SPIRV
 )
+#]]
+
+# OpenGL
+#[[ Uncomment this and comment out another graphics API block to switch APIs
+find_package(OpenGL REQUIRED)
+add_compile_definitions(GFX_API_OPENGL41)
+target_link_libraries(JoshEngine
+       OpenGL::GL
+)
+#]]

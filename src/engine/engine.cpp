@@ -301,27 +301,22 @@ void mainLoop() {
             }
         }
 
-        glm::vec3 direction(
-                cos(glm::radians(camera.rotation.y)) * sin(glm::radians(camera.rotation.x)),
-                sin(glm::radians(camera.rotation.y)),
-                cos(glm::radians(camera.rotation.y)) * cos(glm::radians(camera.rotation.x))
-        );
         // Right vector
         glm::vec3 right = glm::vec3(
                 sin(glm::radians(camera.rotation.x - 90)),
                 0,
                 cos(glm::radians(camera.rotation.x - 90))
         );
-        glm::vec3 up = glm::cross( right, direction );
+        glm::vec3 up = glm::cross( right, camera.direction() );
 
         // Camera matrix
         glm::mat4 cameraMatrix = glm::lookAt(
                 camera.position, // camera is at its position
-                camera.position+direction, // looks in look direction
+                camera.position+camera.direction(), // looks in look direction
                 up  // up vector
         );
 
-        updateListener(camera.position, glm::vec3(0), direction, up);
+        updateListener(camera.position, glm::vec3(0), camera.direction(), up);
 
         bool doFrameTimeCheck = currentTime - lastFrameCheck > 0.1;
         if (doFrameTimeCheck) {
@@ -361,7 +356,7 @@ void mainLoop() {
         float scaledHeight = windowHeight * (1.0f / windowWidth);
         float scaledWidth = 1.0f;
         renderFrame(camera.position,
-                    direction,
+                    camera.direction(),
                     sunDirection,
                     sunColor,
                     ambient,

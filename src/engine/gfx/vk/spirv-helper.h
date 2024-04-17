@@ -129,63 +129,59 @@ struct SpirvHelper
     // https://lxjk.github.io/2020/03/10/Translate-GLSL-to-SPIRV-for-Vulkan-at-Runtime.html
     // https://github.com/Goutch/HellbenderEngine/blob/master/platforms/vk/ShaderCompiler.cpp#L251
     // my own code (though hardly any)
-    static bool GLSLtoSPV(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int> &spirv) {
+    static bool GLSLtoSPV(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int>* spirv) {
         glslang::InitializeProcess();
         EShLanguage stage = FindLanguage(shader_type);
 
-        {
-            glslang::TShader shader(stage);
+        glslang::TShader shader(stage);
 
-            std::string source_str = pshader;
-            const char *source_str_ptr = source_str.c_str();
-            const char *const *source_ptr = &source_str_ptr;
-            int length = source_str.size();
+        std::string source_str = pshader;
+        const char *source_str_ptr = source_str.c_str();
+        const char *const *source_ptr = &source_str_ptr;
+        int length = static_cast<int>(source_str.size());
 
-            shader.setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetVulkan_1_0);
-            shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
+        shader.setEnvClient(glslang::EShClient::EShClientVulkan, glslang::EShTargetVulkan_1_0);
+        shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_0);
 
-            shader.setStringsWithLengths(source_ptr, &length, 1);
-            shader.setSourceEntryPoint("main");
-            shader.setEntryPoint("main");
+        shader.setStringsWithLengths(source_ptr, &length, 1);
+        shader.setSourceEntryPoint("main");
+        shader.setEntryPoint("main");
 
-            EShMessages message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules);
+        EShMessages message = static_cast<EShMessages>(EShMessages::EShMsgVulkanRules | EShMessages::EShMsgSpvRules);
 
-            TBuiltInResource Resources = {};
-            InitResources(Resources);
+        TBuiltInResource Resources = {};
+        InitResources(Resources);
 
-            if (!shader.parse(&Resources,
-                              420,
-                              ECompatibilityProfile,
-                              false,
-                              true,
-                              message)) {
-                std::cerr << shader.getInfoDebugLog() << std::endl;
-                std::cerr << shader.getInfoLog() << std::endl;
-                return false;
-            }
-            {
-                glslang::TProgram program;
-                program.addShader(&shader);
-
-                if (!program.link(message)) {
-                    std::cerr << program.getInfoDebugLog() << std::endl;
-                    std::cerr << program.getInfoLog() << std::endl;
-                    return false;
-                }
-                glslang::SpvOptions options{};
-#ifdef DEBUG_ENABLED
-                options.generateDebugInfo = true;
-				options.stripDebugInfo = false;
-				options.disableOptimizer = true;
-#else
-                options.generateDebugInfo=false;
-                options.stripDebugInfo=true;
-                options.disableOptimizer=false;
-#endif
-                glslang::GlslangToSpv(*program.getIntermediate(stage), spirv, &options);
-
-            }
+        if (!shader.parse(&Resources,
+                          420,
+                          ECompatibilityProfile,
+                          false,
+                          true,
+                          message)) {
+            std::cerr << shader.getInfoDebugLog() << std::endl;
+            std::cerr << shader.getInfoLog() << std::endl;
+            return false;
         }
+
+        glslang::TProgram program;
+        program.addShader(&shader);
+
+        if (!program.link(message)) {
+            std::cerr << program.getInfoDebugLog() << std::endl;
+            std::cerr << program.getInfoLog() << std::endl;
+            return false;
+        }
+        glslang::SpvOptions options{};
+#ifdef DEBUG_ENABLED
+        options.generateDebugInfo = true;
+        options.stripDebugInfo = false;
+		options.disableOptimizer = true;
+#else
+        options.generateDebugInfo=false;
+        options.stripDebugInfo=true;
+        options.disableOptimizer=false;
+#endif
+        glslang::GlslangToSpv(*program.getIntermediate(stage), *spirv, &options);
         glslang::FinalizeProcess();
         return true;
     }

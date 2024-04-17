@@ -25,12 +25,6 @@ void cameraFly(double dt) {
         camera->rotation.y = clamp(camera->rotation.y, -70.0f, 70.0f);
     }
 
-    glm::vec3 direction(
-            cos(glm::radians(camera->rotation.y)) * sin(glm::radians(camera->rotation.x)),
-            sin(glm::radians(camera->rotation.y)),
-            cos(glm::radians(camera->rotation.y)) * cos(glm::radians(camera->rotation.x))
-    );
-
     // Right vector
     glm::vec3 right = glm::vec3(
             sin(glm::radians(camera->rotation.x - 90)),
@@ -40,11 +34,11 @@ void cameraFly(double dt) {
 
     // Move forward
     if (isKeyDown(GLFW_KEY_W)) {
-        camera->position += direction * glm::vec3(static_cast<float>(dt) * speed);
+        camera->position += camera->direction() * glm::vec3(static_cast<float>(dt) * speed);
     }
     // Move backward
     if (isKeyDown(GLFW_KEY_S)) {
-        camera->position -= direction * glm::vec3(static_cast<float>(dt) * speed);
+        camera->position -= camera->direction() * glm::vec3(static_cast<float>(dt) * speed);
     }
     // Strafe right
     if (isKeyDown(GLFW_KEY_D)) {

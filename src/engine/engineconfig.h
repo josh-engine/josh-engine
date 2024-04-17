@@ -9,7 +9,7 @@
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 720
 
-#define ENGINE_VERSION_STRING "in-dev 24w16a"
+#define ENGINE_VERSION_STRING "in-dev 24w16b"
 
 #define DEBUG_ENABLED
 
@@ -20,9 +20,6 @@
 #define CLEAR_ALPHA 1.0f
 
 #define DO_SKYBOX
-
-//#define GFX_API_OPENGL41
-#define GFX_API_VK
 
 #define GL41_SRGB_VK_PARITY
 

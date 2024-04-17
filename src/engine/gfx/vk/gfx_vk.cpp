@@ -1103,6 +1103,7 @@ void createTextureSampler(unsigned int id, unsigned int mipLevels) {
 // there is no *actual* performance difference but im hopeless
 // stuff that should hardly tax the engine (2.2m triangles at 720p) absolutely murders EVERYTHING
 // god im starting to hate this but not really because i love coding (more than schoolwork)
+// renderdoc for mac when
 std::array<VkClearValue, 2> clearValues{};
 
 void initGFX(GLFWwindow** window) {
@@ -1494,7 +1495,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
         buffer << fileStream.rdbuf();
         std::string fileContents = buffer.str();
         std::cout << "Compiling " << file_path << " to SPIR-V..." << std::endl;
-        bool compileSuccess = SpirvHelper::GLSLtoSPV(static_cast<VkShaderStageFlagBits>(target), &fileContents[0], spirv_comp);
+        bool compileSuccess = SpirvHelper::GLSLtoSPV(static_cast<VkShaderStageFlagBits>(target), &fileContents[0], &spirv_comp);
         if (!compileSuccess) {
             throw std::runtime_error("Vulkan: Could not compile \"" + file_path + "\" to SPIR-V!");
         }

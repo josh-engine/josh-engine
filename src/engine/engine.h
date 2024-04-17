@@ -42,6 +42,12 @@ public:
         scale = sca;
     }
 
+    glm::vec3 direction() {
+        return {cos(glm::radians(this->rotation.y)) * sin(glm::radians(this->rotation.x)),
+                sin(glm::radians(this->rotation.y)),
+                cos(glm::radians(this->rotation.y)) * cos(glm::radians(this->rotation.x))};
+    }
+
     glm::mat4 getTranslateMatrix() {
         return glm::translate(glm::mat4(1.0f), position);
     }
