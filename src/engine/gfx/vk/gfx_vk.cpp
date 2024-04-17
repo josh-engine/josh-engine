@@ -116,8 +116,7 @@ struct SwapChainSupportDetails {
 };
 
 const std::vector<const char*> instanceExtensions = {
-        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME,
-        "VK_KHR_get_physical_device_properties2"
+        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
 };
 
 const std::vector<const char*> validationLayers = {
@@ -708,7 +707,7 @@ void createRenderPass() {
     colorAttachment.samples = msaaSamples;
 
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -725,8 +724,10 @@ void createRenderPass() {
     depthAttachment.samples = msaaSamples;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
@@ -1061,15 +1062,14 @@ void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayo
 
 void createDepthResources() {
     VkFormat depthFormat = findDepthFormat();
-    createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory, 1, msaaSamples);
+    createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, depthImage, depthImageMemory, 1, msaaSamples);
     depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
     transitionImageLayout(depthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, 1, 1);
 }
 
 void createColorResources() {
     VkFormat colorFormat = swapchainImageFormat;
-
-    createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage, colorImageMemory, 1, msaaSamples);
+    createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, colorFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, colorImage, colorImageMemory, 1, msaaSamples);
     colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
@@ -1823,7 +1823,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
     renderPassInfo.framebuffer = swapchainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapchainExtent;
-    renderPassInfo.clearValueCount = 4;
+    renderPassInfo.clearValueCount = clearValues.size(); // previous constant was a horrible mistype. no more constants
     renderPassInfo.pClearValues = clearValues.data();
 
     JEUniformBufferObject_VK ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};

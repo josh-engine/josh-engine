@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 4/14/24.
+// Created by Ember Lee on 4/14/24.
 //
 
 #include "test.h"
@@ -7,7 +7,6 @@
 #include "engine/sound/engineaudio.h"
 #include "engine/gfx/modelutil.h"
 #include "engine/enginedebug.h"
-#include <iostream>
 
 bool mouseLocked = true;
 bool pressed = false;
