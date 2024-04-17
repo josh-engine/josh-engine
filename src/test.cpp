@@ -7,7 +7,7 @@
 #include "engine/sound/engineaudio.h"
 #include "engine/gfx/modelutil.h"
 #include "engine/enginedebug.h"
-
+#include <iostream>
 
 bool mouseLocked = true;
 bool pressed = false;
@@ -19,8 +19,8 @@ void cameraFly(double dt) {
     Transform* camera = cameraAccess();
 
     if (mouseLocked) {
-        glm::vec2 cursor = getCursorPos();
-        setCursorPos({static_cast<float>(getCurrentWidth())/2.0f, static_cast<float>(getCurrentHeight())/2.0f});
+        glm::vec2 cursor = getRawCursorPos();
+        setRawCursorPos({static_cast<float>(getCurrentWidth()) / 2.0f, static_cast<float>(getCurrentHeight()) / 2.0f});
         camera->rotation.x += mouseSpeed * static_cast<float>(dt) * (static_cast<float>(getCurrentWidth()) /2.0f - cursor.x);
         camera->rotation.y += mouseSpeed * static_cast<float>(dt) * (static_cast<float>(getCurrentHeight())/2.0f - cursor.y);
         camera->rotation.y = clamp(camera->rotation.y, -70.0f, 70.0f);
@@ -74,6 +74,22 @@ void lockUnlock(int key, bool wasKeyPressed, double dt) {
         }
         // If locked, set mouse to invisible
         setMouseVisible(!mouseLocked);
+    }
+}
+
+void mouseClick(int button, bool wasButtonPressed, double dt) {
+    glm::vec2 cursorPos = getCursorPos();
+    GameObject* ref = getGameObject("ui_item");
+
+    if (cursorPos.x <= ref->transform.position.x + ref->transform.scale.x &&
+        cursorPos.x >= ref->transform.position.x - ref->transform.scale.x &&
+        cursorPos.y <= ref->transform.position.y + ref->transform.scale.y &&
+        cursorPos.y >= ref->transform.position.y - ref->transform.scale.y) {
+        if (button == GLFW_MOUSE_BUTTON_LEFT && wasButtonPressed) {
+            ref->transform.position += vec3(0, 0.1, 0);
+        } else if (button == GLFW_MOUSE_BUTTON_RIGHT && wasButtonPressed) {
+            ref->transform.position -= vec3(0, 0.1, 0);
+        }
     }
 }
 
@@ -131,7 +147,7 @@ void initCube(GameObject* selfObject) {
     selfObject->onUpdate.push_back(&updateBunny);
 }
 
-void initTriangle3(GameObject* selfObject) {
+void initUiItem(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-0.5, -0.25, -1), glm::vec3(0), glm::vec3(0.25));
     selfObject->renderables.push_back(createQuad(getProgram("ui"), getTexture("missing")));
 }
@@ -147,6 +163,7 @@ void setupTest() {
 
     registerOnUpdate(&cameraFly);
     registerOnKey(&lockUnlock);
+    registerOnMouse(&mouseClick);
 
     registerFunctionToDebug("updateBunny",    reinterpret_cast<void*>(&updateBunny));
     registerFunctionToDebug("updateTriangle", reinterpret_cast<void*>(&updateTriangle));
@@ -166,5 +183,5 @@ void setupTest() {
     putGameObject("bunny2", GameObject(&initBunny2));
     putGameObject("bunny3", GameObject(&initBunny3));
     putGameObject("cube", GameObject(&initCube));
-    putGameObject("ui_item", GameObject(&initTriangle3));
+    putGameObject("ui_item", GameObject(&initUiItem));
 }

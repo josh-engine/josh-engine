@@ -92,8 +92,11 @@ int getCurrentWidth();
 int getCurrentHeight();
 Transform* cameraAccess();
 bool isKeyDown(int key);
+bool isMouseButtonDown(int button);
 GLFWwindow** getWindow();
+glm::vec2 getRawCursorPos();
 glm::vec2 getCursorPos();
+void setRawCursorPos(glm::vec2 pos);
 void setCursorPos(glm::vec2 pos);
 unsigned int createTextureWithName(std::string name, std::string fileName);
 unsigned int createTexture(std::string folderPath, std::string fileName);
@@ -107,5 +110,6 @@ void setMouseVisible(bool vis);
 void setSunProperties(glm::vec3 position, glm::vec3 color);
 void setAmbient(float r, float g, float b);
 void setAmbient(glm::vec3 rgb);
+void registerOnMouse(void (*function)(int button, bool pressed, double dt));
 
 #endif //JOSHENGINE_ENGINE_H

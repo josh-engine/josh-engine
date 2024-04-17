@@ -22,9 +22,11 @@
 GLFWwindow* window;
 std::vector<void (*)(double dt)> onUpdate;
 std::vector<void (*)(int key, bool pressed, double dt)> onKey;
+std::vector<void (*)(int button, bool pressed, double dt)> onMouse;
 std::unordered_map<std::string, GameObject> gameObjects;
 Transform camera;
 bool keys[GLFW_KEY_LAST];
+bool mouseButtons[GLFW_MOUSE_BUTTON_8-GLFW_MOUSE_BUTTON_1];
 Renderable skybox;
 std::map<std::string, unsigned int> programs;
 std::map<std::string, unsigned int> textures;
@@ -128,14 +130,39 @@ bool isKeyDown(int key) {
     return keys[key];
 }
 
-glm::vec2 getCursorPos() {
+bool isMouseButtonDown(int button) {
+    return mouseButtons[button];
+}
+
+glm::vec2 getRawCursorPos() {
     double xpos, ypos;
     glfwGetCursorPos(window, (&xpos), (&ypos));
     return {xpos, ypos};
 }
 
-void setCursorPos(glm::vec2 pos) {
+glm::vec2 getCursorPos() {
+    glm::vec2 cpos = getRawCursorPos();
+    // modify to -1, 1 coordinate space
+    cpos /= glm::vec2(getCurrentWidth(), -getCurrentHeight());
+    cpos += glm::vec2(-0.5, 0.5);
+    cpos *= 2;
+
+    // scale Y axis by the current scaled height
+    cpos /= glm::vec2(1, getCurrentWidth() * (1.0f / getCurrentHeight()));
+    return cpos;
+}
+
+void setRawCursorPos(glm::vec2 pos) {
     glfwSetCursorPos(window, pos.x, pos.y);
+}
+
+void setCursorPos(glm::vec2 pos) {
+    // inverse of getCursorPos's coordinate transformation
+    pos *= glm::vec2(1, getCurrentWidth() * (1.0f / getCurrentHeight()));
+    pos /= 2;
+    pos -= glm::vec2(-0.5, 0.5);
+    pos *= glm::vec2(getCurrentWidth(), -getCurrentHeight());
+    setRawCursorPos(pos);
 }
 
 void registerOnUpdate(void (*function)(double dt)) {
@@ -144,6 +171,10 @@ void registerOnUpdate(void (*function)(double dt)) {
 
 void registerOnKey(void (*function)(int key, bool pressed, double dt)) {
     onKey.push_back(function);
+}
+
+void registerOnMouse(void (*function)(int button, bool pressed, double dt)) {
+    onMouse.push_back(function);
 }
 
 void putGameObject(std::string name, GameObject g) {
@@ -240,12 +271,22 @@ void mainLoop() {
         double deltaTime = currentTime - lastTime;
         lastTime = currentTime;
 
-        for (int k = 0; k < GLFW_KEY_LAST; k++) {
-            bool current = glfwGetKey(window, k) == GLFW_PRESS;
-            if (keys[k] != current) {
-                keys[k] = current;
+        for (int keyActionIter = 0; keyActionIter < GLFW_KEY_LAST; keyActionIter++) {
+            bool current = glfwGetKey(window, keyActionIter) == GLFW_PRESS;
+            if (keys[keyActionIter] != current) {
+                keys[keyActionIter] = current;
                 for (auto & onKeyFunction : onKey) {
-                    onKeyFunction(k, current, deltaTime);
+                    onKeyFunction(keyActionIter, current, deltaTime);
+                }
+            }
+        }
+
+        for (int mouseActionIter = 0; mouseActionIter < 7; mouseActionIter++){
+            bool current = glfwGetMouseButton(window, mouseActionIter+GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
+            if (mouseButtons[mouseActionIter] != current) {
+                mouseButtons[mouseActionIter] = current;
+                for (auto & onMouseFunction : onMouse) {
+                    onMouseFunction(mouseActionIter+GLFW_MOUSE_BUTTON_1, current, deltaTime);
                 }
             }
         }
