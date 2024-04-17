@@ -1099,6 +1099,12 @@ void createTextureSampler(unsigned int id, unsigned int mipLevels) {
     }
 }
 
+// stupid fking minuscule premature optimization bullshit
+// there is no *actual* performance difference but im hopeless
+// stuff that should hardly tax the engine (2.2m triangles at 720p) absolutely murders EVERYTHING
+// god im starting to hate this but not really because i love coding (more than schoolwork)
+std::array<VkClearValue, 2> clearValues{};
+
 void initGFX(GLFWwindow** window) {
     windowPtr = window;
     initGLFW();
@@ -1120,6 +1126,9 @@ void initGFX(GLFWwindow** window) {
     createFramebuffers();
 
     createUniformBuffers();
+
+    clearValues[0].color = {{CLEAR_RED, CLEAR_GREEN, CLEAR_BLUE, CLEAR_ALPHA}};
+    clearValues[1].depthStencil = {1.0f, 0};
 
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
     SwapChainSupportDetails swapchainSupport = querySwapChainSupport(physicalDevice);
@@ -1814,11 +1823,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
     renderPassInfo.framebuffer = swapchainFramebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapchainExtent;
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {{CLEAR_RED, CLEAR_GREEN, CLEAR_BLUE, CLEAR_ALPHA}};
-    clearValues[1].depthStencil = {1.0f, 0};
-    renderPassInfo.clearValueCount = clearValues.size();
+    renderPassInfo.clearValueCount = 4;
     renderPassInfo.pClearValues = clearValues.data();
 
     JEUniformBufferObject_VK ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
@@ -1842,7 +1847,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
     int activeProgram = -1, activeDescriptorSet = -1;
 
-    for (auto r : renderables) {
+    for (const auto& r : renderables) {
         if (r.enabled) {
             if (r.shaderProgram != activeProgram || r.texture != activeDescriptorSet) {
                 vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -1857,11 +1862,11 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
             vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r.vboID], offsets);
             vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);
 
-            JEPushConstants_VK constants = {r.objectMatrix(), r.rotate};
+            JEPushConstants_VK constants = {r.objectMatrix, r.rotate};
             vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
                                VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
 
-            vkCmdDrawIndexed(commandBuffers[currentFrame], r.indices.size(), 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffers[currentFrame], r.indicesSize, 1, 0, 0, 0);
         }
     }
 

@@ -78,6 +78,7 @@ public:
     glm::mat4 transform;
     glm::mat4 rotate;
     glm::mat4 scale;
+    glm::mat4 objectMatrix;
 
     bool enabled;
 
@@ -96,9 +97,8 @@ public:
     std::vector<JEInterleavedVertex> interleavedVertices;
 #endif
 
-    glm::mat4 objectMatrix() {
-        return (transform * rotate * scale);
-    }
+    // Although on OpenGL this was negligible, for some reason on Vulkan this resulted in around +10FPS.
+    unsigned int indicesSize;
 
     Renderable() {
         enabled = false;
@@ -177,12 +177,14 @@ public:
 
         vboID = createVBOFunctionMirror(this);
 #endif //GFX_API_VK
+        indicesSize = indices.size();
     }
 
-    void setMatrices(glm::mat4 transform, glm::mat4 rotation, glm::mat4 scale) {
-        this->transform = transform;
-        this->rotate = rotation;
-        this->scale = scale;
+    void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
+        this->transform = t;
+        this->rotate = r;
+        this->scale = s;
+        this->objectMatrix = (this->transform * this->rotate * this->scale);
     }
 };
 

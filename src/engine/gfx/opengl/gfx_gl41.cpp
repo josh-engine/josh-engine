@@ -348,8 +348,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                 currentTexture = static_cast<int>(r.texture);
             }
 
-            glm::mat4 model = r.objectMatrix();
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model,  1, GL_FALSE, &model[0][0]   );
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model,  1, GL_FALSE, &r.objectMatrix[0][0]   );
             glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_normal, 1, GL_FALSE, &r.rotate[0][0]);
 
             glBindBuffer(GL_ARRAY_BUFFER, r.vboID);
@@ -396,7 +395,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
             glDrawElements(
                     GL_TRIANGLES,      // mode
-                    static_cast<GLsizei>(r.indices.size()),    // count
+                    r.indicesSize,    // count
                     GL_UNSIGNED_INT,   // type
                     nullptr           // element array buffer offset
             );
