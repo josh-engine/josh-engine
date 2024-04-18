@@ -8,17 +8,27 @@
 #include "renderable.h"
 #include "../engine.h"
 
+Renderable quadBase;
+
 Renderable createQuad(unsigned int shader, unsigned int texture, bool manualDepthSort) {
-    return Renderable(
-            {-1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},    //verts
-            { 1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},   //colors
-            { 0.0f,  0.0f,          1.0f,  0.0f,           0.0f,  1.0f       ,  1.0f,  1.0f},  //UVs
-            { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
-            { 0, 1, 2,     1, 3, 2 }, //indices
-            shader,    //shader program
-            texture,    //texture
-            manualDepthSort //used for transparency
-    );
+    if (!quadBase.enabled) {
+        // Init quad once (we only need one VBO across the lifetime of the engine for a quad)
+        quadBase = Renderable(
+                {-1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},    //verts
+                { 1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},   //colors
+                { 0.0f,  0.0f,          1.0f,  0.0f,           0.0f,  1.0f       ,  1.0f,  1.0f},  //UVs
+                { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
+                { 0, 1, 2,     1, 3, 2 }, //indices
+                0,    //shader program
+                0,    //texture
+                false //used for transparency
+        );
+    }
+    Renderable copy = quadBase;
+    copy.shaderProgram = shader;
+    copy.texture = texture;
+    copy.manualDepthSort = manualDepthSort;
+    return copy;
 }
 
 Renderable createQuad(unsigned int shader, unsigned int texture) {
@@ -125,7 +135,24 @@ std::vector<std::string> splitStr(std::string in, char del) {
     return v2;
 }
 
+std::map<std::string, std::vector<Renderable>> objMap;
+
 std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram, bool manualDepthSort) {
+    if (objMap.contains(path)) {
+        std::vector<Renderable> copied;
+        copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
+        if (copied[0].manualDepthSort != manualDepthSort) {
+            for (auto & i : copied){
+                i.manualDepthSort = manualDepthSort;
+            }
+        }
+        if (copied[0].shaderProgram != shaderProgram) {
+            for (auto & i : copied){
+                i.shaderProgram = shaderProgram;
+            }
+        }
+        return copied;
+    }
     std::ifstream fileStream(path);
     if (!fileStream.good()) {
         return {{}};
@@ -271,6 +298,7 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram, bo
         }
     }
     renderableList.push_back(repackRenderable(currentRenderable));
+    objMap.insert({path, renderableList});
     return renderableList;
 }
 

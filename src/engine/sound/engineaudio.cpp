@@ -3,6 +3,7 @@
 //
 
 #include <iostream>
+#include <map>
 #include <al.h>
 #include <alc.h>
 #include <glm/glm.hpp>
@@ -39,7 +40,7 @@ void initAudio() {
     // TODO: add easy check error function (use ALUT? or maybe figure out how to get error string without something like that)
     alGetError();
 
-    context = alcCreateContext(device, NULL);
+    context = alcCreateContext(device, nullptr);
     if (!alcMakeContextCurrent(context)) {
         std::cerr << "Failed to create OpenAL context!" << std::endl;
         exit(1);
@@ -48,16 +49,20 @@ void initAudio() {
     alDistanceModel(AL_INVERSE_DISTANCE);
 }
 
+std::map<std::string, ALuint> audioMap;
+
 ALuint oggToBuffer(std::string filePath) {
+    if (audioMap.contains(filePath)) return audioMap.at(filePath);
     int channels, sampleRate, samples;
     short* data;
     int error;
-    stb_vorbis *v = stb_vorbis_open_filename(filePath.c_str(), &error, NULL);
+    stb_vorbis *v = stb_vorbis_open_filename(filePath.c_str(), &error, nullptr);
     stb_vorbis_info info = stb_vorbis_get_info(v);
     samples = stb_vorbis_decode_filename(filePath.c_str(), &channels, &sampleRate, &data);
     ALuint buffer;
-    alGenBuffers(1, &buffer);
-    if (info.channels > 1) alBufferData(buffer, AL_FORMAT_STEREO16, data, samples*2*sizeof(short), sampleRate);
-    else alBufferData(buffer, AL_FORMAT_MONO16, data, samples*sizeof(short), sampleRate);
+    alGenBuffers(1, &buffer);                 //      needless cast so the compiler will stop yelling at me
+    if (info.channels > 1) alBufferData(buffer, AL_FORMAT_STEREO16, data, samples*2*static_cast<int>(sizeof(short)), sampleRate);
+    else alBufferData(buffer, AL_FORMAT_MONO16, data, samples*static_cast<int>(sizeof(short)), sampleRate);
+    audioMap.insert({filePath, buffer});
     return buffer;
 }

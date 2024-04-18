@@ -14,45 +14,45 @@ using namespace glm;
 
 class Transform {
 public:
-    glm::vec3 position;
-    glm::vec3 rotation;
-    glm::vec3 scale;
+    glm::vec3 position{};
+    glm::vec3 rotation{};
+    glm::vec3 scale{};
 
     Transform() {
-        position = vec3(0.0f);
-        rotation = vec3(0.0f);
-        scale = vec3(1.0f);
+        this->position = vec3(0.0f);
+        this->rotation = vec3(0.0f);
+        this->scale = vec3(1.0f);
     }
 
-    Transform(glm::vec3 pos) {
-        position = pos;
-        rotation = vec3(0.0f);
-        scale = vec3(1.0f);
+    explicit Transform(glm::vec3 pos) {
+        this->position = pos;
+        this->rotation = vec3(0.0f);
+        this->scale = vec3(1.0f);
     }
 
     Transform(glm::vec3 pos, glm::vec3 rot) {
-        position = pos;
-        rotation = rot;
-        scale = vec3(1.0f);
+        this->position = pos;
+        this->rotation = rot;
+        this->scale = vec3(1.0f);
     }
 
     Transform(glm::vec3 pos, glm::vec3 rot, glm::vec3 sca) {
-        position = pos;
-        rotation = rot;
-        scale = sca;
+        this->position = pos;
+        this->rotation = rot;
+        this->scale = sca;
     }
 
-    glm::vec3 direction() {
+    [[nodiscard]] glm::vec3 direction() const {
         return {cos(glm::radians(this->rotation.y)) * sin(glm::radians(this->rotation.x)),
                 sin(glm::radians(this->rotation.y)),
                 cos(glm::radians(this->rotation.y)) * cos(glm::radians(this->rotation.x))};
     }
 
-    glm::mat4 getTranslateMatrix() {
+    [[nodiscard]] glm::mat4 getTranslateMatrix() const {
         return glm::translate(glm::mat4(1.0f), position);
     }
 
-    glm::mat4 getRotateMatrix() {
+    [[nodiscard]] glm::mat4 getRotateMatrix() const {
         glm::vec3 radianRotation = glm::radians(rotation);
         auto rotationMatrix = glm::identity<mat4>();
         //TODO: There HAS to be a better way to do this.
@@ -62,7 +62,7 @@ public:
         return rotationMatrix;
     }
 
-    glm::mat4 getScaleMatrix() {
+    [[nodiscard]] glm::mat4 getScaleMatrix() const {
         return glm::scale(glm::mat4(1.0f), scale);
     }
 };

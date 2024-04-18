@@ -152,7 +152,6 @@ void setupTest() {
     setMouseVisible(false); // Mouse starts locked
 
     Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
-    st2.play();
 
     registerOnUpdate(&cameraFly);
     registerOnKey(&lockUnlock);
@@ -177,4 +176,6 @@ void setupTest() {
     putGameObject("bunny3", GameObject(&initBunny3));
     putGameObject("cube", GameObject(&initCube));
     putGameObject("ui_item", GameObject(&initUiItem));
+
+    st2.play();
 }
