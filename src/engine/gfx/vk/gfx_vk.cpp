@@ -182,11 +182,22 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
+    // In case we can't find device-local memory.
+    int backupIndex = -1;
+
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            return i;
+            if (memProperties.memoryHeaps[memProperties.memoryTypes[i].heapIndex].flags && VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+                // Great! It's on the device.
+                return i;
+            } else {
+                // Fine, we can default to this if nothing better is found.
+                backupIndex = static_cast<int>(i);
+            }
         }
     }
+
+    if (backupIndex != -1) return static_cast<uint32_t>(backupIndex);
 
     throw std::runtime_error("Vulkan: Failed to find suitable memory type!");
 }
