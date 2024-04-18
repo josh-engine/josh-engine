@@ -9,6 +9,7 @@
 
 #include "../renderable.h"
 #include <GLFW/glfw3.h>
+#include "../../engine.h"
 
 #define JE_VERTEX_SHADER GL_VERTEX_SHADER
 #define JE_FRAGMENT_SHADER GL_FRAGMENT_SHADER
@@ -49,7 +50,7 @@ struct JEShaderProgram_GL41 {
     }
 };
 
-void initGFX(GLFWwindow** window);
+void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings);
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls);
 void deinitGFX();
 unsigned int loadTexture(const std::string& fileName);

@@ -12,6 +12,13 @@
 
 using namespace glm;
 
+struct JEGraphicsSettings {
+    bool vsyncEnabled;
+    bool skybox;
+    float clearColor[3];
+    int msaaSamples;
+};
+
 class Transform {
 public:
     glm::vec3 position{};
@@ -84,7 +91,7 @@ public:
     }
 };
 
-void init();
+void init(const char* windowName, int width, int height, JEGraphicsSettings settings);
 void mainLoop();
 void deinit();
 void registerOnUpdate(void (*function)(double dt));
@@ -117,5 +124,6 @@ void setSunProperties(glm::vec3 position, glm::vec3 color);
 void setAmbient(float r, float g, float b);
 void setAmbient(glm::vec3 rgb);
 void registerOnMouse(void (*function)(int button, bool pressed, double dt));
+void setSkyboxEnabled(bool enabled);
 
 #endif //JOSHENGINE_ENGINE_H

@@ -29,6 +29,7 @@
 #include "../imgui/imgui_impl_vulkan.h"
 
 GLFWwindow** windowPtr;
+JEGraphicsSettings settings;
 
 VkInstance instance;
 
@@ -156,25 +157,26 @@ VkSampleCountFlagBits getMaxSamples(VkPhysicalDevice vkPhysicalDevice) {
 }
 
 VkSampleCountFlagBits getClosestSampleCount(VkPhysicalDevice vkPhysicalDevice){
-#ifdef MSAA_ENABLED
-    unsigned int maxSamples = getMaxSamples(vkPhysicalDevice);
-    if (maxSamples > MSAA_SAMPLES){
-        return static_cast<VkSampleCountFlagBits>(MSAA_SAMPLES);
+    if (settings.msaaSamples > 1) {
+        unsigned int maxSamples = getMaxSamples(vkPhysicalDevice);
+        if (maxSamples > settings.msaaSamples){
+            return static_cast<VkSampleCountFlagBits>(settings.msaaSamples);
+        } else {
+            return static_cast<VkSampleCountFlagBits>(maxSamples);
+        }
     } else {
-        return static_cast<VkSampleCountFlagBits>(maxSamples);
+        return VK_SAMPLE_COUNT_1_BIT;
     }
-#endif
-    return VK_SAMPLE_COUNT_1_BIT;
 }
 
-void initGLFW() {
+void initGLFW(const char* name, int width, int height) {
     if (!glfwInit()) {
         throw std::runtime_error("Vulkan: Could not initialize GLFW!");
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    *windowPtr = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
+    *windowPtr = glfwCreateWindow(width, height, name, nullptr, nullptr);
 }
 
 
@@ -314,10 +316,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     return VK_FALSE;
 }
 
-void createInstance() {
+void createInstance(const char* name) {
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = WINDOW_NAME;
+    appInfo.pApplicationName = name;
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "JoshEngine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -443,15 +445,16 @@ SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
 
 VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
     for (const auto& availablePresentMode : availablePresentModes) {
-#ifdef VSYNC
-        if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-            return availablePresentMode;
+        if (settings.vsyncEnabled) {
+            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+                return availablePresentMode;
+            }
         }
-#else
-        if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
-            return availablePresentMode;
+        else {
+            if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+                return availablePresentMode;
+            }
         }
-#endif
     }
 
     return VK_PRESENT_MODE_FIFO_KHR;
@@ -1117,10 +1120,12 @@ void createTextureSampler(unsigned int id, unsigned int mipLevels) {
 // renderdoc for mac when
 std::array<VkClearValue, 2> clearValues{};
 
-void initGFX(GLFWwindow** window) {
+void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings) {
     windowPtr = window;
-    initGLFW();
-    createInstance();
+    settings = graphicsSettings;
+
+    initGLFW(windowName, width, height);
+    createInstance(windowName);
     createSurface();
     choosePhysicalDevice();
     createLogicalDevice();
@@ -1139,7 +1144,7 @@ void initGFX(GLFWwindow** window) {
 
     createUniformBuffers();
 
-    clearValues[0].color = {{CLEAR_RED, CLEAR_GREEN, CLEAR_BLUE, CLEAR_ALPHA}};
+    clearValues[0].color = {{settings.clearColor[0], settings.clearColor[1], settings.clearColor[2], 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice);

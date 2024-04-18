@@ -92,7 +92,7 @@ unsigned int loadTexture(const std::string& fileName) {
     return texture;
 }
 
-void initGFX(GLFWwindow** window) {
+void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings) {
     stbi_set_flip_vertically_on_load(true);
     windowPtr = window;
 
@@ -103,12 +103,10 @@ void initGFX(GLFWwindow** window) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // fucking macOS
-#ifdef MSAA_ENABLED
-    glfwWindowHint(GLFW_SAMPLES, MSAA_SAMPLES);
-#endif
+    if (graphicsSettings.msaaSamples > 1) glfwWindowHint(GLFW_SAMPLES, graphicsSettings.msaaSamples);
 
-    *windowPtr = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_NAME, nullptr, nullptr);
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    *windowPtr = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
+    glViewport(0, 0, width, height);
 
     if(*windowPtr == nullptr) {
         throw std::runtime_error("OpenGL 4.1: Could not open window!");
@@ -116,11 +114,7 @@ void initGFX(GLFWwindow** window) {
 
     glfwMakeContextCurrent(*windowPtr);
 
-#ifdef VSYNC
-    glfwSwapInterval(1);
-#else
-    glfwSwapInterval(0);
-#endif
+    glfwSwapInterval(graphicsSettings.vsyncEnabled);
 
     // Set up depth testing
     glEnable(GL_DEPTH_TEST);
@@ -138,13 +132,9 @@ void initGFX(GLFWwindow** window) {
     glEnable(GL_FRAMEBUFFER_SRGB);
 #endif
 
-#ifdef MSAA_ENABLED
-    glEnable(GL_MULTISAMPLE);
-#endif
+    if (graphicsSettings.msaaSamples > 1) glEnable(GL_MULTISAMPLE);
 
-#ifndef DO_SKYBOX
-    glClearColor(CLEAR_RED, CLEAR_GREEN, CLEAR_BLUE, CLEAR_ALPHA);
-#endif
+    glClearColor(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2], 1.0f);
     // Vertex Array
     // local function member since this thing is pretty much just fire and forget type beat in our case
     unsigned int vaoID;

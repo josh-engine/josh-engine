@@ -34,9 +34,16 @@ std::vector<void (*)()> imGuiCalls;
 
 int renderableCount;
 
+bool drawSkybox;
+bool skyboxSupported;
+
 glm::vec3 sunDirection(0, 1, 0);
 glm::vec3 sunColor(0, 0, 0);
-glm::vec3 ambient(glm::max(CLEAR_RED - 0.5f, 0.1f), glm::max(CLEAR_GREEN - 0.5f, 0.1f), glm::max(CLEAR_BLUE - 0.5f, 0.1f));
+glm::vec3 ambient(0);
+
+void setSkyboxEnabled(bool enabled) {
+    drawSkybox = enabled && skyboxSupported;
+}
 
 void setSunProperties(glm::vec3 position, glm::vec3 color){
     sunDirection = position;
@@ -200,12 +207,17 @@ void framebuffer_size_callback(GLFWwindow* windowInstance, int unused1, int unus
     resizeViewport();
 }
 
-void init() {
+void init(const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings) {
     std::cout << "JoshEngine " << ENGINE_VERSION_STRING << std::endl;
     std::cout << "Starting engine init." << std::endl;
-    windowWidth = WINDOW_WIDTH;
-    windowHeight = WINDOW_HEIGHT;
-    initGFX(&window);
+
+    windowWidth = width;
+    windowHeight = height;
+
+    ambient = {glm::max(graphicsSettings.clearColor[0] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[1] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[2] - 0.5f, 0.1f)};
+
+    initGFX(&window, windowName, width, height, graphicsSettings);
+
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // Missing texture init
@@ -215,23 +227,26 @@ void init() {
         exit(1);
     }
 
-#ifdef DO_SKYBOX
-    // Skybox init
-    registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl", false, false, false);
-    skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
-    if (!skybox.enabled) {
-        std::cerr << "Essential engine file missing." << std::endl;
-        exit(1);
+    drawSkybox = graphicsSettings.skybox;
+    skyboxSupported = graphicsSettings.skybox;
+
+    if (graphicsSettings.skybox) {
+        // Skybox init
+        registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl", false, false, false);
+        skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
+        if (!skybox.enabled) {
+            std::cerr << "Essential engine file missing." << std::endl;
+            exit(1);
+        }
+        skybox.texture = loadCubemap({
+                                             "./skybox/px_right.jpg",
+                                             "./skybox/nx_left.jpg",
+                                             "./skybox/py_up.jpg",
+                                             "./skybox/ny_down.jpg",
+                                             "./skybox/nz_front.jpg",
+                                             "./skybox/pz_back.jpg"
+        });
     }
-    skybox.texture = loadCubemap({
-                                         "./skybox/px_right.jpg",
-                                         "./skybox/nx_left.jpg",
-                                         "./skybox/py_up.jpg",
-                                         "./skybox/ny_down.jpg",
-                                         "./skybox/nz_front.jpg",
-                                         "./skybox/pz_back.jpg"
-    });
-#endif //DO_SKYBOX
     std::cout << "Graphics init successful!" << std::endl;
 
     initAudio();
@@ -327,10 +342,10 @@ void mainLoop() {
         std::vector<Renderable> renderables;
         std::priority_queue<std::pair<double, Renderable>, std::deque<std::pair<double, Renderable>>, decltype(compareLambda)> individualSortRenderables;
 
-#ifdef DO_SKYBOX
-        skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
-        renderables.push_back(skybox);
-#endif //DO_SKYBOX
+        if (drawSkybox) {
+            skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
+            renderables.push_back(skybox);
+        }
 
         for (auto item : gameObjects) {
             for (auto renderable : item.second.renderables) {

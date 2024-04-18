@@ -1,3 +1,4 @@
+#ifdef GFX_API_OPENGL41
 // dear imgui: Renderer Backend for modern OpenGL with shaders / programmatic pipeline
 // - Desktop GL: 2.x 3.x 4.x
 // - Embedded GL: ES 2.0 (WebGL 1.0), ES 3.0 (WebGL 2.0)
@@ -954,3 +955,4 @@ void    ImGui_ImplOpenGL3_DestroyDeviceObjects()
 #endif
 
 #endif // #ifndef IMGUI_DISABLE
+#endif

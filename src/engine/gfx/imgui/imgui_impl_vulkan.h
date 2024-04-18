@@ -1,3 +1,4 @@
+#ifdef GFX_API_VK
 // dear imgui: Renderer Backend for Vulkan
 // This needs to be used along with a Platform Backend (e.g. GLFW, SDL, Win32, custom..)
 
@@ -186,3 +187,4 @@ struct ImGui_ImplVulkanH_Window
 };
 
 #endif // #ifndef IMGUI_DISABLE
+#endif // GFX_API_VK
