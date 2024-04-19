@@ -24,6 +24,7 @@
 #include <string>
 #include "spirv-helper.h"
 #define STB_IMAGE_IMPLEMENTATION
+#include <queue>
 #include "../../../stb/stb_image.h"
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_vulkan.h"
@@ -542,21 +543,22 @@ void choosePhysicalDevice() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    std::map<int, VkPhysicalDevice> candidates;
+    auto compareLambda = [](std::pair<int, VkPhysicalDevice> left, std::pair<int, VkPhysicalDevice> right){return left.first > right.first;};
+    std::priority_queue<std::pair<int, VkPhysicalDevice>, std::deque<std::pair<int, VkPhysicalDevice>>, decltype(compareLambda)> candidates;
 
     for (const auto& device : devices) {
         int score = scoreDevice(device);
-        candidates.insert({score, device});
+        candidates.push(std::make_pair(score, device));
     }
 
     // Check if the best candidate is suitable at all
-    if (candidates.rbegin()->first > 0) {
-        physicalDevice = candidates.rbegin()->second;
+    if (candidates.top().first > 0) {
+        physicalDevice = candidates.top().second;
         msaaSamples = getClosestSampleCount(physicalDevice);
 #ifdef DEBUG_ENABLED
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-        std::cout << "\e[0;37mVulkan: Selected " << deviceProperties.deviceName << (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ? " (discrete GPU)" : " (iGPU)") << " as the chosen physical device with score " << candidates.rbegin()->first << ".\e[0m" << std::endl;
+        std::cout << "\e[0;37mVulkan: Selected " << deviceProperties.deviceName << (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU ? " (discrete GPU)" : " (iGPU)") << " as the chosen physical device with score " << candidates.top().first << ".\e[0m" << std::endl;
 #endif //DEBUG_ENABLED
     } else {
         throw std::runtime_error("Vulkan: Failed to find a suitable GPU!");

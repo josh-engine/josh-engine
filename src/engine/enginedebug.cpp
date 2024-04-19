@@ -22,7 +22,7 @@ void initDebugTools() {
 #endif //DEBUG_ENABLED
 }
 
-void registerFunctionToDebug(std::string name, void* function) {
+void registerFunctionToDebug(const std::string& name, void* function) {
 #ifdef DEBUG_ENABLED
     functionNameMap.insert({function, name});
 #endif //DEBUG_ENABLED

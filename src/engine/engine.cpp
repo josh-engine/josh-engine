@@ -28,8 +28,8 @@ Transform camera;
 bool keys[GLFW_KEY_LAST];
 bool mouseButtons[GLFW_MOUSE_BUTTON_8-GLFW_MOUSE_BUTTON_1];
 Renderable skybox;
-std::map<std::string, unsigned int> programs;
-std::map<std::string, unsigned int> textures;
+std::unordered_map<std::string, unsigned int> programs;
+std::unordered_map<std::string, unsigned int> textures;
 std::vector<void (*)()> imGuiCalls;
 
 int renderableCount;

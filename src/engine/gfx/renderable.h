@@ -5,7 +5,6 @@
 #ifndef JOSHENGINE_RENDERABLE_H
 #define JOSHENGINE_RENDERABLE_H
 
-#include "../engineconfig.h"
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <vector>

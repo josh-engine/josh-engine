@@ -37,10 +37,10 @@ Renderable createQuad(unsigned int shader, unsigned int texture) {
 
 class repackVertexObject {
 public:
-    glm::vec3 pos;
-    glm::vec3 col;
-    glm::vec2 uvs;
-    glm::vec3 nml;
+    glm::vec3 pos{};
+    glm::vec3 col{};
+    glm::vec2 uvs{};
+    glm::vec3 nml{};
 
     repackVertexObject(glm::vec3 position, glm::vec3 colors, glm::vec2 texcoords, glm::vec3 normals) {
         pos = position;
@@ -49,7 +49,7 @@ public:
         nml = normals;
     }
 
-    bool equals(repackVertexObject r) {
+    [[nodiscard]] bool equals(repackVertexObject r) const {
         return r.pos == pos && r.col == col && r.uvs == uvs && r.nml == nml;
     }
 };
@@ -114,7 +114,7 @@ Renderable repackRenderable(Renderable r) {
     return {vertices, colors, uvs, normals, indices, r.shaderProgram, r.texture, r.manualDepthSort};
 }
 
-std::vector<std::string> splitStr(std::string in, char del) {
+std::vector<std::string> splitStr(const std::string& in, char del) {
     std::string store;
 
     std::stringstream stream(in);
@@ -126,8 +126,8 @@ std::vector<std::string> splitStr(std::string in, char del) {
     }
 
     std::vector<std::string> v2;
-    for (auto a : v) {
-        if (a != "") {
+    for (const auto& a : v) {
+        if (!a.empty()) {
             v2.push_back(a);
         }
     }
@@ -135,9 +135,9 @@ std::vector<std::string> splitStr(std::string in, char del) {
     return v2;
 }
 
-std::map<std::string, std::vector<Renderable>> objMap;
+std::unordered_map<std::string, std::vector<Renderable>> objMap;
 
-std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram, bool manualDepthSort) {
+std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, bool manualDepthSort) {
     if (objMap.contains(path)) {
         std::vector<Renderable> copied;
         copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
@@ -182,20 +182,20 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram, bo
             std::vector<std::string> split = splitStr(currentLine, ' ');
             currentLine = "";
 
-            if (split.size() == 0 || split[0] == "#") {
+            if (split.empty() || split[0] == "#") {
                 continue; // This line of the file is a comment
             }
 
             // God I wish a switch/case worked here...
             if        (split[0] == "v")  {
                 // vertex position
-                modelVertices.push_back({std::stof(split[1]), std::stof(split[2]), std::stof(split[3])});
+                modelVertices.emplace_back(std::stof(split[1]), std::stof(split[2]), std::stof(split[3]));
             } else if (split[0] == "vt") {
                 // vertex texture coordinate
-                modelUVs.push_back({std::stof(split[1]), std::stof(split[2])});
+                modelUVs.emplace_back(std::stof(split[1]), std::stof(split[2]));
             } else if (split[0] == "vn") {
                 // vertex normal
-                modelNormals.push_back({std::stof(split[1]), std::stof(split[2]), std::stof(split[3])});
+                modelNormals.emplace_back(std::stof(split[1]), std::stof(split[2]), std::stof(split[3]));
             } else if (split[0] == "f")  {
                 // face
                 for (int i = 1; i <= 3; i++) {
@@ -302,6 +302,6 @@ std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram, bo
     return renderableList;
 }
 
-std::vector<Renderable> loadObj(std::string path, unsigned int shaderProgram) {
-    return loadObj(std::move(path), shaderProgram, false);
+std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram) {
+    return loadObj(path, shaderProgram, false);
 }

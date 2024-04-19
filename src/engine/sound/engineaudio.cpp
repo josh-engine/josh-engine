@@ -49,9 +49,9 @@ void initAudio() {
     alDistanceModel(AL_INVERSE_DISTANCE);
 }
 
-std::map<std::string, ALuint> audioMap;
+std::unordered_map<std::string, ALuint> audioMap;
 
-ALuint oggToBuffer(std::string filePath) {
+ALuint oggToBuffer(const std::string& filePath) {
     if (audioMap.contains(filePath)) return audioMap.at(filePath);
     int channels, sampleRate, samples;
     short* data;

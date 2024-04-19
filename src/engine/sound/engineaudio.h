@@ -9,16 +9,16 @@
 #include <string>
 
 void setVolume(float volume);
-ALuint oggToBuffer(std::string filePath);
+ALuint oggToBuffer(const std::string& filePath);
 
 class Sound {
 public:
     ALuint sourceID;
     ALuint bufferID;
-    glm::vec3 position;
-    glm::vec3 velocity;
+    glm::vec3 position{};
+    glm::vec3 velocity{};
     bool isLooping;
-    Sound(glm::vec3 pos, glm::vec3 vel, std::string filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
+    Sound(glm::vec3 pos, glm::vec3 vel, const std::string& filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
         isLooping = loop;
         position = pos;
         velocity = vel;
@@ -36,7 +36,7 @@ public:
         // Fill buffer
         bufferID = oggToBuffer(filePath);
     }
-    void updateSource() {
+    void updateSource() const {
         alSource3f(sourceID, AL_POSITION, position.x, position.y, position.z);
         alSource3f(sourceID, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
         alSourcei(sourceID, AL_LOOPING, isLooping);
@@ -45,7 +45,7 @@ public:
         alSourceQueueBuffers(sourceID, 1, &bufferID);
         alSourcePlay(sourceID);
     }
-    void stop() {
+    void stop() const {
         alSourceStop(sourceID);
     }
 };

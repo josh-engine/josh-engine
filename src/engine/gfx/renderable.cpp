@@ -3,7 +3,6 @@
 //
 
 
-#include "../engineconfig.h"
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
 

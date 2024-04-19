@@ -1,4 +1,3 @@
-#include "../../engineconfig.h"
 #ifdef GFX_API_OPENGL41
 #include "gfx_gl41.h"
 #include <iostream>

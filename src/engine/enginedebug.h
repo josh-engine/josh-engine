@@ -9,6 +9,6 @@
 
 void initDebugTools();
 void setupImGuiWindow();
-void registerFunctionToDebug(std::string name, void* function);
+void registerFunctionToDebug(const std::string& name, void* function);
 
 #endif //JOSHENGINE_ENGINEDEBUG_H
