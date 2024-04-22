@@ -2,9 +2,8 @@
 #version 420
 
 layout(location = 0) in vec3 vpos;
-layout(location = 1) in vec3 vcol;
-layout(location = 2) in vec2 uv;
-layout(location = 3) in vec3 vnorm;
+layout(location = 1) in vec2 uv;
+layout(location = 2) in vec3 vnorm;
 
 layout(location = 0) out vec3 color;
 
@@ -40,5 +39,5 @@ void main() {
         specular = pow(specAngle, 1);
     }
 
-    color = texture(textureSampler, uv).rgb * (ambience + vcol * lambertian * sunColor);
+    color = texture(textureSampler, uv).rgb * (ambience + vec3(1) * lambertian * sunColor);
 }

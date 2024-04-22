@@ -144,7 +144,6 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
 
     // Set up ImGui
     IMGUI_CHECKVERSION();
@@ -337,8 +336,8 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                 currentTexture = static_cast<int>(r.texture);
             }
 
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model,  1, GL_FALSE, &r.objectMatrix[0][0]   );
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_normal, 1, GL_FALSE, &r.rotate[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model,  1, GL_FALSE, &r.objectMatrix[0][0]);
+            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_normal, 1, GL_FALSE, &r.rotate[0][0]      );
 
             glBindBuffer(GL_ARRAY_BUFFER, r.vboID);
             glVertexAttribPointer(
@@ -350,19 +349,9 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                     nullptr
             );
 
-            glBindBuffer(GL_ARRAY_BUFFER, r.cboID);
-            glVertexAttribPointer(
-                    1,                                // attribute
-                    3,                                // size
-                    GL_FLOAT,                         // type
-                    GL_FALSE,                         // normalized?
-                    0,                                // stride
-                    nullptr
-            );
-
             glBindBuffer(GL_ARRAY_BUFFER, r.tboID);
             glVertexAttribPointer(
-                    2,                                // attribute
+                    1,                                // attribute
                     2,                                // size
                     GL_FLOAT,                         // type
                     GL_FALSE,                         // normalized?
@@ -372,7 +361,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
             glBindBuffer(GL_ARRAY_BUFFER, r.nboID);
             glVertexAttribPointer(
-                    3,                                // attribute
+                    2,                                // attribute
                     3,                                // size
                     GL_FLOAT,                         // type
                     GL_TRUE,                          // normalized?

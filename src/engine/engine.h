@@ -125,5 +125,7 @@ void setAmbient(float r, float g, float b);
 void setAmbient(glm::vec3 rgb);
 void registerOnMouse(void (*function)(int button, bool pressed, double dt));
 void setSkyboxEnabled(bool enabled);
+std::string textureReverseLookup(int num);
+std::string programReverseLookup(int num);
 
 #endif //JOSHENGINE_ENGINE_H

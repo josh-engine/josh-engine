@@ -6,6 +6,8 @@
 #include <filesystem>
 #include <iostream>
 #include <iterator>
+#include "renderable.h"
+#include "../engine.h"
 
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
@@ -16,14 +18,14 @@ unsigned int createVBOFunctionMirror(void* r) {
 
 #endif
 
-void writeDWordLE(uint64 DWord, std::fstream& file) {
+void writeDWordLE(glm::uint64 DWord, std::fstream& file) {
     file.put((char)(DWord));
     file.put((char)(DWord >> 8));
     file.put((char)(DWord >> 16));
     file.put((char)(DWord >> 24));
 }
 
-void writeDWordBE(uint64 DWord, std::fstream& file) {
+void writeDWordBE(glm::uint64 DWord, std::fstream& file) {
     file.put((char)(DWord >> 24));
     file.put((char)(DWord >> 16));
     file.put((char)(DWord >> 8));
@@ -48,11 +50,18 @@ void Renderable::saveToFile(const std::string& fileName) {
 
     // Bad File (idk couldn't come up with another magic number)
     writeDWordBE(0x0BADF115, file); // Magic number looks better in big endian in a hex editor
-    writeDWordLE(this->texture, file);
-    writeDWordLE(this->shaderProgram, file);
 
+    std::string txname = textureReverseLookup(this->texture);
+    writeDWordLE(txname.size(), file);
+    for (char c : txname) {
+        file.put(c);
+    }
+    std::string prgname = programReverseLookup(this->shaderProgram);
+    writeDWordLE(prgname.size(), file);
+    for (char c : prgname) {
+        file.put(c);
+    }
     writeFloatVec(this->vertices, file);
-    writeFloatVec(this->colors, file);
     writeFloatVec(this->uvs, file);
     writeFloatVec(this->normals, file);
 
@@ -66,21 +75,23 @@ void Renderable::saveToFile(const std::string& fileName) {
     file.close();
 }
 
-uint32 readDWordBE(std::vector<unsigned char>& file, unsigned int offset){
-    uint32 staging = 0;
-    staging |= file[offset  ] << 24;
-    staging |= file[offset+1] << 16;
-    staging |= file[offset+2] << 8;
-    staging |= file[offset+3];
+glm::uint32 readDWordBE(std::vector<unsigned char>& file, unsigned int* offset){
+    glm::uint32 staging = 0;
+    staging |= file[*offset  ] << 24;
+    staging |= file[*offset+1] << 16;
+    staging |= file[*offset+2] << 8;
+    staging |= file[*offset+3];
+    *offset += 4;
     return staging;
 }
 
-uint32 readDWordLE(std::vector<unsigned char>& file, unsigned int offset){
-    uint32 staging = 0;
-    staging |= file[offset  ];
-    staging |= file[offset+1] << 8;
-    staging |= file[offset+2] << 16;
-    staging |= file[offset+3] << 24;
+glm::uint32 readDWordLE(std::vector<unsigned char>& file, unsigned int* offset){
+    glm::uint32 staging = 0;
+    staging |= file[*offset  ];
+    staging |= file[*offset+1] << 8;
+    staging |= file[*offset+2] << 16;
+    staging |= file[*offset+3] << 24;
+    *offset += 4;
     return staging;
 }
 
@@ -101,52 +112,60 @@ Renderable renderableFromFile(const std::string& fileName) {
         return {};
     }
 
-    if (readDWordBE(fileBytes, 0) != 0x0BADF115) {
+    unsigned int offset = 0;
+
+    if (readDWordBE(fileBytes, &offset) != 0x0BADF115) {
         std::cerr << "Could not load renderable file \"" << fileName << "\" (invalid magic number)" << std::endl;
         return {};
     }
 
-    unsigned int texture = readDWordLE(fileBytes, 4);
-    unsigned int shaderProgram = readDWordLE(fileBytes, 8);
+    unsigned int textureNameLength = readDWordLE(fileBytes, &offset);
+    std::string txname = "";
+    for (int i = 0; i < textureNameLength; i++){
+        txname.push_back(fileBytes[offset]);
+        offset++;
+    }
+    unsigned int textureID = getTexture(txname);
+
+    unsigned int shaderProgramNameLength = readDWordLE(fileBytes, &offset);
+    std::string pgname = "";
+    for (int i = 0; i < shaderProgramNameLength; i++){
+        pgname.push_back(fileBytes[offset]);
+        offset++;
+    }
+    unsigned int programID = getProgram(pgname);
 
     std::vector<float> vertices = {};
-    unsigned int vertexLength = readDWordLE(fileBytes, 12);
+    unsigned int vertexLength = readDWordLE(fileBytes, &offset);
     vertices.reserve(vertexLength);
     for (int i = 0; i < vertexLength; i++){
-        vertices.push_back(std::bit_cast<float>(readDWordLE(fileBytes, (i+4)*4)));
-    }
-
-    std::vector<float> colors = {};
-    unsigned int colorLength = readDWordLE(fileBytes, (4+vertexLength)*4);
-    colors.reserve(colorLength);
-    for (int i = 0; i < colorLength; i++){
-        colors.push_back(std::bit_cast<float>(readDWordLE(fileBytes, (i+5+vertexLength)*4)));
+        vertices.push_back(std::bit_cast<float>(readDWordLE(fileBytes, &offset)));
     }
 
     std::vector<float> uv = {};
-    unsigned int uvLength = readDWordLE(fileBytes, (5+vertexLength+colorLength)*4);
+    unsigned int uvLength = readDWordLE(fileBytes, &offset);
     uv.reserve(uvLength);
     for (int i = 0; i < uvLength; i++){
-        uv.push_back(std::bit_cast<float>(readDWordLE(fileBytes, (i+6+vertexLength+colorLength)*4)));
+        uv.push_back(std::bit_cast<float>(readDWordLE(fileBytes, &offset)));
     }
 
     std::vector<float> normals = {};
-    unsigned int normalLength = readDWordLE(fileBytes, (6+vertexLength+colorLength+uvLength)*4);
+    unsigned int normalLength = readDWordLE(fileBytes, &offset);
     normals.reserve(normalLength);
     for (int i = 0; i < normalLength; i++){
-        normals.push_back(std::bit_cast<float>(readDWordLE(fileBytes, (i+7+vertexLength+colorLength+uvLength)*4)));
+        normals.push_back(std::bit_cast<float>(readDWordLE(fileBytes, &offset)));
     }
 
     std::vector<unsigned int> indicies = {};
-    unsigned int indiciesLength = readDWordLE(fileBytes, (7+vertexLength+colorLength+uvLength+normalLength)*4);
+    unsigned int indiciesLength = readDWordLE(fileBytes, &offset);
     indicies.reserve(indiciesLength);
     for (int i = 0; i < indiciesLength; i++){
-        indicies.push_back(readDWordLE(fileBytes, (i+8+vertexLength+colorLength+uvLength+normalLength)*4));
+        indicies.push_back(readDWordLE(fileBytes, &offset));
     }
 
-    bool manualDepthSort = fileBytes[fileBytes.size()-1];
+    bool manualDepthSort = fileBytes[offset];
 
-    Renderable r = {vertices, colors, uv, normals, indicies, shaderProgram, texture, manualDepthSort};
+    Renderable r = {vertices, uv, normals, indicies, programID, textureID, manualDepthSort};
     onlyLoadOnce.insert({fileName, r});
     return r;
 }

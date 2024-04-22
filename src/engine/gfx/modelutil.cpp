@@ -15,7 +15,6 @@ Renderable createQuad(unsigned int shader, unsigned int texture, bool manualDept
         // Init quad once (we only need one VBO across the lifetime of the engine for a quad)
         quadBase = Renderable(
                 {-1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},    //verts
-                { 1.0f,  1.0f,  1.0f,   1.0f,  1.0f,  1.0f,    1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},   //colors
                 { 0.0f,  0.0f,          1.0f,  0.0f,           0.0f,  1.0f       ,  1.0f,  1.0f},  //UVs
                 { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
                 { 0, 1, 2,     1, 3, 2 }, //indices
@@ -38,19 +37,17 @@ Renderable createQuad(unsigned int shader, unsigned int texture) {
 class repackVertexObject {
 public:
     glm::vec3 pos{};
-    glm::vec3 col{};
     glm::vec2 uvs{};
     glm::vec3 nml{};
 
-    repackVertexObject(glm::vec3 position, glm::vec3 colors, glm::vec2 texcoords, glm::vec3 normals) {
+    repackVertexObject(glm::vec3 position, glm::vec2 texcoords, glm::vec3 normals) {
         pos = position;
-        col = colors;
         uvs = texcoords;
         nml = normals;
     }
 
     [[nodiscard]] bool equals(repackVertexObject r) const {
-        return r.pos == pos && r.col == col && r.uvs == uvs && r.nml == nml;
+        return r.pos == pos && r.uvs == uvs && r.nml == nml;
     }
 };
 
@@ -63,7 +60,6 @@ Renderable repackRenderable(Renderable r) {
         // new vertex object with current properties
         repackVertexObject currentVertexObject(
                 {r.vertices[i*3], r.vertices[(i*3)+1], r.vertices[(i*3)+2]},
-                {r.colors[i*3], r.colors[(i*3)+1], r.colors[(i*3)+2]},
                 {r.uvs[i*2], r.uvs[(i*2)+1]},
                 {r.normals[i*3], r.normals[(i*3)+1], r.normals[(i*3)+2]});
 
@@ -99,10 +95,6 @@ Renderable repackRenderable(Renderable r) {
         vertices.push_back(vert.pos.y);
         vertices.push_back(vert.pos.z);
 
-        colors.push_back(vert.col.x);
-        colors.push_back(vert.col.y);
-        colors.push_back(vert.col.z);
-
         uvs.push_back(vert.uvs.x);
         uvs.push_back(vert.uvs.y);
 
@@ -111,7 +103,7 @@ Renderable repackRenderable(Renderable r) {
         normals.push_back(vert.nml.z);
     }
 
-    return {vertices, colors, uvs, normals, indices, r.shaderProgram, r.texture, r.manualDepthSort};
+    return {vertices, uvs, normals, indices, r.shaderProgram, r.texture, r.manualDepthSort};
 }
 
 std::vector<std::string> splitStr(const std::string& in, char del) {
@@ -219,9 +211,6 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
                         currentRenderable.normals.push_back(modelNormals[normalIndex].y);
                         currentRenderable.normals.push_back(modelNormals[normalIndex].z);
 
-                        currentRenderable.colors.push_back(1);
-                        currentRenderable.colors.push_back(1);
-                        currentRenderable.colors.push_back(1);
                     } else if (split[i].find('/') != std::string::npos) {
                         // formatted as either v/t or v/t/n
                         std::vector<std::string> vertexSplit = splitStr(split[i], '/');
@@ -246,9 +235,6 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
                         currentRenderable.normals.push_back(modelNormals[normalIndex].y);
                         currentRenderable.normals.push_back(modelNormals[normalIndex].z);
 
-                        currentRenderable.colors.push_back(1);
-                        currentRenderable.colors.push_back(1);
-                        currentRenderable.colors.push_back(1);
                     } else {
                         // formatted as v
                         unsigned int index = std::stoi(split[i]);
@@ -266,9 +252,6 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
                         currentRenderable.normals.push_back(modelNormals[0].y);
                         currentRenderable.normals.push_back(modelNormals[0].z);
 
-                        currentRenderable.colors.push_back(1);
-                        currentRenderable.colors.push_back(1);
-                        currentRenderable.colors.push_back(1);
                     }
                 }
             } else if (split[0] == "s") {

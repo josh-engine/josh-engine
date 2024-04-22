@@ -1,9 +1,8 @@
 // JE_TRANSLATE
 #version 420
 
-layout(location = 3) in vec3 vnorm;
-
 layout(location = 0) out vec3 color;
+layout(location = 2) in vec3 vnorm;
 
 layout(binding = 0) uniform UBO { // JE_TRANSLATE
     mat4 viewMatrix;
@@ -28,8 +27,7 @@ void main() {
 
     float diff = attenuation * max(0.0, dot(normalDirection, lightDirection));
     // low priority: diffuse illumination
-    if (diff < 0.3)
-    {
+    if (diff < 0.3) {
         color = (vnormCol - vec3(0.7)) + ambience;
     } else if (diff < 0.5) {
         color = (vnormCol - vec3(0.5)) + ambience;

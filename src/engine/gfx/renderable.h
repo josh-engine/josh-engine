@@ -20,7 +20,6 @@
 
 struct JEInterleavedVertex {
     glm::vec3 position;
-    glm::vec3 color;
     glm::vec2 uvCoords;
     glm::vec3 normal;
 
@@ -33,8 +32,8 @@ struct JEInterleavedVertex {
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-        std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
+    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
         attributeDescriptions[0].binding = 0;
         attributeDescriptions[0].location = 0;
         attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
@@ -42,18 +41,13 @@ struct JEInterleavedVertex {
 
         attributeDescriptions[1].binding = 0;
         attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
-        attributeDescriptions[1].offset = offsetof(JEInterleavedVertex, color);
+        attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT; // vec2
+        attributeDescriptions[1].offset = offsetof(JEInterleavedVertex, uvCoords);
 
         attributeDescriptions[2].binding = 0;
         attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT; // vec2
-        attributeDescriptions[2].offset = offsetof(JEInterleavedVertex, uvCoords);
-
-        attributeDescriptions[3].binding = 0;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
-        attributeDescriptions[3].offset = offsetof(JEInterleavedVertex, normal);
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT; // vec3
+        attributeDescriptions[2].offset = offsetof(JEInterleavedVertex, normal);
 
         return attributeDescriptions;
     }
@@ -67,7 +61,6 @@ unsigned int createVBOFunctionMirror(void* r);
 class Renderable {
 public:
     std::vector<float> vertices;
-    std::vector<float> colors;
     std::vector<float> uvs;
     std::vector<float> normals;
     std::vector<unsigned int> indices;
@@ -86,7 +79,6 @@ public:
 
 #ifdef GFX_API_OPENGL41
     unsigned int vboID; // Positions
-    unsigned int cboID; // Colors
     unsigned int tboID; // UV coordinates
     unsigned int nboID; // Normals
     unsigned int iboID; // Indices
@@ -104,10 +96,9 @@ public:
         enabled = false;
     }
 
-    Renderable(std::vector<float> verts, std::vector<float> cols, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex, bool manualDepthSort) {
+    Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex, bool manualDepthSort) {
         enabled = true;
         vertices = std::move(verts);
-        colors = std::move(cols);
         uvs = std::move(_uvs);
         normals = std::move(norms);
         indices = std::move(ind);
@@ -126,15 +117,6 @@ public:
                 GL_STATIC_DRAW
         );
 
-        // Color Buffer
-        glGenBuffers(1, &cboID);
-        glBindBuffer(GL_ARRAY_BUFFER, cboID);
-        glBufferData(
-                GL_ARRAY_BUFFER,
-                colors.size() * sizeof(float),
-                &colors[0],
-                GL_STATIC_DRAW
-        );
 
         // Texture Coordinate Buffer
         glGenBuffers(1, &tboID);
@@ -170,7 +152,6 @@ public:
         for (int i = 0; i < vertices.size()/3; i++) {
             interleavedVertices.push_back({
                                                   {vertices[3*i],  vertices[(3*i)+1], vertices[(3*i)+2]},
-                                                  {colors[(3*i)],  colors[(3*i)+1],   colors[(3*i)+2]},
                                                   {uvs[(2*i)],     uvs[(2*i)+1]},
                                                   {normals[(3*i)], normals[(3*i)+1],  normals[(3*i)+2]}});
         }
