@@ -8,6 +8,7 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <vector>
+#include <string>
 
 #ifdef GFX_API_OPENGL41
 #include "GLFW/glfw3.h"
@@ -185,6 +186,10 @@ public:
         this->scale = s;
         this->objectMatrix = (this->transform * this->rotate * this->scale);
     }
+
+    void saveToFile(const std::string& fileName);
 };
+
+Renderable renderableFromFile(const std::string& fileName);
 
 #endif //JOSHENGINE_RENDERABLE_H

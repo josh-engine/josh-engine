@@ -86,14 +86,14 @@ void mouseClick(int button, bool wasButtonPressed, double dt) {
     }
 }
 
-void updateTriangle(double deltaTime, GameObject* self) {
+void move(double deltaTime, GameObject* self) {
     if (self->transform.position.y > 2) {
         self->transform.position.y = 0;
     }
     self->transform.position += vec3(0, 1*deltaTime, 0);
 }
 
-void updateBunny(double deltaTime, GameObject* self) {
+void spin(double deltaTime, GameObject* self) {
     if (self->transform.rotation.y > 360) {
         self->transform.rotation.y -= 360;
     }
@@ -103,41 +103,42 @@ void updateBunny(double deltaTime, GameObject* self) {
 void initTriangle(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, -2));
     selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png"), true));
-    selfObject->onUpdate.push_back(&updateTriangle);
+    selfObject->onUpdate.push_back(&move);
 }
 
 void initTriangle2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, 1));
     selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), getTexture("uv_tex.png"), true));
-    selfObject->onUpdate.push_back(&updateTriangle);
+    selfObject->onUpdate.push_back(&move);
 }
 
 void initBunny(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0));
     std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonNorm"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-    selfObject->onUpdate.push_back(&updateBunny);
+    selfObject->onUpdate.push_back(&spin);
 }
 
 void initBunny2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-2, 0, 0));
     std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-    selfObject->onUpdate.push_back(&updateBunny);
+    selfObject->onUpdate.push_back(&spin);
 }
 
 void initBunny3(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, -4));
     std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"));
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-    selfObject->onUpdate.push_back(&updateBunny);
+    selfObject->onUpdate.push_back(&spin);
 }
 
 void initCube(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(3, 1, 0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getProgram("bnphTexture"));
-    selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
-    selfObject->onUpdate.push_back(&updateBunny);
+    //std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getProgram("bnphTexture"));
+    //modelRenderables[0].saveToFile("test.rend");
+    selfObject->onUpdate.push_back(&spin);
+    selfObject->renderables.push_back(renderableFromFile("test.rend"));
 }
 
 void initUiItem(GameObject* selfObject) {
@@ -157,8 +158,8 @@ void setupTest() {
     registerOnKey(&lockUnlock);
     registerOnMouse(&mouseClick);
 
-    registerFunctionToDebug("updateBunny",    reinterpret_cast<void*>(&updateBunny));
-    registerFunctionToDebug("updateTriangle", reinterpret_cast<void*>(&updateTriangle));
+    registerFunctionToDebug("spin", reinterpret_cast<void*>(&spin));
+    registerFunctionToDebug("move", reinterpret_cast<void*>(&move));
 
     registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", true, false, false);
     registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", true, false, false);
