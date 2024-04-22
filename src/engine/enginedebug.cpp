@@ -5,7 +5,6 @@
 #include <string>
 #ifdef DEBUG_ENABLED
 #include "enginedebug.h"
-#include "engineconfig.h"
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
 #include <unordered_map>
@@ -50,7 +49,7 @@ void setupImGuiWindow() {
         std::unordered_map<std::string, GameObject> gameObjects = getGameObjects();
 
         if (ImGui::BeginCombo("GameObject", selectedGameObject.c_str(), 0)) {
-            for (auto object: gameObjects) {
+            for (const auto& object: gameObjects) {
                 if (ImGui::Selectable(object.first.c_str(), selectedGameObject == object.first))
                     selectedGameObject = object.first;
             }

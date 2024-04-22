@@ -10,14 +10,13 @@
  * (that was in desperation and mac only supports up to 4.1.)
  */
 
-#include "../../engineconfig.h"
 #ifdef GFX_API_VK
+#include "../../engineconfig.h"
 #include "gfx_vk.h"
 #include <iostream>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <map>
 #include <set>
 #include <fstream>
 #include <sstream>

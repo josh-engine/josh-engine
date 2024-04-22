@@ -120,17 +120,17 @@ Renderable renderableFromFile(const std::string& fileName) {
     }
 
     unsigned int textureNameLength = readDWordLE(fileBytes, &offset);
-    std::string txname = "";
+    std::string txname;
     for (int i = 0; i < textureNameLength; i++){
-        txname.push_back(fileBytes[offset]);
+        txname.push_back(std::bit_cast<char>(fileBytes[offset]));
         offset++;
     }
     unsigned int textureID = getTexture(txname);
 
     unsigned int shaderProgramNameLength = readDWordLE(fileBytes, &offset);
-    std::string pgname = "";
+    std::string pgname;
     for (int i = 0; i < shaderProgramNameLength; i++){
-        pgname.push_back(fileBytes[offset]);
+        pgname.push_back(std::bit_cast<char>(fileBytes[offset]));
         offset++;
     }
     unsigned int programID = getProgram(pgname);

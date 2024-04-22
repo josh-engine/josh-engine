@@ -41,14 +41,14 @@ glm::vec3 sunDirection(0, 1, 0);
 glm::vec3 sunColor(0, 0, 0);
 glm::vec3 ambient(0);
 
-std::string programReverseLookup(int num){
+std::string programReverseLookup(unsigned int num){
     for (auto i : programs){
         if (i.second == num) return i.first;
     }
     return "";
 }
 
-std::string textureReverseLookup(int num){
+std::string textureReverseLookup(unsigned int num){
     for (auto i : textures){
         if (i.second == num) return i.first;
     }

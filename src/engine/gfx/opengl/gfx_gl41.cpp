@@ -373,7 +373,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
             glDrawElements(
                     GL_TRIANGLES,      // mode
-                    r.indicesSize,    // count
+                    static_cast<int>(r.indicesSize),    // count
                     GL_UNSIGNED_INT,   // type
                     nullptr           // element array buffer offset
             );

@@ -4,7 +4,6 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <utility>
 #include "renderable.h"
 #include "../engine.h"
 
@@ -254,9 +253,8 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
 
                     }
                 }
-            } else if (split[0] == "s") {
+            } else if ((split[0] == "s") || (split[0] == "mtllib")) {
                 // smooth shaded enabled (ignore this case)
-            } else if (split[0] == "mtllib") {
                 // load material (ignore this case)
             } else if (split[0] == "usemtl" || split[0] == "o") {
                 // use specific material

@@ -5,7 +5,6 @@
 #ifndef JOSHENGINE_RENDERABLE_H
 #define JOSHENGINE_RENDERABLE_H
 
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 #include <vector>
 #include <string>
@@ -65,17 +64,17 @@ public:
     std::vector<float> normals;
     std::vector<unsigned int> indices;
 
-    unsigned int shaderProgram;
-    unsigned int texture;
+    unsigned int shaderProgram{};
+    unsigned int texture{};
 
-    glm::mat4 transform;
-    glm::mat4 rotate;
-    glm::mat4 scale;
-    glm::mat4 objectMatrix;
+    glm::mat4 transform{};
+    glm::mat4 rotate{};
+    glm::mat4 scale{};
+    glm::mat4 objectMatrix{};
 
     bool enabled;
 
-    bool manualDepthSort;
+    bool manualDepthSort{};
 
 #ifdef GFX_API_OPENGL41
     unsigned int vboID; // Positions
@@ -85,12 +84,12 @@ public:
 #endif //GFX_API_OPENGL41
 
 #ifdef GFX_API_VK
-    unsigned int vboID;
+    unsigned int vboID{};
     std::vector<JEInterleavedVertex> interleavedVertices;
 #endif
 
     // Although on OpenGL this was negligible, for some reason on Vulkan this resulted in around +10FPS.
-    unsigned int indicesSize;
+    unsigned int indicesSize{};
 
     Renderable() {
         enabled = false;
