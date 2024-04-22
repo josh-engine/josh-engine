@@ -84,7 +84,12 @@ uint32 readDWordLE(std::vector<unsigned char>& file, unsigned int offset){
     return staging;
 }
 
+std::unordered_map<std::string, Renderable> onlyLoadOnce;
+
 Renderable renderableFromFile(const std::string& fileName) {
+    if (onlyLoadOnce.contains(fileName)) {
+        return onlyLoadOnce.at(fileName);
+    }
     std::ifstream file(fileName, std::ios::binary);
     std::vector<unsigned char> fileBytes( // StackOverflow yoink (https://stackoverflow.com/questions/50315742/how-do-i-read-bytes-from-file-c)
             (std::istreambuf_iterator<char>(file)),
@@ -141,5 +146,7 @@ Renderable renderableFromFile(const std::string& fileName) {
 
     bool manualDepthSort = fileBytes[fileBytes.size()-1];
 
-    return {vertices, colors, uv, normals, indicies, shaderProgram, texture, manualDepthSort};
+    Renderable r = {vertices, colors, uv, normals, indicies, shaderProgram, texture, manualDepthSort};
+    onlyLoadOnce.insert({fileName, r});
+    return r;
 }
