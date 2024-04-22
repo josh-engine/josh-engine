@@ -205,6 +205,17 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     throw std::runtime_error("Vulkan: Failed to find suitable memory type!");
 }
 
+void allocDeviceMem(VkDeviceMemory& memory, VkDeviceSize size, uint32_t memoryType) {
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = size;
+    allocInfo.memoryTypeIndex = memoryType;
+
+    if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &memory) != VK_SUCCESS) {
+        throw std::runtime_error("Vulkan: Failed to allocate memory!");
+    }
+}
+
 void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -219,14 +230,7 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS) {
-        throw std::runtime_error("Vulkan: Failed to allocate buffer memory!");
-    }
+    allocDeviceMem(bufferMemory, memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
 
     vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
 }
@@ -996,14 +1000,7 @@ void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkForma
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS) {
-        throw std::runtime_error("Vulkan: Failed to allocate image memory!");
-    }
+    allocDeviceMem(imageMemory, memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
 
     vkBindImageMemory(logicalDevice, image, imageMemory, 0);
 }
@@ -1272,14 +1269,8 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, textureImages[id], &memRequirements);
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &textureMemoryRefs[id]) != VK_SUCCESS) {
-        throw std::runtime_error("Vulkan: Failed to allocate cubemap memory!");
-    }
+    allocDeviceMem(textureMemoryRefs[id], memRequirements.size,
+                   findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
     vkBindImageMemory(logicalDevice, textureImages[id], textureMemoryRefs[id], 0);
 
