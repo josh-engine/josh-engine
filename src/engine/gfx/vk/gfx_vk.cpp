@@ -71,23 +71,20 @@ uint32_t currentFrame = 0;
 
 // Same ID system implementation.
 std::vector<VkBuffer> vertexBuffers;
-std::vector<VkDeviceMemory> vertexBufferMemoryRefs;
+std::vector<JEAllocation_VK> vertexBufferMemoryRefs;
 std::vector<VkBuffer> indexBuffers;
-std::vector<VkDeviceMemory> indexBufferMemoryRefs;
+std::vector<JEAllocation_VK> indexBufferMemoryRefs;
 
 VkDescriptorSetLayout descriptorSetLayout;
 
 std::vector<VkBuffer> uniformBuffers;
+// Didn't want to screw around with mapping only PARTS of an allocation... something was bound to go funky.
 std::vector<VkDeviceMemory> uniformBuffersMemory;
 std::vector<void*> uniformBuffersMapped;
 
-VkImage depthImage;
-VkDeviceMemory depthImageMemory;
-VkImageView depthImageView;
-
 std::vector<VkImage> textureImages;
 std::vector<unsigned int> textureMipLevels;
-std::vector<VkDeviceMemory> textureMemoryRefs;
+std::vector<JEAllocation_VK> textureMemoryRefs;
 std::vector<VkImageView> textureImageViews;
 std::vector<VkDescriptorPool> perTextureDescriptorPools;
 std::vector<std::vector<VkDescriptorSet>> perTextureDescriptorSets;
@@ -97,9 +94,15 @@ VkDescriptorPool imGuiDescriptorPool;
 
 VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
 
+// Our framebuffer is large enough to justify a separate VkDeviceMemory
 VkImage colorImage;
 VkDeviceMemory colorImageMemory;
 VkImageView colorImageView;
+VkImage depthImage;
+VkDeviceMemory depthImageMemory;
+VkImageView depthImageView;
+
+std::vector<JEMemoryBlock_VK> memoryBlocks{};
 
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -204,7 +207,7 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     throw std::runtime_error("Vulkan: Failed to find suitable memory type!");
 }
 
-void allocDeviceMem(VkDeviceMemory& memory, VkDeviceSize size, uint32_t memoryType) {
+void allocateDeviceMemory(VkDeviceMemory& memory, VkDeviceSize size, uint32_t memoryType) {
     VkMemoryAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     allocInfo.allocationSize = size;
@@ -215,7 +218,15 @@ void allocDeviceMem(VkDeviceMemory& memory, VkDeviceSize size, uint32_t memoryTy
     }
 }
 
-void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
+JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType) {
+    // TODO actual allocator
+    VkDeviceMemory newMemory;
+    allocateDeviceMemory(newMemory, size, memoryType);
+    memoryBlocks.push_back({newMemory, memoryType, static_cast<uint32_t>(size), size});
+    return {&memoryBlocks[memoryBlocks.size()-1].memory, size, 0};
+}
+
+void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, JEAllocation_VK& alloc) {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
@@ -229,9 +240,26 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
 
-    allocDeviceMem(bufferMemory, memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
+    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
 
-    vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
+    vkBindBufferMemory(logicalDevice, buffer, *alloc.memoryRef, alloc.offset);
+}
+
+void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory) {
+    VkBufferCreateInfo bufferInfo{};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = size;
+    bufferInfo.usage = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
+        throw std::runtime_error("Vulkan: Failed to create buffer!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
+    allocateDeviceMemory(memory, size, findMemoryType(memRequirements.memoryTypeBits, properties));
+    vkBindBufferMemory(logicalDevice, buffer, memory, 0);
 }
 
 VkCommandBuffer beginSingleTimeCommands() {
@@ -976,7 +1004,7 @@ void createDescriptorSets(unsigned int textureID) {
     }
 }
 
-void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory, unsigned int mipLevels, VkSampleCountFlagBits samples) {
+void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, JEAllocation_VK& alloc, unsigned int mipLevels, VkSampleCountFlagBits samples) {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = imageType;
@@ -999,9 +1027,35 @@ void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkForma
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
 
-    allocDeviceMem(imageMemory, memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
+    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
 
-    vkBindImageMemory(logicalDevice, image, imageMemory, 0);
+    vkBindImageMemory(logicalDevice, image, *alloc.memoryRef, alloc.offset);
+}
+
+void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory, unsigned int mipLevels, VkSampleCountFlagBits samples) {
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = imageType;
+    imageInfo.extent.width = width;
+    imageInfo.extent.height = height;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = mipLevels;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = format;
+    imageInfo.tiling = tiling;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = usage;
+    imageInfo.samples = samples;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &image) != VK_SUCCESS) {
+        throw std::runtime_error("Vulkan: Failed to create image!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
+    allocateDeviceMemory(memory, memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
+    vkBindImageMemory(logicalDevice, image, memory, 0);
 }
 
 bool hasStencilComponent(VkFormat format) {
@@ -1268,10 +1322,9 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, textureImages[id], &memRequirements);
 
-    allocDeviceMem(textureMemoryRefs[id], memRequirements.size,
-                   findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+    textureMemoryRefs[id] = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
 
-    vkBindImageMemory(logicalDevice, textureImages[id], textureMemoryRefs[id], 0);
+    vkBindImageMemory(logicalDevice, textureImages[id], *textureMemoryRefs[id].memoryRef, textureMemoryRefs[id].offset);
 
     transitionImageLayout(textureImages[id], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, 1);
 
@@ -1947,24 +2000,13 @@ void deinitGFX() {
         vkDestroyImage(logicalDevice, texture, nullptr);
     }
 
-    for (auto textureMem : textureMemoryRefs) {
-        vkFreeMemory(logicalDevice, textureMem, nullptr);
-    }
-
     for (auto vertexBuffer : vertexBuffers) {
         vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
     }
 
-    for (auto vertexMemoryAlloc : vertexBufferMemoryRefs) {
-        vkFreeMemory(logicalDevice, vertexMemoryAlloc, nullptr);
-    }
 
     for (auto indexBuffer : indexBuffers) {
         vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
-    }
-
-    for (auto indexMemoryAlloc : indexBufferMemoryRefs) {
-        vkFreeMemory(logicalDevice, indexMemoryAlloc, nullptr);
     }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -1986,6 +2028,10 @@ void deinitGFX() {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         vkDestroyBuffer(logicalDevice, uniformBuffers[i], nullptr);
         vkFreeMemory(logicalDevice, uniformBuffersMemory[i], nullptr);
+    }
+
+    for (auto memoryBlock : memoryBlocks) {
+        vkFreeMemory(logicalDevice, memoryBlock.memory, nullptr);
     }
 
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);

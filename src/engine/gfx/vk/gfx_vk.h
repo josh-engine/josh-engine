@@ -19,6 +19,19 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
+struct JEAllocation_VK {
+    VkDeviceMemory* memoryRef;
+    VkDeviceSize size;
+    VkDeviceSize offset;
+};
+
+struct JEMemoryBlock_VK {
+    VkDeviceMemory memory;
+    VkMemoryType type;
+    VkDeviceSize size;
+    VkDeviceSize top;
+};
+
 struct JEPushConstants_VK {
     glm::mat4 model;
     glm::mat4 normal;
