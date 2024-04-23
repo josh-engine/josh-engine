@@ -228,6 +228,11 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) 
             } else {
                 alignedTop = (block.top + align/2);
                 alignedTop-= (alignedTop % align);
+                // Since this can produce results below block.top,
+                // increment with alignment until in a safe location.
+                while (alignedTop < block.top) {
+                    alignedTop += align;
+                }
             }
             // can we fit?
             if (block.size >= alignedTop + size) {
@@ -237,9 +242,11 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) 
         }
     }
     VkDeviceMemory newMemory;
-    // do the vector thing and be prepared for double the size of our original data
-    allocateDeviceMemory(newMemory, size*2, memoryType);
-    memoryBlocks.push_back({newMemory, memoryType, size*2, size});
+    VkDeviceSize newBlockSize = NEW_BLOCK_MIN_SIZE;
+    // do the vector thing and be prepared for double the size of our original data (if it is larger than our new min size)
+    if (size*2 > newBlockSize) newBlockSize = size*2;
+    allocateDeviceMemory(newMemory, newBlockSize, memoryType);
+    memoryBlocks.push_back({newMemory, memoryType, newBlockSize, size});
     return {&memoryBlocks[memoryBlocks.size()-1].memory, size, 0};
 }
 
@@ -596,7 +603,7 @@ void choosePhysicalDevice() {
 
     for (const auto& device : devices) {
         int score = scoreDevice(device);
-        candidates.push(std::make_pair(score, device));
+        candidates.emplace(score, device);
     }
 
     // Check if the best candidate is suitable at all
