@@ -7,9 +7,10 @@
 #ifndef JOSHENGINE_GFX_VK_H
 #define JOSHENGINE_GFX_VK_H
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include "../renderable.h"
 #include <glm/glm.hpp>
-#include <GLFW/glfw3.h>
 #include "../../engine.h"
 
 // VK_SHADER_STAGE_VERTEX_BIT
@@ -27,7 +28,7 @@ struct JEAllocation_VK {
 
 struct JEMemoryBlock_VK {
     VkDeviceMemory memory;
-    VkMemoryType type;
+    uint32_t type;
     VkDeviceSize size;
     VkDeviceSize top;
 };

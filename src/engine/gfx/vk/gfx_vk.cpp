@@ -14,8 +14,6 @@
 #include "../../engineconfig.h"
 #include "gfx_vk.h"
 #include <iostream>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <set>
 #include <fstream>
@@ -192,7 +190,7 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            if (memProperties.memoryHeaps[memProperties.memoryTypes[i].heapIndex].flags && VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+            if (memProperties.memoryHeaps[memProperties.memoryTypes[i].heapIndex].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
                 // Great! It's on the device.
                 return i;
             } else {
@@ -218,11 +216,30 @@ void allocateDeviceMemory(VkDeviceMemory& memory, VkDeviceSize size, uint32_t me
     }
 }
 
-JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType) {
-    // TODO actual allocator
+JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) {
+    for (auto & block : memoryBlocks) {
+        // is it the right type?
+        if (block.type == memoryType){
+            // align the top to whatever spec we say we should.
+            // vulkan yelled at me saying it should be 16 in my case.
+            VkDeviceSize alignedTop;
+            if (align > block.top) {
+                alignedTop = align;
+            } else {
+                alignedTop = (block.top + align/2);
+                alignedTop-= (alignedTop % align);
+            }
+            // can we fit?
+            if (block.size >= alignedTop + size) {
+                block.top = alignedTop + size;
+                return {&block.memory, size, alignedTop};
+            }
+        }
+    }
     VkDeviceMemory newMemory;
-    allocateDeviceMemory(newMemory, size, memoryType);
-    memoryBlocks.push_back({newMemory, memoryType, static_cast<uint32_t>(size), size});
+    // do the vector thing and be prepared for double the size of our original data
+    allocateDeviceMemory(newMemory, size*2, memoryType);
+    memoryBlocks.push_back({newMemory, memoryType, size*2, size});
     return {&memoryBlocks[memoryBlocks.size()-1].memory, size, 0};
 }
 
@@ -240,7 +257,7 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
 
-    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
+    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties), memRequirements.alignment);
 
     vkBindBufferMemory(logicalDevice, buffer, *alloc.memoryRef, alloc.offset);
 }
@@ -1027,7 +1044,7 @@ void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkForma
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, image, &memRequirements);
 
-    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties));
+    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties), memRequirements.alignment);
 
     vkBindImageMemory(logicalDevice, image, *alloc.memoryRef, alloc.offset);
 }
@@ -1322,7 +1339,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(logicalDevice, textureImages[id], &memRequirements);
 
-    textureMemoryRefs[id] = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
+    textureMemoryRefs[id] = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), memRequirements.alignment);
 
     vkBindImageMemory(logicalDevice, textureImages[id], *textureMemoryRefs[id].memoryRef, textureMemoryRefs[id].offset);
 

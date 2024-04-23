@@ -51,9 +51,7 @@ struct JEInterleavedVertex {
         return attributeDescriptions;
     }
 };
-#endif
 
-#ifdef GFX_API_VK
 unsigned int createVBOFunctionMirror(void* r);
 #endif
 
