@@ -274,9 +274,9 @@ void deinit() {
     deinitGFX();
 }
 
-float fov;
+float fov = 78.0f;
 
-void changeFOV(float n) {
+void setFOV(float n) {
     fov = n;
 }
 
@@ -288,8 +288,6 @@ auto compareLambda = [](std::pair<double, Renderable> left, std::pair<double, Re
 
 void mainLoop() {
     camera = Transform(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
-    // Initial Field of View
-    fov = 78.0f;
 
     double currentTime = glfwGetTime();
     double lastTime = currentTime;

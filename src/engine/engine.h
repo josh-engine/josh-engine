@@ -100,7 +100,7 @@ void putGameObject(std::string name, GameObject g);
 std::unordered_map<std::string, GameObject> getGameObjects();
 void putImGuiCall(void (*argument)());
 GameObject* getGameObject(std::string name);
-void changeFOV(float n);
+void setFOV(float n);
 int getCurrentWidth();
 int getCurrentHeight();
 Transform* cameraAccess();
