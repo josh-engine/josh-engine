@@ -4,6 +4,7 @@
 #include "engineconfig.h"
 #include "gfx/opengl/gfx_gl41.h"
 #include "gfx/vk/gfx_vk.h"
+#include "gfx/mtl/gfx_mtl.h"
 #include "sound/engineaudio.h"
 #include "engine.h"
 #include <iostream>
@@ -12,8 +13,6 @@
 #ifdef GFX_API_VK
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #endif
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <utility>
 #include <queue>
 #include "gfx/modelutil.h"

@@ -19,7 +19,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "spirv-helper.h"
+#include "../spirv/spirv-helper.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include <queue>
 #include "../../../stb/stb_image.h"

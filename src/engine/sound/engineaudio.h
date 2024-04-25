@@ -13,8 +13,8 @@ ALuint oggToBuffer(const std::string& filePath);
 
 class Sound {
 public:
-    ALuint sourceID;
-    ALuint bufferID;
+    ALuint sourceID{};
+    ALuint bufferID{};
     glm::vec3 position{};
     glm::vec3 velocity{};
     bool isLooping;
@@ -24,7 +24,6 @@ public:
         velocity = vel;
 
         // Create audio source
-        sourceID = 0;
         alGenSources((ALuint)1, &sourceID);
         alSourcef(sourceID, AL_PITCH, 1);
         alSourcef(sourceID, AL_GAIN, gain);

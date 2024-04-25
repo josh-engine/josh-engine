@@ -2,14 +2,13 @@
 // Created by Ember Lee on 3/22/24.
 //
 
+#include "engineaudio.h"
 #include <iostream>
 #include <map>
-#include <al.h>
 #include <alc.h>
-#include <glm/glm.hpp>
 #include "../../stb/stb_vorbis.c"
 
-ALCdevice* device;
+ALCdevice* alDevice;
 ALCcontext* context;
 glm::vec3 lpos;
 
@@ -30,8 +29,8 @@ void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, g
 }
 
 void initAudio() {
-    device = alcOpenDevice(nullptr);
-    if (!device) {
+    alDevice = alcOpenDevice(nullptr);
+    if (!alDevice) {
         std::cerr << "Failed to initiate OpenAL device!" << std::endl;
         exit(1);
     }
@@ -40,7 +39,7 @@ void initAudio() {
     // TODO: add easy check error function (use ALUT? or maybe figure out how to get error string without something like that)
     alGetError();
 
-    context = alcCreateContext(device, nullptr);
+    context = alcCreateContext(alDevice, nullptr);
     if (!alcMakeContextCurrent(context)) {
         std::cerr << "Failed to create OpenAL context!" << std::endl;
         exit(1);
