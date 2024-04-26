@@ -9,10 +9,6 @@
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
-#include <map>
-#ifdef GFX_API_VK
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#endif
 #include <utility>
 #include <queue>
 #include "gfx/modelutil.h"
@@ -387,7 +383,7 @@ void mainLoop() {
                     sunColor,
                     ambient,
                     cameraMatrix,
-                    glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,1.0f),
+                    glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
                     glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f),
                     renderables,
                     imGuiCalls

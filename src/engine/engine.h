@@ -4,6 +4,10 @@
 
 #ifndef JOSHENGINE_ENGINE_H
 #define JOSHENGINE_ENGINE_H
+#if defined(GFX_API_VK) | defined(GFX_API_MTL)
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#endif
 #include <glm/glm.hpp>
 #include <map>
 #include <GLFW/glfw3.h>

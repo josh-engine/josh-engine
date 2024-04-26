@@ -15,7 +15,14 @@
 unsigned int createVBOFunctionMirror(void* r) {
     return createVBO((Renderable*)r);
 }
+#endif
 
+#ifdef GFX_API_MTL
+#include "mtl/gfx_mtl.h"
+
+unsigned int createVBOFunctionMirror(void* r) {
+    return createVBO((Renderable*) r);
+}
 #endif
 
 void writeDWordLE(glm::uint64 DWord, std::fstream& file) {

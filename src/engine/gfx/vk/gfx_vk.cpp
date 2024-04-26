@@ -1630,8 +1630,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    auto bindingDescription = JEInterleavedVertex::getBindingDescription();
-    auto attributeDescriptions = JEInterleavedVertex::getAttributeDescriptions();
+    auto bindingDescription = JEInterleavedVertex_VK::getBindingDescription();
+    auto attributeDescriptions = JEInterleavedVertex_VK::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
@@ -1814,7 +1814,7 @@ unsigned int createVBO(Renderable* r) {
     indexBuffers.push_back({});
     indexBufferMemoryRefs.push_back({});
 
-    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex) * r->interleavedVertices.size();
+    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex_VK) * r->interleavedVertices.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize,

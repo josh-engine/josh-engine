@@ -8,7 +8,7 @@
 #include "engine/gfx/modelutil.h"
 #include "engine/enginedebug.h"
 
-bool mouseLocked = true;
+bool mouseLocked = false;
 bool pressed = false;
 
 const float speed = 3.0f; // 3 units / second
@@ -151,10 +151,12 @@ void initUiItem(GameObject* selfObject) {
 }
 
 void setupTest() {
+    /*
     //     sun-ish direction from skybox, slightly warm white
     setSunProperties(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0.85));
 
     setMouseVisible(false); // Mouse starts locked
+    mouseLocked = true;
 
     Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
 
@@ -165,11 +167,11 @@ void setupTest() {
     registerFunctionToDebug("spin", reinterpret_cast<void*>(&spin));
     registerFunctionToDebug("move", reinterpret_cast<void*>(&move));
 
-    registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", true, false, false);
-    registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", true, false, false);
-    registerProgram("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", true, false, false);
-    registerProgram("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", true, false, false);
-    registerProgram("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", true, true, true);
+    registerProgram("toonNorm",     "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl",         true, false, false);
+    registerProgram("bnphColor",    "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl",    true, false, false);
+    registerProgram("ui",           "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl",             true, false, false);
+    registerProgram("bnphTexture",  "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", true, false, false);
+    registerProgram("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", true, true,  true );
 
     createTexture("./textures/", "uv_tex.png");
     createTextureWithName("cube_texture", "./textures/cubetex.png");
@@ -183,4 +185,8 @@ void setupTest() {
     putGameObject("ui_item", GameObject(&initUiItem));
 
     st2.play();
+     */
+    registerOnMouse(&mouseClick);
+    registerProgram("ui", "./shaders/metal/vertex2d.metal", "./shaders/metal/texture.metal", true, false, false);
+    putGameObject("ui_item", GameObject(&initUiItem));
 }

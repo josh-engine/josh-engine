@@ -22,6 +22,7 @@ add_executable(JoshEngine src/main.cpp
         src/test.cpp
         src/engine/gfx/mtl/gfx_mtl.mm
         src/engine/gfx/mtl/mtl_impl.cpp
+        src/engine/gfx/imgui/imgui_impl_metal.mm
 )
 
 # Engine Required Includes
@@ -33,7 +34,7 @@ target_link_libraries(JoshEngine
 )
 
 # Vulkan
-#[[ Remove this to switch to another API-> ]]
+#[[ Remove this to switch to another API->
 find_package(Vulkan REQUIRED)
 find_package(glslang REQUIRED)
 add_compile_definitions(GFX_API_VK)
@@ -54,10 +55,9 @@ target_link_libraries(JoshEngine
 #]]
 
 # Metal
-#[[ Uncomment this and comment out another graphics API block to switch APIs
+#[[ Uncomment this and comment out another graphics API block to switch APIs ]]
 add_compile_definitions(GFX_API_MTL)
 include_directories("${JoshEngine_SOURCE_DIR}/metal-cpp")
-find_package(spirv_cross_c_shared)
 target_link_libraries(JoshEngine
         "-framework Metal"
         "-framework Foundation"

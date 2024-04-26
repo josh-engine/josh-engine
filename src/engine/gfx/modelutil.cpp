@@ -13,7 +13,7 @@ Renderable createQuad(unsigned int shader, unsigned int texture, bool manualDept
     if (!quadBase.enabled) {
         // Init quad once (we only need one VBO across the lifetime of the engine for a quad)
         quadBase = Renderable(
-                {-1.0f, -1.0f,  1.0f,   1.0f, -1.0f,  1.0f,   -1.0f,  1.0f,  1.0f,  1.0f,  1.0f,  1.0f},    //verts
+                {-1.0f, -1.0f,  0.0f,   1.0f, -1.0f,  0.0f,   -1.0f,  1.0f,  0.0f,  1.0f,  1.0f,  0.0f},    //verts
                 { 0.0f,  0.0f,          1.0f,  0.0f,           0.0f,  1.0f       ,  1.0f,  1.0f},  //UVs
                 { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
                 { 0, 1, 2,     1, 3, 2 }, //indices

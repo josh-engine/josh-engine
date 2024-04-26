@@ -4,7 +4,7 @@
 int main() {
     JEGraphicsSettings graphicsSettings{};
     graphicsSettings.vsyncEnabled = true;
-    graphicsSettings.skybox = true;
+    graphicsSettings.skybox = false;
     graphicsSettings.clearColor[0] = 0.75f;
     graphicsSettings.clearColor[1] = 0.75f;
     graphicsSettings.clearColor[2] = 0.8f;
