@@ -7,7 +7,7 @@
 #include <map>
 #include <al.h>
 #include <alc.h>
-#include <stb_vorbis.c>
+#include <stb_vorbis.h>
 
 ALCdevice* alDevice;
 ALCcontext* context;
