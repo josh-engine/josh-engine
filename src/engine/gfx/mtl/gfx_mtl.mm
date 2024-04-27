@@ -228,7 +228,34 @@ unsigned int createProgram(unsigned int vertexID, unsigned int fragID, bool test
 }
 
 unsigned int loadCubemap(std::vector<std::string> faces) {
-    return 0;
+    stbi_set_flip_vertically_on_load(false);
+    unsigned int textureID;
+    int width, height, channels;
+    unsigned char *image = stbi_load(faces[0].c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+    MTL::TextureDescriptor *textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    textureDescriptor = MTL::TextureDescriptor::textureCubeDescriptor(MTL::PixelFormatRGBA8Unorm_sRGB, width, false);
+
+    textureID = textureVec.size();
+    textureVec.push_back(device->newTexture(textureDescriptor));
+    for (int i = 0; i < faces.size(); i++) {
+        image = stbi_load(faces[i].c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+        if (image) {
+            MTL::Region region = MTL::Region(0, 0, 0, width, height, 1);
+            NS::UInteger bytesPerRow = 4 * width;
+            NS::UInteger bytesPerImage = bytesPerRow * height;
+
+            textureVec[textureID]->replaceRegion(region, 0, i, image, bytesPerRow, bytesPerImage);
+
+            stbi_image_free(image);
+        } else {
+            std::cerr << "Metal: Failed to load texture " << faces[i] << "!" << std::endl;
+            textureID = 0;
+        }
+    }
+    textureDescriptor->release();
+    return textureID;
 }
 
 unsigned int createVBO(Renderable* r) {

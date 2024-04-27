@@ -241,7 +241,11 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
 
     if (graphicsSettings.skybox) {
         // Skybox init
-        registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl", false, false, false);
+        registerProgram("skybox",
+                        "./shaders/skybox_vertex.glsl",
+                        "./shaders/skybox_fragment.glsl",
+                     // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
+                        false, true, false);
         skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
         if (!skybox.enabled) {
             std::cerr << "Essential engine file missing." << std::endl;
