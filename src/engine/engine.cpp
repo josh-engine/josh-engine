@@ -4,16 +4,11 @@
 #include "engineconfig.h"
 #include "gfx/opengl/gfx_gl41.h"
 #include "gfx/vk/gfx_vk.h"
+#include "gfx/mtl/gfx_mtl.h"
 #include "sound/engineaudio.h"
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
-#include <map>
-#ifdef GFX_API_VK
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#endif
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 #include <utility>
 #include <queue>
 #include "gfx/modelutil.h"
@@ -246,7 +241,11 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
 
     if (graphicsSettings.skybox) {
         // Skybox init
-        registerProgram("skybox", "./shaders/skybox_vertex.glsl", "./shaders/skybox_fragment.glsl", false, false, false);
+        registerProgram("skybox",
+                        "./shaders/skybox_vertex.glsl",
+                        "./shaders/skybox_fragment.glsl",
+                     // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
+                        false, true, false);
         skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
         if (!skybox.enabled) {
             std::cerr << "Essential engine file missing." << std::endl;
@@ -388,7 +387,7 @@ void mainLoop() {
                     sunColor,
                     ambient,
                     cameraMatrix,
-                    glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,0.0f,1.0f),
+                    glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
                     glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f),
                     renderables,
                     imGuiCalls

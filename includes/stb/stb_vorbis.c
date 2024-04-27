@@ -79,7 +79,7 @@
 #endif
 
 #ifndef STB_VORBIS_NO_STDIO
-#include <stdio.h>
+#include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/usr/include/c++/v1/stdio.h"
 #endif
 
 #ifdef __cplusplus
@@ -575,14 +575,14 @@ enum STBVorbisError
 
 
 #ifndef STB_VORBIS_NO_STDIO
-#include <stdio.h>
+#include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/usr/include/c++/v1/stdio.h"
 #endif
 
 #ifndef STB_VORBIS_NO_CRT
-   #include <stdlib.h>
-   #include <string.h>
-   #include <assert.h>
-   #include <math.h>
+   #include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/usr/include/c++/v1/stdlib.h"
+   #include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/usr/include/c++/v1/string.h"
+   #include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/usr/include/assert.h"
+   #include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/usr/include/c++/v1/math.h"
 
    // find definition of alloca if it's not in stdlib.h:
    #if defined(_MSC_VER) || defined(__MINGW32__)
@@ -598,7 +598,7 @@ enum STBVorbisError
    #define realloc(s)  0
 #endif // STB_VORBIS_NO_CRT
 
-#include <limits.h>
+#include "../../../../../../Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX14.0.sdk/usr/include/c++/v1/limits.h"
 
 #ifdef __MINGW32__
    // eff you mingw:

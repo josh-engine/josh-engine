@@ -19,10 +19,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "spirv-helper.h"
-#define STB_IMAGE_IMPLEMENTATION
+#include "../spirv/spirv-helper.h"
 #include <queue>
-#include "../../../stb/stb_image.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_vulkan.h"
 
@@ -1558,6 +1558,10 @@ unsigned int loadShader(const std::string& file_path, int target) {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 
+    // EDIT: These comments are stupid.
+    // I fucking forgot how scope works.
+    // Crucify me and never let me touch C++ again.
+
     // Shaders only compile if this is defined outside the if statement.
     // This was developed on an M2 MacBook, running MoltenVK 0.2.2013 (according to vulkan.gpuinfo.org)
     // I don't know why this is, but it happens.
@@ -1630,8 +1634,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    auto bindingDescription = JEInterleavedVertex::getBindingDescription();
-    auto attributeDescriptions = JEInterleavedVertex::getAttributeDescriptions();
+    auto bindingDescription = JEInterleavedVertex_VK::getBindingDescription();
+    auto attributeDescriptions = JEInterleavedVertex_VK::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
@@ -1814,7 +1818,7 @@ unsigned int createVBO(Renderable* r) {
     indexBuffers.push_back({});
     indexBufferMemoryRefs.push_back({});
 
-    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex) * r->interleavedVertices.size();
+    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex_VK) * r->interleavedVertices.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize,

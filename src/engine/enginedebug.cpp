@@ -36,6 +36,8 @@ void setupImGuiWindow() {
     ImGui::Text("Running on OpenGL 4.1");
 #elif defined(GFX_API_VK)
     ImGui::Text("Running on Vulkan");
+#elif defined(GFX_API_MTL)
+    ImGui::Text("Running on Metal");
 #endif
 
     ImGui::Checkbox("Stats View", &statView);
