@@ -17,7 +17,7 @@
 #include <QuartzCore/QuartzCore.hpp>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "../../../stb/stb_image.h"
+#include <stb_image.h>
 
 #include <fstream>
 #include <sstream>
@@ -27,15 +27,19 @@
 #include "../imgui/imgui_impl_metal.h"
 #include "../imgui/imgui_impl_glfw.h"
 
+#include "../spirv/spirv-helper.h"
+#include "../spirv/cross/spirv_msl.hpp"
+
 // include self
 #include "gfx_mtl.h"
 
 GLFWwindow** windowPtr;
+JEGraphicsSettings graphicsSettings;
 
 MTL::Device* device;
 NSWindow* metalWindow;
 CAMetalLayer* layer;
-
+CA::MetalDrawable* frame;
 
 MTL::CommandQueue* commandQueue;
 MTL::CommandBuffer* commandBuffer;
@@ -48,9 +52,10 @@ std::vector<MTL::Buffer*> vertexBufferVec;
 std::vector<MTL::Buffer*> indexBufferVec;
 
 MTL::Buffer* uniformBuffer;
-std::vector<MTL::Buffer*> perObjectBuffers;
 
-JEGraphicsSettings graphicsSettings;
+MTL::RenderPassDescriptor* renderPassDescriptor;
+MTL::Texture* msaaRenderTargetTexture = nullptr;
+MTL::Texture* depthTexture;
 
 unsigned int loadTexture(const std::string& fileName) {
     stbi_set_flip_vertically_on_load(true);
@@ -60,7 +65,7 @@ unsigned int loadTexture(const std::string& fileName) {
 
     if (image) {
         MTL::TextureDescriptor *textureDescriptor = MTL::TextureDescriptor::alloc()->init();
-        textureDescriptor->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+        textureDescriptor->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
         textureDescriptor->setWidth(width);
         textureDescriptor->setHeight(height);
 
@@ -81,18 +86,66 @@ unsigned int loadTexture(const std::string& fileName) {
     return textureID;
 }
 
+static std::vector<char> readFile(const std::string& filename) {
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Metal: Failed to open file" + filename + "!");
+    }
+
+    size_t fileSize = (size_t) file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
+    file.close();
+
+    return buffer;
+}
+
+inline bool ends_with(std::string const& value, std::string const & ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 unsigned int loadShader(const std::string& file_path, int target) {
     unsigned int shaderID = shaderVec.size();
-    std::ifstream fileStream(file_path);
-    if (!fileStream.good()) {
-        throw std::runtime_error("Metal: Failed to load file \"" + file_path + "\"!");
+    std::string metalShaderCode;
+    std::vector<unsigned int> spirv_comp;
+    std::vector<char> spirVCode;
+
+    if (ends_with(file_path, ".metal") || ends_with(file_path, ".msl")) {
+        std::ifstream fileStream(file_path);
+        if (!fileStream.good()) {
+            throw std::runtime_error("Metal: Failed to load file \"" + file_path + "\"!");
+        }
+        std::stringstream buffer;
+        buffer << fileStream.rdbuf();
+        metalShaderCode = buffer.str();
+    } else {
+        std::ifstream fileStream(file_path);
+        if (!fileStream.good()) {
+            throw std::runtime_error("Metal: Could not find file \"" + file_path + "\"!");
+        }
+        std::stringstream buffer;
+        buffer << fileStream.rdbuf();
+        std::string fileContents = buffer.str();
+        std::cout << "Compiling " << file_path << " to SPIR-V..." << std::endl;
+        bool compileSuccess = SpirvHelper::GLSLtoSPV(target, &fileContents[0], &spirv_comp);
+        if (!compileSuccess) {
+            throw std::runtime_error("Metal: Could not compile \"" + file_path + "\" to SPIR-V!");
+        }
+
+        spirv_cross::CompilerMSL crossCompiler(spirv_comp);
+        spirv_cross::CompilerMSL::Options opts{};
+        opts.vertex_index_type = spirv_cross::CompilerMSL::Options::IndexType::UInt32;
+        std::cout << "Compiling " << file_path << "'s SPIR-V bytecode to MSL..." << std::endl;
+        metalShaderCode = crossCompiler.compile();
     }
-    std::stringstream buffer;
-    buffer << fileStream.rdbuf();
-    std::string fileContents = buffer.str();
 
     NS::Error* pError = nullptr;
-    MTL::Library* shaderCode = device->newLibrary(NS::String::string(fileContents.c_str(), NS::UTF8StringEncoding), nullptr, &pError);
+    std::cout << "Loading library " << file_path << "..." << std::endl;
+    MTL::Library* shaderCode = device->newLibrary(NS::String::string(metalShaderCode.c_str(), NS::UTF8StringEncoding), nullptr, &pError);
 
     if (pError) {
         throw std::runtime_error("Metal: Failed to load library!\n" + std::string(pError->description()->cString(NS::UTF8StringEncoding)));
@@ -103,39 +156,77 @@ unsigned int loadShader(const std::string& file_path, int target) {
 
     commandQueue = device->newCommandQueue();
 
-    shaderVec.push_back({shaderCode, shaderCode->newFunction(NS::String::string("_main", NS::ASCIIStringEncoding))});
+    shaderVec.push_back({shaderCode, shaderCode->newFunction(NS::String::string("main0", NS::ASCIIStringEncoding))});
     return shaderID;
 }
 
 unsigned int createProgram(unsigned int vertexID, unsigned int fragID, bool testDepth, bool transparencySupported, bool doubleSided) {
     unsigned int programID = pipelineVec.size();
+    MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+    vertexDescriptor->retain();
+    vertexDescriptor->reset();
+
+    vertexDescriptor->attributes()->object(0)->setBufferIndex(2);
+    vertexDescriptor->attributes()->object(0)->setOffset(offsetof(JEInterleavedVertex_MTL, position));
+    vertexDescriptor->attributes()->object(0)->setFormat(MTL::VertexFormatFloat3);
+
+    vertexDescriptor->attributes()->object(1)->setBufferIndex(2);
+    vertexDescriptor->attributes()->object(1)->setOffset(offsetof(JEInterleavedVertex_MTL, textureCoordinate));
+    vertexDescriptor->attributes()->object(1)->setFormat(MTL::VertexFormatFloat2);
+
+    vertexDescriptor->attributes()->object(2)->setBufferIndex(2);
+    vertexDescriptor->attributes()->object(2)->setOffset(offsetof(JEInterleavedVertex_MTL, normal));
+    vertexDescriptor->attributes()->object(2)->setFormat(MTL::VertexFormatFloat3);
+
+    vertexDescriptor->layouts()->object(2)->setStride(sizeof(JEInterleavedVertex_MTL));
+    vertexDescriptor->layouts()->object(2)->setStepRate(1);
+    vertexDescriptor->layouts()->object(2)->setStepFunction(MTL::VertexStepFunctionPerVertex);
+
     MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
     renderPipelineDescriptor->setVertexFunction(shaderVec[vertexID].main);
     renderPipelineDescriptor->setFragmentFunction(shaderVec[fragID].main);
+    renderPipelineDescriptor->setVertexDescriptor(vertexDescriptor);
+    renderPipelineDescriptor->setSampleCount(graphicsSettings.msaaSamples);
+    renderPipelineDescriptor->setDepthAttachmentPixelFormat(MTL::PixelFormatDepth32Float);
 
     auto pixelFormat = (MTL::PixelFormat)layer.pixelFormat;
     renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(pixelFormat);
+    renderPipelineDescriptor->colorAttachments()->object(0)->setBlendingEnabled(transparencySupported);
+    if (transparencySupported) {
+        renderPipelineDescriptor->colorAttachments()->object(0)->setRgbBlendOperation(MTL::BlendOperationAdd);
+        renderPipelineDescriptor->colorAttachments()->object(0)->setAlphaBlendOperation(MTL::BlendOperationAdd);
+        renderPipelineDescriptor->colorAttachments()->object(0)->setSourceRGBBlendFactor(MTL::BlendFactorSourceAlpha);
+        renderPipelineDescriptor->colorAttachments()->object(0)->setSourceAlphaBlendFactor(MTL::BlendFactorSourceAlpha);
+        renderPipelineDescriptor->colorAttachments()->object(0)->setDestinationRGBBlendFactor(MTL::BlendFactorOneMinusSourceAlpha);
+        renderPipelineDescriptor->colorAttachments()->object(0)->setDestinationAlphaBlendFactor(MTL::BlendFactorOneMinusSourceAlpha);
+    }
+
+    MTL::DepthStencilDescriptor* depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
+    depthStencilDescriptor->setDepthCompareFunction((testDepth ? MTL::CompareFunctionLess : MTL::CompareFunctionAlways));
+    depthStencilDescriptor->setDepthWriteEnabled(!transparencySupported);
 
     NS::Error* error;
     pipelineVec.push_back({vertexID,
                            fragID,
                            device->newRenderPipelineState(renderPipelineDescriptor, &error),
+                           device->newDepthStencilState(depthStencilDescriptor),
                            testDepth,
                            transparencySupported,
                            doubleSided});
 
+    if (error) {
+        throw std::runtime_error("Metal: Failed to create pipeline!\n" + std::string(error->description()->cString(NS::UTF8StringEncoding)));
+    } else {
+        std::cout << "Created pipeline " << programID << " with vertex shader " << vertexID << " and fragment shader " << fragID << std::endl;
+    }
+
+    vertexDescriptor->release();
     renderPipelineDescriptor->release();
     return programID;
 }
 
 unsigned int loadCubemap(std::vector<std::string> faces) {
     return 0;
-}
-
-void resizeViewport() {
-    int framebufferW, framebufferH;
-    glfwGetFramebufferSize(*windowPtr, &framebufferW, &framebufferH);
-    layer.drawableSize = CGSizeMake(framebufferW, framebufferH);
 }
 
 unsigned int createVBO(Renderable* r) {
@@ -151,13 +242,56 @@ unsigned int createVBO(Renderable* r) {
             r->indices.size()*sizeof(unsigned int),
             MTL::ResourceStorageModeShared
     ));
-
-    perObjectBuffers.push_back(
-            device->newBuffer(
-                    sizeof(JEPerObjectBuffer_MTL),
-                    MTL::ResourceStorageModeShared)
-    );
     return vboID;
+}
+
+void createFrameResources() {
+    MTL::TextureDescriptor* msaaTextureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    msaaTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    msaaTextureDescriptor->setPixelFormat(MTL::PixelFormatBGRA8Unorm_sRGB);
+    msaaTextureDescriptor->setWidth(layer.drawableSize.width);
+    msaaTextureDescriptor->setHeight(layer.drawableSize.height);
+    msaaTextureDescriptor->setSampleCount(graphicsSettings.msaaSamples);
+    msaaTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+
+    msaaRenderTargetTexture = device->newTexture(msaaTextureDescriptor);
+
+    MTL::TextureDescriptor* depthTextureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    depthTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    depthTextureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
+    depthTextureDescriptor->setWidth(layer.drawableSize.width);
+    depthTextureDescriptor->setHeight(layer.drawableSize.height);
+    depthTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+    depthTextureDescriptor->setSampleCount(graphicsSettings.msaaSamples);
+
+    depthTexture = device->newTexture(depthTextureDescriptor);
+
+    msaaTextureDescriptor->release();
+    depthTextureDescriptor->release();
+}
+
+void updateRenderPassDescriptor() {
+    renderPassDescriptor->colorAttachments()->object(0)->setTexture(msaaRenderTargetTexture);
+    renderPassDescriptor->colorAttachments()->object(0)->setResolveTexture(frame->texture());
+    renderPassDescriptor->depthAttachment()->setTexture(depthTexture);
+}
+
+void resizeViewport() {
+    int framebufferW, framebufferH;
+    glfwGetFramebufferSize(*windowPtr, &framebufferW, &framebufferH);
+    layer.drawableSize = CGSizeMake(framebufferW, framebufferH);
+
+    if (msaaRenderTargetTexture) {
+        msaaRenderTargetTexture->release();
+        msaaRenderTargetTexture = nullptr;
+    }
+    if (depthTexture) {
+        depthTexture->release();
+        depthTexture = nullptr;
+    }
+    createFrameResources();
+    frame = (__bridge CA::MetalDrawable*)[layer nextDrawable];
+    updateRenderPassDescriptor();
 }
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings) {
@@ -172,16 +306,15 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
     *windowPtr = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
 
+    metalWindow = glfwGetCocoaWindow(*windowPtr);
+    layer = [CAMetalLayer layer];
     // Vulkan PTSD
     // Thank god I don't have to score and pick one myself this time
     device = MTL::CreateSystemDefaultDevice();
-    metalWindow = glfwGetCocoaWindow(*windowPtr);
-    layer = [CAMetalLayer layer];
 
     layer.device = (__bridge id<MTLDevice>)device;
     layer.displaySyncEnabled = settings.vsyncEnabled;
-    layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    resizeViewport();
+    layer.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
 
     metalWindow.contentView.layer = layer;
     metalWindow.contentView.wantsLayer = YES;
@@ -189,6 +322,24 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     commandQueue = device->newCommandQueue();
 
     uniformBuffer = device->newBuffer(sizeof(JEUniformBufferObject_MTL), MTL::ResourceStorageModeShared);
+
+    renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+
+    MTL::RenderPassColorAttachmentDescriptor* colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+    MTL::RenderPassDepthAttachmentDescriptor* depthAttachment = renderPassDescriptor->depthAttachment();
+
+    colorAttachment->setTexture(msaaRenderTargetTexture);
+    colorAttachment->setResolveTexture(frame->texture());
+    colorAttachment->setLoadAction(MTL::LoadActionClear);
+    colorAttachment->setClearColor(MTL::ClearColor(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2], 1.0));
+    colorAttachment->setStoreAction(MTL::StoreActionMultisampleResolve);
+
+    depthAttachment->setTexture(depthTexture);
+    depthAttachment->setLoadAction(MTL::LoadActionClear);
+    depthAttachment->setStoreAction(MTL::StoreActionDontCare);
+    depthAttachment->setClearDepth(1.0);
+
+    resizeViewport();
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -209,22 +360,13 @@ void deinitGFX() {
 
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     @autoreleasepool {
-        auto* frame = (__bridge CA::MetalDrawable*)[layer nextDrawable];
+        frame = (__bridge CA::MetalDrawable*)[layer nextDrawable];
+        updateRenderPassDescriptor();
 
         JEUniformBufferObject_MTL ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
-        memcpy(uniformBuffer->contents(), &ubo, sizeof(ubo));
+        memcpy(uniformBuffer->contents(), &ubo, sizeof(JEUniformBufferObject_MTL));
 
         commandBuffer = commandQueue->commandBuffer();
-
-        MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
-        MTL::RenderPassColorAttachmentDescriptor* colorAttachmentDescriptor = renderPassDescriptor->colorAttachments()->object(0);
-        colorAttachmentDescriptor->setTexture(frame->texture());
-        colorAttachmentDescriptor->setLoadAction(MTL::LoadActionClear);
-        colorAttachmentDescriptor->setClearColor(MTL::ClearColor(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2], 1.0));
-        colorAttachmentDescriptor->setStoreAction(MTL::StoreActionStore);
-
-        // Vulkan command buffer basically
-        MTL::RenderCommandEncoder* renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
 
         ImGui_ImplMetal_NewFrame((__bridge MTLRenderPassDescriptor*)renderPassDescriptor);
         ImGui_ImplGlfw_NewFrame();
@@ -236,19 +378,40 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
         ImGui::Render();
 
-        renderCommandEncoder->setVertexBuffer(uniformBuffer, 0, 1);
+        // Vulkan command buffer basically
+        MTL::RenderCommandEncoder* renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
+        renderCommandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+        renderCommandEncoder->setVertexBuffer(uniformBuffer, 0, 0);
+        renderCommandEncoder->setFragmentBuffer(uniformBuffer, 0, 0);
+
+        int currentPipeline = -1, currentTexture = -1;
 
         for (auto const& r : renderables) {
-            renderCommandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
-            renderCommandEncoder->setRenderPipelineState(pipelineVec[r.shaderProgram].pipeline);
-            renderCommandEncoder->setVertexBuffer(vertexBufferVec[r.vboID], 0, 0);
+            if (r.enabled) {
+                if (r.shaderProgram != currentPipeline) {
+                    renderCommandEncoder->setRenderPipelineState(pipelineVec[r.shaderProgram].pipeline);
+                    renderCommandEncoder->setDepthStencilState(pipelineVec[r.shaderProgram].depthStencilState);
+                    if (pipelineVec[r.shaderProgram].doubleSided) {
+                        renderCommandEncoder->setCullMode(MTL::CullModeNone);
+                    } else {
+                        renderCommandEncoder->setCullMode(MTL::CullModeBack);
+                    }
+                    currentPipeline = static_cast<int>(r.shaderProgram);
+                }
 
-            JEPerObjectBuffer_MTL pushconst = {r.objectMatrix, r.rotate};
-            memcpy(perObjectBuffers[r.vboID]->contents(), &pushconst, sizeof(pushconst));
-            renderCommandEncoder->setVertexBuffer(perObjectBuffers[r.vboID], 0, 2);
+                if (r.texture != currentTexture) {
+                    renderCommandEncoder->setFragmentTexture(textureVec[r.texture], 0);
+                    currentTexture = static_cast<int>(r.texture);
+                }
 
-            renderCommandEncoder->setFragmentTexture(textureVec[r.texture], 0);
-            renderCommandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, r.indicesSize, MTL::IndexTypeUInt32, indexBufferVec[r.vboID], 0);
+                JEPerObjectBytes_MTL pushconst = {r.objectMatrix, r.rotate};
+                renderCommandEncoder->setVertexBytes(&pushconst, sizeof(JEPerObjectBytes_MTL), 1);
+                renderCommandEncoder->setFragmentBytes(&pushconst, sizeof(JEPerObjectBytes_MTL), 1);
+
+                renderCommandEncoder->setVertexBuffer(vertexBufferVec[r.vboID], 0, 2);
+                renderCommandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, r.indicesSize,
+                                                            MTL::IndexTypeUInt32, indexBufferVec[r.vboID], 0);
+            }
         }
 
         ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), (__bridge id<MTLCommandBuffer>)commandBuffer, (__bridge id<MTLRenderCommandEncoder>)renderCommandEncoder);
@@ -258,8 +421,6 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         commandBuffer->presentDrawable(frame); // vkQueuePresentKHR basically but in command buffer
         commandBuffer->commit(); // send to gpu
         commandBuffer->waitUntilCompleted(); // wait for frame to finish
-
-        renderPassDescriptor->release();
     }
 }
 

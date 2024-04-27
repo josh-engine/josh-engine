@@ -1,7 +1,7 @@
 // JE_TRANSLATE
 #version 420
 
-layout(location = 0) out vec3 color;
+layout(location = 0) out vec4 c_final;
 layout(location = 2) in vec3 vnorm;
 
 layout(binding = 0) uniform UBO { // JE_TRANSLATE
@@ -23,7 +23,7 @@ void main() {
     vec3 vnormCol = (normalDirection + vec3(1.0))/2.0;
 
     // default: unlit
-    color = (vnormCol - vec3(1)) + ambience;
+    vec3 color = (vnormCol - vec3(1)) + ambience;
 
     float diff = attenuation * max(0.0, dot(normalDirection, lightDirection));
     // low priority: diffuse illumination
@@ -36,4 +36,6 @@ void main() {
     } else {
         color = (vnormCol) + ambience;
     }
+
+    c_final = vec4(color, 1.0);
 }

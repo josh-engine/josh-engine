@@ -146,12 +146,12 @@ void initCube(GameObject* selfObject) {
 }
 
 void initUiItem(GameObject* selfObject) {
-    selfObject->transform = Transform(glm::vec3(-0.5, -0.25, -1), glm::vec3(0), glm::vec3(0.25));
+    selfObject->transform = Transform(glm::vec3(-0.5, -0.25, 0), glm::vec3(0), glm::vec3(0.25));
     selfObject->renderables.push_back(createQuad(getProgram("ui"), getTexture("missing")));
 }
 
 void setupTest() {
-    /*
+
     //     sun-ish direction from skybox, slightly warm white
     setSunProperties(glm::vec3(-1, 1, 0), glm::vec3(1, 1, 0.85));
 
@@ -184,9 +184,5 @@ void setupTest() {
     putGameObject("cube", GameObject(&initCube));
     putGameObject("ui_item", GameObject(&initUiItem));
 
-    st2.play();
-     */
-    registerOnMouse(&mouseClick);
-    registerProgram("ui", "./shaders/metal/vertex2d.metal", "./shaders/metal/texture.metal", true, false, false);
-    putGameObject("ui_item", GameObject(&initUiItem));
+    //st2.play();
 }

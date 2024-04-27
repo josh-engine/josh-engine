@@ -21,12 +21,13 @@ struct JEProgram_MTL {
     unsigned int vertexID;
     unsigned int fragmentID;
     MTL::RenderPipelineState* pipeline;
+    MTL::DepthStencilState* depthStencilState;
     bool testDepth;
     bool transparency;
     bool doubleSided;
 };
 
-struct JEPerObjectBuffer_MTL {
+struct JEPerObjectBytes_MTL {
     alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 normal;
 };

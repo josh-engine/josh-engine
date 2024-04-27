@@ -19,8 +19,8 @@
 
 struct JEInterleavedVertex_VK {
     glm::vec3 position;
-    glm::vec3 normal;
     glm::vec2 uvCoords;
+    glm::vec3 normal;
 
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
@@ -58,8 +58,8 @@ unsigned int createVBOFunctionMirror(void* r);
 #ifdef GFX_API_MTL
 struct JEInterleavedVertex_MTL {
     alignas(16) glm::vec3 position;
+    alignas(8 ) glm::vec2 textureCoordinate;
     alignas(16) glm::vec3 normal;
-    alignas(8)  glm::vec2 textureCoordinate;
 };
 
 unsigned int createVBOFunctionMirror(void* r);
@@ -164,8 +164,8 @@ public:
         for (int i = 0; i < vertices.size()/3; i++) {
             interleavedVertices.push_back({
                                                   {vertices[3*i],  vertices[(3*i)+1], vertices[(3*i)+2]},
-                                                  {normals[(3*i)], normals[(3*i)+1],  normals[(3*i)+2]},
-                                                  {uvs[(2*i)],     uvs[(2*i)+1]}
+                                                  {uvs[(2*i)],     uvs[(2*i)+1]},
+                                                  {normals[(3*i)], normals[(3*i)+1],  normals[(3*i)+2]}
             });
         }
 

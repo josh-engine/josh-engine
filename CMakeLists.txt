@@ -23,11 +23,23 @@ add_executable(JoshEngine src/main.cpp
         src/engine/gfx/mtl/gfx_mtl.mm
         src/engine/gfx/mtl/mtl_impl.cpp
         src/engine/gfx/imgui/imgui_impl_metal.mm
+        src/engine/gfx/spirv/cross/spirv_msl.cpp
+        src/engine/gfx/spirv/cross/spirv_glsl.cpp
+        src/engine/gfx/spirv/cross/spirv_hlsl.cpp
+        src/engine/gfx/spirv/cross/spirv_parser.cpp
+        src/engine/gfx/spirv/cross/spirv_reflect.cpp
+        src/engine/gfx/spirv/cross/spirv_cross_util.cpp
+        src/engine/gfx/spirv/cross/spirv_cross_parsed_ir.cpp
+        src/engine/gfx/spirv/cross/spirv_cross_c.cpp
+        src/engine/gfx/spirv/cross/spirv_cross.cpp
+        src/engine/gfx/spirv/cross/spirv_cpp.cpp
+        src/engine/gfx/spirv/cross/spirv_cfg.cpp
 )
 
 # Engine Required Includes
 find_package(glfw3 3.4 REQUIRED)
 find_package(OpenAL REQUIRED)
+include_directories("${JoshEngine_SOURCE_DIR}/includes/stb")
 target_link_libraries(JoshEngine
         glfw
         OpenAL::OpenAL
@@ -57,8 +69,11 @@ target_link_libraries(JoshEngine
 # Metal
 #[[ Uncomment this and comment out another graphics API block to switch APIs ]]
 add_compile_definitions(GFX_API_MTL)
-include_directories("${JoshEngine_SOURCE_DIR}/metal-cpp")
+find_package(glslang REQUIRED)
+include_directories("${JoshEngine_SOURCE_DIR}/includes/metal-cpp")
 target_link_libraries(JoshEngine
+        glslang::glslang
+        glslang::SPIRV
         "-framework Metal"
         "-framework Foundation"
         "-framework QuartzCore"

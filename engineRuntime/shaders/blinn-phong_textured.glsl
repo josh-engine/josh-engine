@@ -5,7 +5,7 @@ layout(location = 0) in vec3 vpos;
 layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 vnorm;
 
-layout(location = 0) out vec3 color;
+layout(location = 0) out vec4 color;
 
 layout(binding = 1) uniform sampler2D textureSampler;
 
@@ -39,5 +39,5 @@ void main() {
         specular = pow(specAngle, 1);
     }
 
-    color = texture(textureSampler, uv).rgb * (ambience + vec3(1) * lambertian * sunColor);
+    color = vec4(texture(textureSampler, uv).rgb * (ambience + vec3(1) * lambertian * sunColor), 1.0);
 }

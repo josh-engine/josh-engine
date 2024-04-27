@@ -5,8 +5,9 @@
 #include "engineaudio.h"
 #include <iostream>
 #include <map>
+#include <al.h>
 #include <alc.h>
-#include "../../stb/stb_vorbis.c"
+#include <stb_vorbis.c>
 
 ALCdevice* alDevice;
 ALCcontext* context;
@@ -48,9 +49,9 @@ void initAudio() {
     alDistanceModel(AL_INVERSE_DISTANCE);
 }
 
-std::unordered_map<std::string, ALuint> audioMap;
+std::unordered_map<std::string, unsigned int> audioMap;
 
-ALuint oggToBuffer(const std::string& filePath) {
+unsigned int oggToBuffer(const std::string& filePath) {
     if (audioMap.contains(filePath)) return audioMap.at(filePath);
     int channels, sampleRate, samples;
     short* data;
@@ -64,4 +65,37 @@ ALuint oggToBuffer(const std::string& filePath) {
     else alBufferData(buffer, AL_FORMAT_MONO16, data, samples*static_cast<int>(sizeof(short)), sampleRate);
     audioMap.insert({filePath, buffer});
     return buffer;
+}
+
+Sound::Sound(glm::vec3 pos, glm::vec3 vel, const std::string &filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
+    isLooping = loop;
+    position = pos;
+    velocity = vel;
+
+    // Create audio source
+    alGenSources((ALuint)1, &sourceID);
+    alSourcef(sourceID, AL_PITCH, 1);
+    alSourcef(sourceID, AL_GAIN, gain);
+    alSourcef(sourceID, AL_MAX_GAIN, max);
+    alSourcef(sourceID, AL_MIN_GAIN, min);
+    alSourcef(sourceID, AL_REFERENCE_DISTANCE, halfVolumeDistance);
+    updateSource();
+
+    // Fill buffer
+    bufferID = oggToBuffer(filePath);
+}
+
+void Sound::updateSource() const {
+    alSource3f(sourceID, AL_POSITION, position.x, position.y, position.z);
+    alSource3f(sourceID, AL_VELOCITY, velocity.x, velocity.y, velocity.z);
+    alSourcei(sourceID, AL_LOOPING, isLooping);
+}
+
+void Sound::play() {
+    alSourceQueueBuffers(sourceID, 1, &bufferID);
+    alSourcePlay(sourceID);
+}
+
+void Sound::stop() const {
+    alSourceStop(sourceID);
 }
