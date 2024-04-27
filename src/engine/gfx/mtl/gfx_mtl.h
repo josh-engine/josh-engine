@@ -15,6 +15,11 @@
 struct JEShader_MTL {
     MTL::Library* code;
     MTL::Function* main;
+
+    void release(){
+        code->release();
+        main->release();
+    }
 };
 
 struct JEProgram_MTL {

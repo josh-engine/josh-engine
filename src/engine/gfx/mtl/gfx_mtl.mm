@@ -68,6 +68,7 @@ unsigned int loadTexture(const std::string& fileName) {
         textureDescriptor->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
         textureDescriptor->setWidth(width);
         textureDescriptor->setHeight(height);
+        textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
 
         textureID = textureVec.size();
         textureVec.push_back(device->newTexture(textureDescriptor));
@@ -154,8 +155,6 @@ unsigned int loadShader(const std::string& file_path, int target) {
         throw std::runtime_error("Metal: Failed to load library!");
     }
 
-    commandQueue = device->newCommandQueue();
-
     shaderVec.push_back({shaderCode, shaderCode->newFunction(NS::String::string("main0", NS::ASCIIStringEncoding))});
     return shaderID;
 }
@@ -220,6 +219,9 @@ unsigned int createProgram(unsigned int vertexID, unsigned int fragID, bool test
         std::cout << "Created pipeline " << programID << " with vertex shader " << vertexID << " and fragment shader " << fragID << std::endl;
     }
 
+    shaderVec[vertexID].release();
+    shaderVec[fragID].release();
+    depthStencilDescriptor->release();
     vertexDescriptor->release();
     renderPipelineDescriptor->release();
     return programID;
@@ -231,49 +233,89 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
 
 unsigned int createVBO(Renderable* r) {
     unsigned int vboID = vertexBufferVec.size();
-    vertexBufferVec.push_back(device->newBuffer(
+
+    MTL::Buffer* stagingBuffer = device->newBuffer(
             &r->interleavedVertices[0],
             r->interleavedVertices.size()*sizeof(JEInterleavedVertex_MTL),
-            MTL::ResourceStorageModeShared)
+            MTL::ResourceStorageModeShared);
+
+    vertexBufferVec.push_back(device->newBuffer(
+            r->interleavedVertices.size()*sizeof(JEInterleavedVertex_MTL),
+            MTL::ResourceStorageModePrivate)
     );
 
-    indexBufferVec.push_back(device->newBuffer(
+    MTL::CommandBuffer* cb = commandQueue->commandBuffer();
+    MTL::BlitCommandEncoder* bce = cb->blitCommandEncoder();
+    bce->copyFromBuffer(stagingBuffer, 0, vertexBufferVec[vboID], 0, r->interleavedVertices.size()*sizeof(JEInterleavedVertex_MTL));
+    bce->endEncoding();
+    cb->addCompletedHandler(^(MTL::CommandBuffer* buf){});
+    cb->commit();
+    cb->waitUntilCompleted();
+    stagingBuffer->release();
+    cb->release();
+    bce->release();
+
+    stagingBuffer = device->newBuffer(
             &r->indices[0],
             r->indices.size()*sizeof(unsigned int),
-            MTL::ResourceStorageModeShared
-    ));
+            MTL::ResourceStorageModeShared);
+
+    indexBufferVec.push_back(device->newBuffer(
+            r->indices.size()*sizeof(unsigned int),
+            MTL::ResourceStorageModePrivate)
+    );
+
+    cb = commandQueue->commandBuffer();
+    bce = cb->blitCommandEncoder();
+    bce->copyFromBuffer(stagingBuffer, 0, indexBufferVec[vboID], 0, r->indices.size()*sizeof(unsigned int));
+    bce->endEncoding();
+    cb->addCompletedHandler(^(MTL::CommandBuffer* buf){});
+    cb->commit();
+    cb->waitUntilCompleted();
+    stagingBuffer->release();
+    cb->release();
+    bce->release();
+
     return vboID;
 }
 
-void createFrameResources() {
-    MTL::TextureDescriptor* msaaTextureDescriptor = MTL::TextureDescriptor::alloc()->init();
-    msaaTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
-    msaaTextureDescriptor->setPixelFormat(MTL::PixelFormatBGRA8Unorm_sRGB);
-    msaaTextureDescriptor->setWidth(layer.drawableSize.width);
-    msaaTextureDescriptor->setHeight(layer.drawableSize.height);
-    msaaTextureDescriptor->setSampleCount(graphicsSettings.msaaSamples);
-    msaaTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+void createFrameResources(int w, int h) {
+    if (graphicsSettings.msaaSamples > 1) {
+        MTL::TextureDescriptor *msaaTextureDescriptor = MTL::TextureDescriptor::alloc()->init();
+        msaaTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+        msaaTextureDescriptor->setPixelFormat(static_cast<MTL::PixelFormat>(layer.pixelFormat));
+        msaaTextureDescriptor->setWidth(w);
+        msaaTextureDescriptor->setHeight(h);
+        msaaTextureDescriptor->setSampleCount(graphicsSettings.msaaSamples);
+        msaaTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
+        msaaTextureDescriptor->setAllowGPUOptimizedContents(true);
+        msaaTextureDescriptor->setStorageMode(MTL::StorageModePrivate);
 
-    msaaRenderTargetTexture = device->newTexture(msaaTextureDescriptor);
+        msaaRenderTargetTexture = device->newTexture(msaaTextureDescriptor);
+
+        msaaTextureDescriptor->release();
+    }
+
 
     MTL::TextureDescriptor* depthTextureDescriptor = MTL::TextureDescriptor::alloc()->init();
-    depthTextureDescriptor->setTextureType(MTL::TextureType2DMultisample);
+    depthTextureDescriptor->setTextureType((graphicsSettings.msaaSamples > 1) ? MTL::TextureType2DMultisample : MTL::TextureType2D);
     depthTextureDescriptor->setPixelFormat(MTL::PixelFormatDepth32Float);
-    depthTextureDescriptor->setWidth(layer.drawableSize.width);
-    depthTextureDescriptor->setHeight(layer.drawableSize.height);
+    depthTextureDescriptor->setWidth(w);
+    depthTextureDescriptor->setHeight(h);
+    if (graphicsSettings.msaaSamples > 1) depthTextureDescriptor->setSampleCount(graphicsSettings.msaaSamples);
     depthTextureDescriptor->setUsage(MTL::TextureUsageRenderTarget);
-    depthTextureDescriptor->setSampleCount(graphicsSettings.msaaSamples);
+    depthTextureDescriptor->setAllowGPUOptimizedContents(true);
+    depthTextureDescriptor->setStorageMode(MTL::StorageModePrivate);
 
     depthTexture = device->newTexture(depthTextureDescriptor);
 
-    msaaTextureDescriptor->release();
     depthTextureDescriptor->release();
 }
 
-void updateRenderPassDescriptor() {
-    renderPassDescriptor->colorAttachments()->object(0)->setTexture(msaaRenderTargetTexture);
-    renderPassDescriptor->colorAttachments()->object(0)->setResolveTexture(frame->texture());
-    renderPassDescriptor->depthAttachment()->setTexture(depthTexture);
+void nextFrame() {
+    frame = (__bridge CA::MetalDrawable*)[layer nextDrawable];
+    if (graphicsSettings.msaaSamples > 1) renderPassDescriptor->colorAttachments()->object(0)->setResolveTexture(frame->texture());
+    else renderPassDescriptor->colorAttachments()->object(0)->setTexture(frame->texture());
 }
 
 void resizeViewport() {
@@ -289,9 +331,11 @@ void resizeViewport() {
         depthTexture->release();
         depthTexture = nullptr;
     }
-    createFrameResources();
-    frame = (__bridge CA::MetalDrawable*)[layer nextDrawable];
-    updateRenderPassDescriptor();
+
+    createFrameResources(framebufferW, framebufferH);
+    nextFrame();
+    if (graphicsSettings.msaaSamples > 1) renderPassDescriptor->colorAttachments()->object(0)->setTexture(msaaRenderTargetTexture);
+    renderPassDescriptor->depthAttachment()->setTexture(depthTexture);
 }
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings) {
@@ -311,6 +355,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     // Vulkan PTSD
     // Thank god I don't have to score and pick one myself this time
     device = MTL::CreateSystemDefaultDevice();
+    commandQueue = device->newCommandQueue();
 
     layer.device = (__bridge id<MTLDevice>)device;
     layer.displaySyncEnabled = settings.vsyncEnabled;
@@ -319,20 +364,24 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     metalWindow.contentView.layer = layer;
     metalWindow.contentView.wantsLayer = YES;
 
-    commandQueue = device->newCommandQueue();
-
     uniformBuffer = device->newBuffer(sizeof(JEUniformBufferObject_MTL), MTL::ResourceStorageModeShared);
 
     renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
 
-    MTL::RenderPassColorAttachmentDescriptor* colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+    MTL::RenderPassColorAttachmentDescriptor *colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
     MTL::RenderPassDepthAttachmentDescriptor* depthAttachment = renderPassDescriptor->depthAttachment();
 
-    colorAttachment->setTexture(msaaRenderTargetTexture);
-    colorAttachment->setResolveTexture(frame->texture());
     colorAttachment->setLoadAction(MTL::LoadActionClear);
-    colorAttachment->setClearColor(MTL::ClearColor(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2], 1.0));
-    colorAttachment->setStoreAction(MTL::StoreActionMultisampleResolve);
+    colorAttachment->setClearColor(MTL::ClearColor(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1],
+                                                   graphicsSettings.clearColor[2], 1.0));
+    if (graphicsSettings.msaaSamples > 1) {
+        colorAttachment->setTexture(msaaRenderTargetTexture);
+        colorAttachment->setResolveTexture(frame->texture());
+        colorAttachment->setStoreAction(MTL::StoreActionMultisampleResolve);
+    } else {
+        colorAttachment->setTexture(frame->texture());
+        colorAttachment->setStoreAction(MTL::StoreActionStore);
+    }
 
     depthAttachment->setTexture(depthTexture);
     depthAttachment->setLoadAction(MTL::LoadActionClear);
@@ -360,9 +409,6 @@ void deinitGFX() {
 
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     @autoreleasepool {
-        frame = (__bridge CA::MetalDrawable*)[layer nextDrawable];
-        updateRenderPassDescriptor();
-
         JEUniformBufferObject_MTL ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
         memcpy(uniformBuffer->contents(), &ubo, sizeof(JEUniformBufferObject_MTL));
 
@@ -378,13 +424,18 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
         ImGui::Render();
 
+        // FOR SOME UNGODLY REASON, PROCRASTINATING THE DRAWABLE GRAB IS GOOD. THANKS METAL BEST PRACTICES.
+        nextFrame();
+
         // Vulkan command buffer basically
         MTL::RenderCommandEncoder* renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
+        // set facing direction
         renderCommandEncoder->setFrontFacingWinding(MTL::WindingCounterClockwise);
+        // UBO
         renderCommandEncoder->setVertexBuffer(uniformBuffer, 0, 0);
         renderCommandEncoder->setFragmentBuffer(uniformBuffer, 0, 0);
 
-        int currentPipeline = -1, currentTexture = -1;
+        int currentPipeline = -1, currentTexture = -1, currentVertexBuffer = -1;
 
         for (auto const& r : renderables) {
             if (r.enabled) {
@@ -404,11 +455,15 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                     currentTexture = static_cast<int>(r.texture);
                 }
 
+                if (r.vboID != currentVertexBuffer) {
+                    renderCommandEncoder->setVertexBuffer(vertexBufferVec[r.vboID], 0, 2);
+                    currentVertexBuffer = static_cast<int>(r.vboID);
+                }
+
                 JEPerObjectBytes_MTL pushconst = {r.objectMatrix, r.rotate};
                 renderCommandEncoder->setVertexBytes(&pushconst, sizeof(JEPerObjectBytes_MTL), 1);
                 renderCommandEncoder->setFragmentBytes(&pushconst, sizeof(JEPerObjectBytes_MTL), 1);
 
-                renderCommandEncoder->setVertexBuffer(vertexBufferVec[r.vboID], 0, 2);
                 renderCommandEncoder->drawIndexedPrimitives(MTL::PrimitiveTypeTriangle, r.indicesSize,
                                                             MTL::IndexTypeUInt32, indexBufferVec[r.vboID], 0);
             }
@@ -420,7 +475,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
         commandBuffer->presentDrawable(frame); // vkQueuePresentKHR basically but in command buffer
         commandBuffer->commit(); // send to gpu
-        commandBuffer->waitUntilCompleted(); // wait for frame to finish
+        commandBuffer->waitUntilCompleted(); // wait for frame to finish so we don't try writing UBO
     }
 }
 
