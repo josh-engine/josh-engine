@@ -385,7 +385,8 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     commandQueue = device->newCommandQueue();
 
     layer.device = (__bridge id<MTLDevice>)device;
-    layer.displaySyncEnabled = settings.vsyncEnabled;
+    // Vsync bug fix. If we need to disable it, go right ahead, but if we don't need to, DON'T TOUCH IT.
+    if (!settings.vsyncEnabled) layer.displaySyncEnabled = false;
     layer.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
 
     metalWindow.contentView.layer = layer;
