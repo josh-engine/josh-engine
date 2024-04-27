@@ -46,7 +46,7 @@ target_link_libraries(JoshEngine
 )
 
 # Vulkan
-#[[ Remove this to switch to another API->
+#[[ Remove this to switch to another API-> ]]
 find_package(Vulkan REQUIRED)
 find_package(glslang REQUIRED)
 add_compile_definitions(GFX_API_VK)
@@ -67,7 +67,7 @@ target_link_libraries(JoshEngine
 #]]
 
 # Metal
-#[[ Uncomment this and comment out another graphics API block to switch APIs ]]
+#[[ Uncomment this and comment out another graphics API block to switch APIs
 add_compile_definitions(GFX_API_MTL)
 find_package(glslang REQUIRED)
 include_directories("${JoshEngine_SOURCE_DIR}/includes/metal-cpp")
