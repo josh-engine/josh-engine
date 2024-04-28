@@ -69,6 +69,7 @@ unsigned int loadTexture(const std::string& fileName) {
         textureDescriptor->setWidth(width);
         textureDescriptor->setHeight(height);
         textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
+        textureDescriptor->setMipmapLevelCount(static_cast<uint32_t>(std::floor(std::log2(std::max(width, height)))) + 1);
 
         textureID = textureVec.size();
         textureVec.push_back(device->newTexture(textureDescriptor));
@@ -78,6 +79,18 @@ unsigned int loadTexture(const std::string& fileName) {
 
         textureVec[textureID]->replaceRegion(region, 0, image, bytesPerRow);
 
+        MTL::CommandBuffer* buf = commandQueue->commandBuffer();
+        MTL::BlitCommandEncoder* enc = buf->blitCommandEncoder();
+
+        enc->generateMipmaps(textureVec[textureID]);
+        enc->endEncoding();
+
+        buf->commit();
+        buf->waitUntilCompleted();
+
+        buf->release();
+        enc->release();
+
         textureDescriptor->release();
         stbi_image_free(image);
     } else {
@@ -85,22 +98,6 @@ unsigned int loadTexture(const std::string& fileName) {
         textureID = 0;
     }
     return textureID;
-}
-
-static std::vector<char> readFile(const std::string& filename) {
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open()) {
-        throw std::runtime_error("Metal: Failed to open file" + filename + "!");
-    }
-
-    size_t fileSize = (size_t) file.tellg();
-    std::vector<char> buffer(fileSize);
-    file.seekg(0);
-    file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
-    file.close();
-
-    return buffer;
 }
 
 inline bool ends_with(std::string const& value, std::string const & ending)
@@ -386,6 +383,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
 
     layer.device = (__bridge id<MTLDevice>)device;
     // Vsync bug fix. If we need to disable it, go right ahead, but if we don't need to, DON'T TOUCH IT.
+    // TODO: This does not work. It worked earlier. I'm beginning to think Metal is non-deterministic.
     if (!settings.vsyncEnabled) layer.displaySyncEnabled = false;
     layer.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
 
@@ -452,6 +450,8 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
         ImGui::Render();
 
+        int currentPipeline = -1, currentTexture = -1, currentVertexBuffer = -1;
+
         // FOR SOME UNGODLY REASON, PROCRASTINATING THE DRAWABLE GRAB IS GOOD. THANKS METAL BEST PRACTICES.
         nextFrame();
 
@@ -462,8 +462,6 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         // UBO
         renderCommandEncoder->setVertexBuffer(uniformBuffer, 0, 0);
         renderCommandEncoder->setFragmentBuffer(uniformBuffer, 0, 0);
-
-        int currentPipeline = -1, currentTexture = -1, currentVertexBuffer = -1;
 
         for (auto const& r : renderables) {
             if (r.enabled) {
