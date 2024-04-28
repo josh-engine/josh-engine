@@ -184,5 +184,5 @@ void setupTest() {
     putGameObject("cube", GameObject(&initCube));
     putGameObject("ui_item", GameObject(&initUiItem));
 
-    //st2.play();
+    st2.play();
 }

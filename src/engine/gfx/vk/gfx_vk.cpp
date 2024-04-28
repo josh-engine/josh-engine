@@ -220,20 +220,10 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) 
     for (auto & block : memoryBlocks) {
         // is it the right type?
         if (block.type == memoryType){
-            // align the top to whatever spec we say we should.
-            // vulkan yelled at me saying it should be 16 in my case.
+            // align the block top to whatever vulkan says we should.
             VkDeviceSize alignedTop;
-            if (align > block.top) {
-                alignedTop = align;
-            } else {
-                alignedTop = (block.top + align/2);
-                alignedTop-= (alignedTop % align);
-                // Since this can produce results below block.top,
-                // increment with alignment until in a safe location.
-                while (alignedTop < block.top) {
-                    alignedTop += align;
-                }
-            }
+            //           get to a lower multiple of align, add it again to get back up
+            alignedTop = (block.top - (block.top % align)) + align;
             // can we fit?
             if (block.size >= alignedTop + size) {
                 block.top = alignedTop + size;
@@ -241,6 +231,7 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) 
             }
         }
     }
+
     VkDeviceMemory newMemory;
     VkDeviceSize newBlockSize = NEW_BLOCK_MIN_SIZE;
     // do the vector thing and be prepared for double the size of our original data (if it is larger than our new min size)
@@ -400,7 +391,7 @@ void createInstance(const char* name) {
         debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debugCreateInfo.pfnUserCallback = debugCallback;
 
-        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*) &debugCreateInfo;
+        createInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
     } else {
         createInfo.enabledLayerCount = 0;
         createInfo.pNext = nullptr;

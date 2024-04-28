@@ -77,10 +77,10 @@ void setupImGuiWindow() {
                 ImGui::Text("Empty");
             else {
                 for (auto function: gmObj.onUpdate) {
-                    if (functionNameMap.find((void *) function) == functionNameMap.end()) {
+                    if (functionNameMap.find(reinterpret_cast<void*>(function)) == functionNameMap.end()) {
                         ImGui::TextColored({0.75f, 0.75f, 0.75f, 1.0f}, "Function at %lx", (unsigned long) function);
                     } else {
-                        ImGui::Text("%s", functionNameMap.at((void *) function).c_str());
+                        ImGui::Text("%s", functionNameMap.at(reinterpret_cast<void*>(function)).c_str());
                     }
                 }
             }

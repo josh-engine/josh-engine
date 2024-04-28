@@ -33,17 +33,10 @@ Renderable createQuad(unsigned int shader, unsigned int texture) {
     return createQuad(shader, texture, false);
 }
 
-class repackVertexObject {
-public:
-    glm::vec3 pos{};
-    glm::vec2 uvs{};
-    glm::vec3 nml{};
-
-    repackVertexObject(glm::vec3 position, glm::vec2 texcoords, glm::vec3 normals) {
-        pos = position;
-        uvs = texcoords;
-        nml = normals;
-    }
+struct repackVertexObject {
+    glm::vec3 pos;
+    glm::vec2 uvs;
+    glm::vec3 nml;
 
     [[nodiscard]] bool equals(repackVertexObject r) const {
         return r.pos == pos && r.uvs == uvs && r.nml == nml;
@@ -57,10 +50,10 @@ Renderable repackRenderable(Renderable r) {
     // Generate unique lists
     for (int i = 0; i < r.vertices.size()/3; i++) {
         // new vertex object with current properties
-        repackVertexObject currentVertexObject(
+        repackVertexObject currentVertexObject = {
                 {r.vertices[i*3], r.vertices[(i*3)+1], r.vertices[(i*3)+2]},
                 {r.uvs[i*2], r.uvs[(i*2)+1]},
-                {r.normals[i*3], r.normals[(i*3)+1], r.normals[(i*3)+2]});
+                {r.normals[i*3], r.normals[(i*3)+1], r.normals[(i*3)+2]}};
 
         // assume not duplicate
         bool add = true;

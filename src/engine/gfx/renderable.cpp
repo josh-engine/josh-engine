@@ -13,7 +13,7 @@
 #include "vk/gfx_vk.h"
 
 unsigned int createVBOFunctionMirror(void* r) {
-    return createVBO((Renderable*)r);
+    return createVBO(reinterpret_cast<Renderable*>(r));
 }
 #endif
 
@@ -21,7 +21,7 @@ unsigned int createVBOFunctionMirror(void* r) {
 #include "mtl/gfx_mtl.h"
 
 unsigned int createVBOFunctionMirror(void* r) {
-    return createVBO((Renderable*) r);
+    return createVBO(reinterpret_cast<Renderable*>(r));
 }
 #endif
 

@@ -98,7 +98,7 @@ void registerProgram(std::string name, std::string vertex, std::string fragment,
     programs.insert({name, createProgram(vertID, fragID, testDepth, transparencySupported, doubleSided)});
 }
 
-unsigned int getProgram(std::string name) {
+unsigned int getProgram(const std::string& name) {
     return programs.at(name);
 }
 
@@ -126,11 +126,11 @@ unsigned int createTexture(std::string folderPath, std::string fileName) {
     return id;
 }
 
-bool textureExists(std::string name) {
+bool textureExists(const std::string &name) {
     return textures.count(name);
 }
 
-unsigned int getTexture(std::string name) {
+unsigned int getTexture(const std::string& name) {
     if (!textureExists(name)) {
         std::cerr << "Texture \"" + name + "\" not found, defaulting to missing_tex.png" << std::endl;
         return textures.at("missing");
