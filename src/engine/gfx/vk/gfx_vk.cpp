@@ -185,20 +185,21 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
     VkPhysicalDeviceMemoryProperties memProperties;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
+    // simulate not having any lazily allocated memory type (noah bug fix 3 attempt 1 testing)
+    // if (properties & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) throw std::runtime_error("test");
+
     // In case we can't find device-local memory.
     int backupIndex = -1;
-    bool foundWithCorrectProperties = false;
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-            foundWithCorrectProperties = true;
             if (memProperties.memoryHeaps[memProperties.memoryTypes[i].heapIndex].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
                 // Great! It's on the device.
                 return i;
             } else {
                 // Fine, we can default to this if nothing better is found.
                 backupIndex = static_cast<int>(i);
-            } //                                                                                                                           noah bug fix 2
+            }
         }
     }
 
@@ -1152,6 +1153,7 @@ void createDepthResources() {
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, depthImage,
                     depthImageMemory, 1, msaaSamples);
     } catch (std::exception& e) { // noah bug fix 2 attempt 2
+        vkDestroyImage(logicalDevice, depthImage, nullptr); // noah bug fix 3 attempt 1
         createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, depthFormat,
                     VK_IMAGE_TILING_OPTIMAL,
                     VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -1171,6 +1173,7 @@ void createColorResources() {
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, colorImage,
                     colorImageMemory, 1, msaaSamples);
     } catch (std::exception& e) { // noah bug fix 2 attempt 2
+        vkDestroyImage(logicalDevice, colorImage, nullptr); // noah bug fix 3 attempt 1
         createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, colorFormat,
                     VK_IMAGE_TILING_OPTIMAL,
                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,

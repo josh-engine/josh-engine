@@ -15,16 +15,22 @@
 #include "enginedebug.h"
 
 GLFWwindow* window;
+
 std::vector<void (*)(double dt)> onUpdate;
 std::vector<void (*)(int key, bool pressed, double dt)> onKey;
 std::vector<void (*)(int button, bool pressed, double dt)> onMouse;
+
 std::unordered_map<std::string, GameObject> gameObjects;
-Transform camera;
+
+Renderable skybox;
+Transform camera(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
+
 bool keys[GLFW_KEY_LAST];
 bool mouseButtons[GLFW_MOUSE_BUTTON_8-GLFW_MOUSE_BUTTON_1];
-Renderable skybox;
+
 std::unordered_map<std::string, unsigned int> programs;
 std::unordered_map<std::string, unsigned int> textures;
+
 std::vector<void (*)()> imGuiCalls;
 
 int renderableCount;
@@ -59,12 +65,12 @@ void setSunProperties(glm::vec3 position, glm::vec3 color){
     sunColor = color;
 }
 
-void setAmbient(float r, float g, float b){
-    ambient = glm::vec3(r, g, b);
+void setAmbient(glm::vec3 rgb) {
+    ambient = rgb;
 }
 
-void setAmbient(glm::vec3 rgb){
-    ambient = rgb;
+void setAmbient(float r, float g, float b){
+    setAmbient(glm::vec3(r, g, b));
 }
 
 void setMouseVisible(bool vis) {
@@ -286,8 +292,6 @@ Transform* cameraAccess() {
 auto compareLambda = [](std::pair<double, Renderable> left, std::pair<double, Renderable> right){return left.first < right.first;};
 
 void mainLoop() {
-    camera = Transform(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
-
     double currentTime = glfwGetTime();
     double lastTime = currentTime;
     double lastFrameCheck = glfwGetTime();
