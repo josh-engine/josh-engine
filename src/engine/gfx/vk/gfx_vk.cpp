@@ -187,16 +187,21 @@ uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 
     // In case we can't find device-local memory.
     int backupIndex = -1;
+    bool foundWithCorrectProperties = false;
 
     for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
         if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            foundWithCorrectProperties = true;
             if (memProperties.memoryHeaps[memProperties.memoryTypes[i].heapIndex].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
                 // Great! It's on the device.
                 return i;
             } else {
                 // Fine, we can default to this if nothing better is found.
                 backupIndex = static_cast<int>(i);
-            }
+            } //                                                                                                                           noah bug fix 2
+        } else if (!foundWithCorrectProperties && (typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == (properties & (~VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT))) {
+            // VERY VERY BACKUP. For systems that don't have any lazily allocated memory *stares at noah's old macbook pro intensely*
+            backupIndex = static_cast<int>(i);
         }
     }
 
