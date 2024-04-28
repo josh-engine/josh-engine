@@ -102,6 +102,12 @@ VkImageView depthImageView;
 
 std::vector<JEMemoryBlock_VK> memoryBlocks{};
 
+#ifdef DEBUG_ENABLED
+std::vector<JEMemoryBlock_VK> getMemory() {
+    return memoryBlocks;
+}
+#endif
+
 struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;

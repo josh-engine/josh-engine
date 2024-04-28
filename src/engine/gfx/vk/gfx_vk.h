@@ -18,8 +18,8 @@
 // VK_SHADER_STAGE_FRAGMENT_BIT
 #define JE_FRAGMENT_SHADER 0x00000010
 
-// 512MiB (1024KiB = 1MiB, 1024b = 1 KiB)
-#define NEW_BLOCK_MIN_SIZE 536870912
+// 256MiB (1024KiB = 1MiB, 1024b = 1 KiB)
+#define NEW_BLOCK_MIN_SIZE 268435456
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
@@ -61,6 +61,9 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 unsigned int createVBO(Renderable* r);
+#ifdef DEBUG_ENABLED
+std::vector<JEMemoryBlock_VK> getMemory();
+#endif
 
 #endif //JOSHENGINE_GFX_VK_H
 #endif //GFX_API_VK

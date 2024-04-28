@@ -42,6 +42,12 @@ glm::vec3 sunDirection(0, 1, 0);
 glm::vec3 sunColor(0, 0, 0);
 glm::vec3 ambient(0);
 
+#ifdef DEBUG_ENABLED
+std::unordered_map<std::string, unsigned int> getTexs() {
+    return textures;
+}
+#endif
+
 std::string programReverseLookup(unsigned int num){
     for (auto i : programs){
         if (i.second == num) return i.first;

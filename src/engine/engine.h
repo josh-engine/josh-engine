@@ -131,5 +131,8 @@ void registerOnMouse(void (*function)(int button, bool pressed, double dt));
 void setSkyboxEnabled(bool enabled);
 std::string textureReverseLookup(unsigned int num);
 std::string programReverseLookup(unsigned int num);
+#ifdef DEBUG_ENABLED
+std::unordered_map<std::string, unsigned int> getTexs();
+#endif
 
 #endif //JOSHENGINE_ENGINE_H

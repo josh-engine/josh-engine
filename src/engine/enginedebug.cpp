@@ -8,9 +8,15 @@
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
 #include <unordered_map>
+#include <string>
+#ifdef GFX_API_VK
+#include "gfx/vk/gfx_vk.h"
+bool vulkanMemoryView;
+#endif
 
-bool statView, gmObjView;
+bool statView, gmObjView, texturesView;
 std::string selectedGameObject;
+std::string selectedTexture;
 std::unordered_map<void*, std::string> functionNameMap;
 #endif //DEBUG_ENABLED
 
@@ -42,8 +48,21 @@ void setupImGuiWindow() {
 
     ImGui::Checkbox("Stats View", &statView);
     ImGui::Checkbox("GameObjects View", &gmObjView);
+    ImGui::Checkbox("Textures View", &texturesView);
+#ifdef GFX_API_VK
+    ImGui::Checkbox("vkAlloc View", &vulkanMemoryView);
+#endif
 
     ImGui::End();
+
+    if (statView) {
+        ImGui::Begin("Stats");
+
+        ImGui::Text("Frame time: %ims (~%i fps)", static_cast<int>(getFrameTime()), static_cast<int>(1/(getFrameTime()/1000)));
+        ImGui::Text("Renderables: %i", getRenderableCount());
+
+        ImGui::End();
+    }
 
     if (gmObjView) {
         ImGui::Begin("GameObjects");
@@ -92,13 +111,44 @@ void setupImGuiWindow() {
         ImGui::End();
     }
 
-    if (statView) {
-        ImGui::Begin("Stats");
 
-        ImGui::Text("Frame time: %ims (~%i fps)", static_cast<int>(getFrameTime()), static_cast<int>(1/(getFrameTime()/1000)));
-        ImGui::Text("Renderables: %i", getRenderableCount());
+    if (texturesView) {
+        ImGui::Begin("Textures");
+#if defined(GFX_API_OPENGL41)
+        std::unordered_map<std::string, unsigned int> textures = getTexs();
 
+        if (ImGui::BeginCombo("Texture", selectedTexture.c_str(), 0)) {
+            for (const auto& object: textures) {
+                if (ImGui::Selectable(object.first.c_str(), selectedTexture == object.first))
+                    selectedTexture = object.first;
+            }
+            ImGui::EndCombo();
+        }
+        if (!selectedTexture.empty()) {
+#ifdef GFX_API_OPENGL41
+            ImGui::Image((void*)(intptr_t)textures.at(selectedTexture), {ImGui::GetWindowSize().x-20, ImGui::GetWindowSize().y-60});
+#endif
+        }
+
+#else
+        ImGui::Text("Texture view is only supported in OpenGL.");
+#endif
         ImGui::End();
     }
+#ifdef GFX_API_VK
+    if (vulkanMemoryView) {
+        ImGui::Begin("vkAlloc Memory Viewer");
+        std::vector<JEMemoryBlock_VK> mem = getMemory();
+        ImGui::Text("Minimum alloc: %i MiB", (NEW_BLOCK_MIN_SIZE/1024)/1024);
+        int i = 0;
+        for (auto const& block : mem) {
+            ImGui::Text("Block %i - Memory Type %i", i, block.type);
+            std::string count = std::to_string((block.top/1024)/1024) + " MiB/" + std::to_string(((block.size)/1024)/1024) + " MiB";
+            ImGui::ProgressBar((static_cast<float>(block.top))/static_cast<float>(block.size), ImVec2(-FLT_MIN, 0), count.c_str());
+            i++;
+        }
+        ImGui::End();
+    }
+#endif //GFX_API_VK
 #endif //DEBUG_ENABLED
 }
