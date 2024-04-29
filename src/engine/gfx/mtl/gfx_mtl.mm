@@ -233,7 +233,7 @@ unsigned int createProgram(unsigned int vertexID, unsigned int fragID, bool test
     }
 
     MTL::DepthStencilDescriptor* depthStencilDescriptor = MTL::DepthStencilDescriptor::alloc()->init();
-    depthStencilDescriptor->setDepthCompareFunction((testDepth ? MTL::CompareFunctionLess : MTL::CompareFunctionAlways));
+    depthStencilDescriptor->setDepthCompareFunction((testDepth ? MTL::CompareFunctionLessEqual : MTL::CompareFunctionAlways));
     depthStencilDescriptor->setDepthWriteEnabled(!transparencySupported);
 
     NS::Error* error;

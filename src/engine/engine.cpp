@@ -33,7 +33,7 @@ std::unordered_map<std::string, unsigned int> textures;
 
 std::vector<void (*)()> imGuiCalls;
 
-int renderableCount;
+int renderableCount = 0;
 
 bool drawSkybox;
 bool skyboxSupported;
@@ -295,7 +295,7 @@ Transform* cameraAccess() {
     return &camera;
 }
 
-auto compareLambda = [](std::pair<double, Renderable> left, std::pair<double, Renderable> right){return left.first < right.first;};
+auto compareLambda = [](const std::pair<double, Renderable>& left, const std::pair<double, Renderable>& right){return left.first < right.first;};
 
 void mainLoop() {
     double currentTime = glfwGetTime();
@@ -360,20 +360,23 @@ void mainLoop() {
             frameDrawStart = glfwGetTime()*1000;
         }
 
-        std::vector<Renderable> renderables;
+        std::vector<Renderable> renderables(renderableCount); // We're going to guess that we have around the same amount of renderables for this frame.
         std::priority_queue<std::pair<double, Renderable>, std::deque<std::pair<double, Renderable>>, decltype(compareLambda)> individualSortRenderables;
+
+        renderableCount = 0;
 
         if (drawSkybox) {
             skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
             renderables.push_back(skybox);
         }
 
-        for (auto item : gameObjects) {
+        for (const auto& item : gameObjects) {
             for (auto renderable : item.second.renderables) {
                 if (renderable.enabled) {
+                    renderableCount++;
                     renderable.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
                     if (renderable.manualDepthSort)
-                        individualSortRenderables.push(std::make_pair(glm::distance(camera.position, item.second.transform.position), renderable));
+                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), renderable);
                     else
                         renderables.push_back(renderable);
                 }
@@ -387,7 +390,7 @@ void mainLoop() {
             individualSortRenderables.pop();
         }
 
-        renderableCount = renderables.size();
+        renderableCount += a-1;
 
         float scaledHeight = windowHeight * (1.0f / windowWidth);
         float scaledWidth = 1.0f;

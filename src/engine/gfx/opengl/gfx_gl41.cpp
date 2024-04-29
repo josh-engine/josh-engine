@@ -117,7 +117,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
 
     // Set up depth testing
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LEQUAL);
 
     // Backface culling
     glEnable(GL_CULL_FACE);
