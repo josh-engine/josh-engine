@@ -2,16 +2,21 @@
 // Created by Ember Lee on 3/24/24.
 //
 #include "engineconfig.h"
-#include <string>
 #ifdef DEBUG_ENABLED
+#include <string>
 #include "enginedebug.h"
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
 #include <unordered_map>
 #include <string>
+
 #ifdef GFX_API_VK
 #include "gfx/vk/gfx_vk.h"
 bool vulkanMemoryView;
+#endif
+
+#ifdef GFX_API_MTL
+#include "gfx/mtl/gfx_mtl.h"
 #endif
 
 bool statView, gmObjView, texturesView;
@@ -48,7 +53,14 @@ void setupImGuiWindow() {
 
     ImGui::Checkbox("Stats View", &statView);
     ImGui::Checkbox("GameObjects View", &gmObjView);
+#if !defined(GFX_API_OPENGL41) & !defined(GFX_API_MTL)
+    ImGui::BeginDisabled(true);
+#endif
     ImGui::Checkbox("Textures View", &texturesView);
+#if !defined(GFX_API_OPENGL41) & !defined(GFX_API_MTL)
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("Texture view is only supported on OpenGL or Metal.");
+#endif
 #ifdef GFX_API_VK
     ImGui::Checkbox("vkAlloc View", &vulkanMemoryView);
 #endif
@@ -111,10 +123,9 @@ void setupImGuiWindow() {
         ImGui::End();
     }
 
-
+#if defined(GFX_API_OPENGL41) | defined(GFX_API_MTL)
     if (texturesView) {
         ImGui::Begin("Textures");
-#if defined(GFX_API_OPENGL41)
         std::unordered_map<std::string, unsigned int> textures = getTexs();
 
         if (ImGui::BeginCombo("Texture", selectedTexture.c_str(), 0)) {
@@ -127,14 +138,14 @@ void setupImGuiWindow() {
         if (!selectedTexture.empty()) {
 #ifdef GFX_API_OPENGL41
             ImGui::Image((void*)(intptr_t)textures.at(selectedTexture), {ImGui::GetWindowSize().x-20, ImGui::GetWindowSize().y-60});
+#elif defined(GFX_API_MTL)
+            ImGui::Image(getMTLTex(textures.at(selectedTexture)), {ImGui::GetWindowSize().x-20, ImGui::GetWindowSize().y-60});
 #endif
         }
-
-#else
-        ImGui::Text("Texture view is only supported in OpenGL.");
-#endif
         ImGui::End();
     }
+#endif
+
 #ifdef GFX_API_VK
     if (vulkanMemoryView) {
         ImGui::Begin("vkAlloc Memory Viewer");
@@ -150,5 +161,6 @@ void setupImGuiWindow() {
         ImGui::End();
     }
 #endif //GFX_API_VK
+
 #endif //DEBUG_ENABLED
 }

@@ -57,6 +57,9 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 unsigned int createVBO(Renderable* r);
+#ifdef DEBUG_ENABLED
+void* getMTLTex(unsigned int i);
+#endif
 
 #endif
 #endif //JOSHENGINE_GFX_MTL_H

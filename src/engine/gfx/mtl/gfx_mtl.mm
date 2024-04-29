@@ -3,6 +3,7 @@
 //
 
 #ifdef GFX_API_MTL
+#include "../../engineconfig.h"
 
 // GLFW
 #define GLFW_INCLUDE_NONE
@@ -47,6 +48,11 @@ MTL::CommandBuffer* commandBuffer;
 std::vector<JEProgram_MTL> pipelineVec;
 std::vector<JEShader_MTL> shaderVec;
 std::vector<MTL::Texture*> textureVec;
+#ifdef DEBUG_ENABLED
+void* getMTLTex(unsigned int i) {
+    return reinterpret_cast<void*>(textureVec[i]);
+}
+#endif
 
 std::vector<MTL::Buffer*> vertexBufferVec;
 std::vector<MTL::Buffer*> indexBufferVec;
