@@ -94,12 +94,9 @@ void setupImGuiWindow() {
 
             ImGui::Text("Transform");
             ImGui::Indent();
-            ImGui::TextColored({0.5f, 1.0f, 0.5f, 1.0f}, "Position");
-            ImGui::TextColored({0.5f, 1.0f, 0.5f, 1.0f}, "X: %f, Y: %f, Z: %f", gmObj.transform.position.x, gmObj.transform.position.y, gmObj.transform.position.z);
-            ImGui::TextColored({1.0f, 0.5f, 0.5f, 1.0f}, "Rotation");
-            ImGui::TextColored({1.0f, 0.5f, 0.5f, 1.0f}, "X: %f, Y: %f, Z: %f", gmObj.transform.rotation.x, gmObj.transform.rotation.y, gmObj.transform.rotation.z);
-            ImGui::TextColored({0.5f, 0.5f, 1.0f, 1.0f}, "Scale");
-            ImGui::TextColored({0.5f, 0.5f, 1.0f, 1.0f}, "X: %f, Y: %f, Z: %f", gmObj.transform.scale.x, gmObj.transform.scale.y, gmObj.transform.scale.z);
+            ImGui::InputFloat3("Position", &gmObj.transform.position[0]);
+            ImGui::InputFloat3("Rotation", &gmObj.transform.rotation[0]);
+            ImGui::InputFloat3("Scale",    &gmObj.transform.scale[0]   );
             ImGui::Unindent();
 
             ImGui::Text("Functions");

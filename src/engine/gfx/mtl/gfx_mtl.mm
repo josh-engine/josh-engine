@@ -20,14 +20,17 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+// standard library
 #include <fstream>
 #include <sstream>
 #include <iostream>
 
+// imgui
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_metal.h"
 #include "../imgui/imgui_impl_glfw.h"
 
+// spirv-cross
 #include "../spirv/spirv-helper.h"
 #include "../spirv/cross/spirv_msl.hpp"
 
@@ -71,7 +74,11 @@ unsigned int loadTexture(const std::string& fileName) {
 
     if (image) {
         MTL::TextureDescriptor *textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+#ifdef METAL_SRGB
         textureDescriptor->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+#else
+        textureDescriptor->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+#endif
         textureDescriptor->setWidth(width);
         textureDescriptor->setHeight(height);
         textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
@@ -106,6 +113,22 @@ unsigned int loadTexture(const std::string& fileName) {
     return textureID;
 }
 
+static std::vector<char> readFile(const std::string& filename) {
+    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+    if (!file.is_open()) {
+        throw std::runtime_error("Metal: Failed to open \"" + filename + "\"!");
+    }
+
+    size_t fileSize = (size_t) file.tellg();
+    std::vector<char> buffer(fileSize);
+    file.seekg(0);
+    file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
+    file.close();
+
+    return buffer;
+}
+
 inline bool ends_with(std::string const& value, std::string const & ending)
 {
     if (ending.size() > value.size()) return false;
@@ -126,6 +149,11 @@ unsigned int loadShader(const std::string& file_path, int target) {
         std::stringstream buffer;
         buffer << fileStream.rdbuf();
         metalShaderCode = buffer.str();
+    } else if (ends_with(file_path, ".spv")) {
+        spirVCode = readFile(file_path);
+        spirv_cross::CompilerMSL crossCompiler(*reinterpret_cast<std::vector<uint32_t>*>(&spirVCode));
+        std::cout << "Compiling " << file_path << "'s SPIR-V bytecode to MSL..." << std::endl;
+        metalShaderCode = crossCompiler.compile();
     } else {
         std::ifstream fileStream(file_path);
         if (!fileStream.good()) {
@@ -134,6 +162,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
         std::stringstream buffer;
         buffer << fileStream.rdbuf();
         std::string fileContents = buffer.str();
+
         std::cout << "Compiling " << file_path << " to SPIR-V..." << std::endl;
         bool compileSuccess = SpirvHelper::GLSLtoSPV(target, &fileContents[0], &spirv_comp);
         if (!compileSuccess) {
@@ -237,7 +266,11 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     unsigned char *image = stbi_load(faces[0].c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
     MTL::TextureDescriptor *textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+#ifdef METAL_SRGB
     textureDescriptor = MTL::TextureDescriptor::textureCubeDescriptor(MTL::PixelFormatRGBA8Unorm_sRGB, width, false);
+#else
+    textureDescriptor = MTL::TextureDescriptor::textureCubeDescriptor(MTL::PixelFormatRGBA8Unorm, width, false);
+#endif
 
     textureID = textureVec.size();
     textureVec.push_back(device->newTexture(textureDescriptor));
@@ -391,7 +424,11 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     // Vsync bug fix. If we need to disable it, go right ahead, but if we don't need to, DON'T TOUCH IT.
     // TODO: This does not work. It worked earlier. I'm beginning to think Metal is non-deterministic.
     if (!settings.vsyncEnabled) layer.displaySyncEnabled = false;
+#ifdef METAL_SRGB
     layer.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+#else
+    layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+#endif
 
     metalWindow.contentView.layer = layer;
     metalWindow.contentView.wantsLayer = YES;
@@ -425,7 +462,6 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
-    ImGui::StyleColorsDark();
 
     ImGui_ImplGlfw_InitForOpenGL(*windowPtr, true);
     ImGui_ImplMetal_Init((__bridge id<MTLDevice>)device);
@@ -445,6 +481,13 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         memcpy(uniformBuffer->contents(), &ubo, sizeof(JEUniformBufferObject_MTL));
 
         commandBuffer = commandQueue->commandBuffer();
+#ifdef METAL_OS_IMGUI_THEME_SYNC
+        if ([[NSUserDefaults standardUserDefaults] stringForKey:@"AppleInterfaceStyle"]) {
+            ImGui::StyleColorsDark();
+        } else {
+            ImGui::StyleColorsLight();
+        }
+#endif
 
         ImGui_ImplMetal_NewFrame((__bridge MTLRenderPassDescriptor*)renderPassDescriptor);
         ImGui_ImplGlfw_NewFrame();

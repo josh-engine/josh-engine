@@ -33,7 +33,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
         unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
         if (data)
         {
-#ifdef GL41_SRGB_VK_PARITY
+#ifdef GL41_SRGB
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                          0, GL_SRGB8, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
             );
@@ -75,7 +75,7 @@ unsigned int loadTexture(const std::string& fileName) {
     unsigned char *data = stbi_load(fileName.c_str(), &width, &height, &nrChannels, 0);
     if (data)
     {
-#ifdef GL41_SRGB_VK_PARITY
+#ifdef GL41_SRGB
         glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB8_ALPHA8-4+nrChannels, width, height, 0, GL_RGBA-4+nrChannels, GL_UNSIGNED_BYTE, data);
 #else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA-4+nrChannels, width, height, 0, GL_RGBA-4+nrChannels, GL_UNSIGNED_BYTE, data);
@@ -126,7 +126,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     // Set up blending
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-#ifdef GL41_SRGB_VK_PARITY
+#ifdef GL41_SRGB
     // Enable SRGB framebuffer to attempt Vulkan parity
     glEnable(GL_FRAMEBUFFER_SRGB);
 #endif
