@@ -25,6 +25,7 @@
 #include <stb_image.h>
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_vulkan.h"
+#include <optional>
 
 GLFWwindow** windowPtr;
 JEGraphicsSettings settings;
@@ -124,7 +125,7 @@ struct SwapChainSupportDetails {
 };
 
 const std::vector<const char*> instanceExtensions = {
-        VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME
+        "VK_KHR_portability_enumeration"
 };
 
 const std::vector<const char*> validationLayers = {
@@ -421,7 +422,8 @@ void createInstance(const char* name) {
         requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 
-    createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+    // actual crime against programmer kind
+    createInfo.flags |= 0x00000001; //VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
 
     createInfo.enabledExtensionCount = requiredExtensions.size();
     createInfo.ppEnabledExtensionNames = requiredExtensions.data();
