@@ -4,7 +4,7 @@ project(JoshEngine)
 set(CMAKE_CXX_STANDARD 20)
 
 # Engine Required Includes
-find_package(glfw3 3.4 REQUIRED)
+find_package(glfw3 3.3 REQUIRED)
 find_package(OpenAL REQUIRED)
 find_package(glm REQUIRED)
 include_directories("${JoshEngine_SOURCE_DIR}/includes/stb")
