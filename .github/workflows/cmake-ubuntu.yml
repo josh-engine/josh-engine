@@ -23,7 +23,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install Dependencies
-      run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev glslang-dev libvulkan-dev vulkan-validationlayers-dev spirv-tools libopenal-dev
+      run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev glslang-tools glslang-tools-dbgsym glslang-dev libvulkan-dev vulkan-validationlayers-dev spirv-tools libopenal-dev
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
