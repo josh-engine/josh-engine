@@ -13,6 +13,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "gfx/renderable.h"
+#include <unordered_map>
 
 using namespace glm;
 

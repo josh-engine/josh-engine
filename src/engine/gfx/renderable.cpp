@@ -8,6 +8,7 @@
 #include <iterator>
 #include "renderable.h"
 #include "../engine.h"
+#include <bit>
 
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"

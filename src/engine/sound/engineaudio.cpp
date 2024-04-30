@@ -8,6 +8,7 @@
 #include <al.h>
 #include <alc.h>
 #include <stb_vorbis.h>
+#include <unordered_map>
 
 ALCdevice* alDevice;
 ALCcontext* context;
