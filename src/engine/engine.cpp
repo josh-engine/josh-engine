@@ -20,7 +20,8 @@ std::vector<void (*)(double dt)> onUpdate;
 std::vector<void (*)(int key, bool pressed, double dt)> onKey;
 std::vector<void (*)(int button, bool pressed, double dt)> onMouse;
 
-std::unordered_map<std::string, GameObject> gameObjects;
+std::vector<GameObject> gameObjects;
+std::unordered_map<std::string, GameObject*> gameObjectsNameMap;
 
 Renderable skybox;
 Transform camera(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
@@ -96,8 +97,8 @@ double getFrameTime() {
     return frameTime;
 }
 
-std::unordered_map<std::string, GameObject> getGameObjects() {
-    return gameObjects;
+std::unordered_map<std::string, GameObject*> getGameObjects() {
+    return gameObjectsNameMap;
 }
 
 void putImGuiCall(void (*argument)()) {
@@ -206,11 +207,13 @@ void registerOnMouse(void (*function)(int button, bool pressed, double dt)) {
 }
 
 void putGameObject(std::string name, GameObject g) {
-    gameObjects.insert({name, g});
+    int index = gameObjects.size();
+    gameObjects.push_back(g);
+    gameObjectsNameMap.insert({name, &gameObjects[index]});
 }
 
 GameObject* getGameObject(std::string name) {
-    return &gameObjects.at(name);
+    return gameObjectsNameMap.at(name);
 }
 
 int getCurrentWidth() {
@@ -332,8 +335,8 @@ void mainLoop() {
         }
 
         for (auto & g : gameObjects) {
-            for (auto & gameObjectFunction : g.second.onUpdate) {
-                gameObjectFunction(deltaTime, &g.second);
+            for (auto & gameObjectFunction : g.onUpdate) {
+                gameObjectFunction(deltaTime, &g);
             }
         }
 
@@ -371,12 +374,12 @@ void mainLoop() {
         }
 
         for (const auto& item : gameObjects) {
-            for (auto renderable : item.second.renderables) {
+            for (auto renderable : item.renderables) {
                 if (renderable.enabled) {
                     renderableCount++;
-                    renderable.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
+                    renderable.setMatrices(item.transform.getTranslateMatrix(), item.transform.getRotateMatrix(), item.transform.getScaleMatrix());
                     if (renderable.manualDepthSort)
-                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), renderable);
+                        individualSortRenderables.emplace(glm::distance(camera.position, item.transform.position), renderable);
                     else
                         renderables.push_back(renderable);
                 }

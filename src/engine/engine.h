@@ -101,7 +101,7 @@ void deinit();
 void registerOnUpdate(void (*function)(double dt));
 void registerOnKey(void (*function)(int key, bool pressed, double dt));
 void putGameObject(std::string name, GameObject g);
-std::unordered_map<std::string, GameObject> getGameObjects();
+std::unordered_map<std::string, GameObject*> getGameObjects();
 void putImGuiCall(void (*argument)());
 GameObject* getGameObject(std::string name);
 void setFOV(float n);
