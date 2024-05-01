@@ -2,7 +2,7 @@
 #include "gfx_gl41.h"
 
 #define GL_GLEXT_PROTOTYPES
-#include <GL/glext.h>
+#include <OpenGL/gl3.h>
 
 // STL
 #include <iostream>
@@ -105,7 +105,7 @@ unsigned int loadTexture(const std::string& fileName) {
 #else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA-4+nrChannels, width, height, 0, GL_RGBA-4+nrChannels, GL_UNSIGNED_BYTE, data);
 #endif
-        glGenerateMipmapEXT(GL_TEXTURE_2D);
+        glGenerateMipmap(GL_TEXTURE_2D);
     }
     else
     {

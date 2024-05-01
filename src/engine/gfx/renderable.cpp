@@ -12,7 +12,8 @@
 
 #ifdef GFX_API_OPENGL41
 #define GL_GLEXT_PROTOTYPES
-#include <GL/glext.h>
+
+#include <OpenGL/gl3.h>
 #endif
 
 #ifdef GFX_API_VK
@@ -44,9 +45,9 @@ Renderable::Renderable(std::vector<float> verts, std::vector<float> _uvs, std::v
 
 #ifdef GFX_API_OPENGL41
     // Vertex Buffer
-    glGenBuffersARB(1, &vboID); // reserve an ID for our VBO
-    glBindBufferARB(GL_ARRAY_BUFFER, vboID); // bind VBO
-    glBufferDataARB(
+    glGenBuffers(1, &vboID); // reserve an ID for our VBO
+    glBindBuffer(GL_ARRAY_BUFFER, vboID); // bind VBO
+    glBufferData(
             GL_ARRAY_BUFFER,
             vertices.size() * sizeof(float),
             &vertices[0],
@@ -55,9 +56,9 @@ Renderable::Renderable(std::vector<float> verts, std::vector<float> _uvs, std::v
 
 
     // Texture Coordinate Buffer
-    glGenBuffersARB(1, &tboID);
-    glBindBufferARB(GL_ARRAY_BUFFER, tboID);
-    glBufferDataARB(
+    glGenBuffers(1, &tboID);
+    glBindBuffer(GL_ARRAY_BUFFER, tboID);
+    glBufferData(
             GL_ARRAY_BUFFER,
             uvs.size() * sizeof(float),
             &uvs[0],
@@ -65,9 +66,9 @@ Renderable::Renderable(std::vector<float> verts, std::vector<float> _uvs, std::v
     );
 
     // Normals Buffer
-    glGenBuffersARB(1, &nboID);
-    glBindBufferARB(GL_ARRAY_BUFFER, nboID);
-    glBufferDataARB(
+    glGenBuffers(1, &nboID);
+    glBindBuffer(GL_ARRAY_BUFFER, nboID);
+    glBufferData(
             GL_ARRAY_BUFFER,
             normals.size() * sizeof(float),
             &normals[0],
@@ -75,9 +76,9 @@ Renderable::Renderable(std::vector<float> verts, std::vector<float> _uvs, std::v
     );
 
     // Indices Buffer
-    glGenBuffersARB(1, &iboID);
-    glBindBufferARB(GL_ELEMENT_ARRAY_BUFFER, iboID);
-    glBufferDataARB(
+    glGenBuffers(1, &iboID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
+    glBufferData(
             GL_ELEMENT_ARRAY_BUFFER,
             indices.size() * sizeof(unsigned int),
             &indices[0],
