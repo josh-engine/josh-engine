@@ -11,11 +11,8 @@
 #include <bit>
 
 #ifdef GFX_API_OPENGL41
-#ifdef PLATFORM_MAC
-#include <OpenGL/gl3.h>
-#elif defined(PLATFORM_UNIX)
-#include <GL/gl.h>
-#endif
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glext.h>
 #endif
 
 #ifdef GFX_API_VK

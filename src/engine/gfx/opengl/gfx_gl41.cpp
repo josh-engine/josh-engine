@@ -1,11 +1,8 @@
 #ifdef GFX_API_OPENGL41
 #include "gfx_gl41.h"
 
-#ifdef PLATFORM_MAC
-#include <OpenGL/gl3.h>
-#elif defined(PLATFORM_UNIX)
-#include <GL/gl.h>
-#endif
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glext.h>
 
 // STL
 #include <iostream>
