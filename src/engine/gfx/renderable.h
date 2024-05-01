@@ -9,10 +9,6 @@
 #include <vector>
 #include <string>
 
-#ifdef GFX_API_OPENGL41
-#include "GLFW/glfw3.h"
-#endif
-
 #ifdef GFX_API_VK
 #include <vulkan/vulkan.h>
 #include <array>
@@ -51,8 +47,6 @@ struct JEInterleavedVertex_VK {
         return attributeDescriptions;
     }
 };
-
-unsigned int createVBOFunctionMirror(void* r);
 #endif
 
 #ifdef GFX_API_MTL
@@ -61,8 +55,6 @@ struct JEInterleavedVertex_MTL {
     alignas(8 ) glm::vec2 textureCoordinate;
     alignas(16) glm::vec3 normal;
 };
-
-unsigned int createVBOFunctionMirror(void* r);
 #endif
 
 class Renderable {
@@ -85,10 +77,10 @@ public:
     bool manualDepthSort{};
 
 #ifdef GFX_API_OPENGL41
-    unsigned int vboID; // Positions
-    unsigned int tboID; // UV coordinates
-    unsigned int nboID; // Normals
-    unsigned int iboID; // Indices
+    unsigned int vboID{}; // Positions
+    unsigned int tboID{}; // UV coordinates
+    unsigned int nboID{}; // Normals
+    unsigned int iboID{}; // Indices
 #endif //GFX_API_OPENGL41
 
 #ifdef GFX_API_VK
@@ -108,71 +100,7 @@ public:
         enabled = false;
     }
 
-    Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex, bool manualDepthSort) {
-        enabled = true;
-        vertices = std::move(verts);
-        uvs = std::move(_uvs);
-        normals = std::move(norms);
-        indices = std::move(ind);
-        shaderProgram = shid; // Once in a blue moon do you realize what you just named a variable... I'm keeping it.
-        texture = tex;
-        this->manualDepthSort = manualDepthSort;
-
-#ifdef GFX_API_OPENGL41
-        // Vertex Buffer
-        glGenBuffers(1, &vboID); // reserve an ID for our VBO
-        glBindBuffer(GL_ARRAY_BUFFER, vboID); // bind VBO
-        glBufferData(
-                GL_ARRAY_BUFFER,
-                vertices.size() * sizeof(float),
-                &vertices[0],
-                GL_STATIC_DRAW
-        );
-
-
-        // Texture Coordinate Buffer
-        glGenBuffers(1, &tboID);
-        glBindBuffer(GL_ARRAY_BUFFER, tboID);
-        glBufferData(
-                GL_ARRAY_BUFFER,
-                uvs.size() * sizeof(float),
-                &uvs[0],
-                GL_STATIC_DRAW
-        );
-
-        // Normals Buffer
-        glGenBuffers(1, &nboID);
-        glBindBuffer(GL_ARRAY_BUFFER, nboID);
-        glBufferData(
-                GL_ARRAY_BUFFER,
-                normals.size() * sizeof(float),
-                &normals[0],
-                GL_STATIC_DRAW
-        );
-
-        // Indices Buffer
-        glGenBuffers(1, &iboID);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
-        glBufferData(
-                GL_ELEMENT_ARRAY_BUFFER,
-                indices.size() * sizeof(unsigned int),
-                &indices[0],
-                GL_STATIC_DRAW
-        );
-#endif //GFX_API_OPENGL41
-#if defined(GFX_API_VK) | defined(GFX_API_MTL)
-        for (int i = 0; i < vertices.size()/3; i++) {
-            interleavedVertices.push_back({
-                                                  {vertices[3*i],  vertices[(3*i)+1], vertices[(3*i)+2]},
-                                                  {uvs[(2*i)],     uvs[(2*i)+1]},
-                                                  {normals[(3*i)], normals[(3*i)+1],  normals[(3*i)+2]}
-            });
-        }
-
-        vboID = createVBOFunctionMirror(this);
-#endif
-        indicesSize = indices.size();
-    }
+    Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex, bool manualDepthSort);
 
     void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
         this->transform = t;
