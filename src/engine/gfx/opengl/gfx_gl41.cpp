@@ -11,6 +11,24 @@
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_opengl3.h"
 
+JEShaderProgram_GL41::JEShaderProgram_GL41(unsigned int glShader, bool testDepth, bool transparencySupported,
+                                           bool doubleSided) {
+    this->testDepth = testDepth;
+    this->transparencySupported = transparencySupported;
+    this->doubleSided = doubleSided;
+    location_model = glGetUniformLocation(glShader, "model");
+    location_normal = glGetUniformLocation(glShader, "normal");
+    location_view = glGetUniformLocation(glShader, "viewMatrix");
+    location_2dProj = glGetUniformLocation(glShader, "_2dProj");
+    location_3dProj = glGetUniformLocation(glShader, "_3dProj");
+    location_cameraPos = glGetUniformLocation(glShader, "cameraPos");
+    location_cameraDir = glGetUniformLocation(glShader, "cameraDir");
+    location_sunDir = glGetUniformLocation(glShader, "sunDir");
+    location_sunColor = glGetUniformLocation(glShader, "sunColor");
+    location_ambience = glGetUniformLocation(glShader, "ambience");
+    glShaderProgramID = glShader;
+}
+
 GLFWwindow** windowPtr;
 
 // Same ID system as used in Vulkan implementation, but used atop OpenGL now. The irony is wild.
