@@ -105,7 +105,7 @@ unsigned int loadTexture(const std::string& fileName) {
 #else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA-4+nrChannels, width, height, 0, GL_RGBA-4+nrChannels, GL_UNSIGNED_BYTE, data);
 #endif
-        glGenerateMipmap(GL_TEXTURE_2D);
+        glGenerateMipmapEXT(GL_TEXTURE_2D);
     }
     else
     {
