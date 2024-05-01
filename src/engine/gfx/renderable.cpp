@@ -14,7 +14,7 @@
 #ifdef PLATFORM_MAC
 #include <OpenGL/gl3.h>
 #elif defined(PLATFORM_UNIX)
-#include <GL3/gl3.h>
+#include <GL/gl.h>
 #endif
 #endif
 
