@@ -1,6 +1,7 @@
 #ifdef GFX_API_OPENGL41
 #include "gfx_gl41.h"
 #include <iostream>
+#include <OpenGL/gl.h>
 #include <OpenGL/gl3.h>
 #include <fstream>
 #include <sstream>
