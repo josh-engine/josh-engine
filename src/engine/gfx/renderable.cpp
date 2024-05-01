@@ -12,7 +12,6 @@
 
 #ifdef GFX_API_OPENGL41
 #define GL_GLEXT_PROTOTYPES
-
 #include <GL/glext.h>
 #endif
 
