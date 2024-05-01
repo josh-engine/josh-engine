@@ -1,12 +1,21 @@
 #ifdef GFX_API_OPENGL41
 #include "gfx_gl41.h"
-#include <iostream>
-#include <OpenGL/gl.h>
+
+#ifdef PLATFORM_MAC
 #include <OpenGL/gl3.h>
+#elif defined(PLATFORM_UNIX)
+#include <GL3/gl3.h>
+#endif
+
+// STL
+#include <iostream>
 #include <fstream>
 #include <sstream>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+// ImGui
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_opengl3.h"

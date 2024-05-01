@@ -11,7 +11,11 @@
 #include <bit>
 
 #ifdef GFX_API_OPENGL41
+#ifdef PLATFORM_MAC
 #include <OpenGL/gl3.h>
+#elif defined(PLATFORM_UNIX)
+#include <GL3/gl3.h>
+#endif
 #endif
 
 #ifdef GFX_API_VK

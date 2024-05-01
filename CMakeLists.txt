@@ -32,8 +32,10 @@ option(JE_API_VK "Use Vulkan Graphics API" ON)
 option(JE_API_GL "Use OpenGL Graphics API" OFF)
 if (APPLE)
     option(JE_API_MTL "Use Metal Graphics API (Mac only)" OFF)
+    add_compile_definitions(PLATFORM_MAC)
+elseif (UNIX)
+    add_compile_definitions(PLATFORM_UNIX)
 endif()
-
 # Vulkan
 if (JE_API_VK)
     find_package(Vulkan REQUIRED)
