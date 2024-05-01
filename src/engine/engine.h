@@ -123,7 +123,7 @@ bool textureExists(const std::string &name);
 unsigned int getProgram(const std::string& name);
 void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, bool testDepth, bool transparencySupported, bool doubleSided);
 double getFrameTime();
-int getRenderableCount();
+size_t getRenderableCount();
 void setMouseVisible(bool vis);
 void setSunProperties(vec3 position, vec3 color);
 void setAmbient(float r, float g, float b);

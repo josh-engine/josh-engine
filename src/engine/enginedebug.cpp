@@ -8,7 +8,6 @@
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
 #include <unordered_map>
-#include <string>
 
 #ifdef GFX_API_VK
 #include "gfx/vk/gfx_vk.h"
@@ -82,7 +81,7 @@ void setupImGuiWindow() {
         std::unordered_map<std::string, GameObject> gameObjects = getGameObjects();
 
         if (ImGui::BeginCombo("GameObject", selectedGameObject.c_str(), 0)) {
-            for (const auto& object: gameObjects) {
+            for (const auto &object: gameObjects) {
                 if (ImGui::Selectable(object.first.c_str(), selectedGameObject == object.first))
                     selectedGameObject = object.first;
             }

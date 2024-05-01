@@ -33,7 +33,7 @@ std::unordered_map<std::string, unsigned int> textures;
 
 std::vector<void (*)()> imGuiCalls;
 
-int renderableCount = 0;
+size_t renderableCount = 0;
 
 bool drawSkybox;
 bool skyboxSupported;
@@ -49,14 +49,14 @@ std::unordered_map<std::string, unsigned int> getTexs() {
 #endif
 
 std::string programReverseLookup(unsigned int num){
-    for (auto i : programs){
+    for (const auto& i : programs){
         if (i.second == num) return i.first;
     }
     return "";
 }
 
 std::string textureReverseLookup(unsigned int num){
-    for (auto i : textures){
+    for (const auto& i : textures){
         if (i.second == num) return i.first;
     }
     return "";
@@ -84,7 +84,7 @@ void setMouseVisible(bool vis) {
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED-((int)vis)*2);
 }
 
-int getRenderableCount() {
+size_t getRenderableCount() {
     return renderableCount;
 }
 
@@ -176,7 +176,7 @@ glm::vec2 getCursorPos() {
     cpos *= 2;
 
     // scale Y axis by the current scaled height
-    cpos /= glm::vec2(1, getCurrentWidth() * (1.0f / getCurrentHeight()));
+    cpos /= glm::vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
     return cpos;
 }
 
@@ -186,7 +186,7 @@ void setRawCursorPos(glm::vec2 pos) {
 
 void setCursorPos(glm::vec2 pos) {
     // inverse of getCursorPos's coordinate transformation
-    pos *= glm::vec2(1, getCurrentWidth() * (1.0f / getCurrentHeight()));
+    pos *= glm::vec2(1, static_cast<float>(getCurrentWidth()) * (1.0f / static_cast<float>(getCurrentHeight())));
     pos /= 2;
     pos -= glm::vec2(-0.5, 0.5);
     pos *= glm::vec2(getCurrentWidth(), -getCurrentHeight());
@@ -221,7 +221,7 @@ int getCurrentHeight() {
     return windowHeight;
 }
 
-void framebuffer_size_callback(GLFWwindow* windowInstance, int unused1, int unused2) {
+void framebuffer_size_callback(GLFWwindow* windowInstance,[[maybe_unused]] int unused1, [[maybe_unused]] int unused2) {
     // Because of displays like Apple's Retina having multiple pixel values per pixel (or some bs like that)
     // the framebuffer is not always the window size. We need to make sure the real window size is saved.
     glfwGetWindowSize(windowInstance, &windowWidth, &windowHeight);
@@ -383,7 +383,7 @@ void mainLoop() {
             }
         }
 
-        int a = individualSortRenderables.size();
+        size_t a = individualSortRenderables.size();
         for (int i = 0; i < a; i++){
             std::pair<double, Renderable> r = individualSortRenderables.top();
             renderables.push_back(r.second);
@@ -392,7 +392,7 @@ void mainLoop() {
 
         renderableCount += a-1;
 
-        float scaledHeight = windowHeight * (1.0f / windowWidth);
+        float scaledHeight = static_cast<float>(windowHeight) * (1.0f / static_cast<float>(windowWidth));
         float scaledWidth = 1.0f;
         renderFrame(camera.position,
                     camera.direction(),
