@@ -79,7 +79,7 @@ void setupImGuiWindow() {
     if (gmObjView) {
         ImGui::Begin("GameObjects");
 
-        std::unordered_map<std::string, GameObject*> gameObjects = getGameObjects();
+        std::unordered_map<std::string, GameObject> gameObjects = getGameObjects();
 
         if (ImGui::BeginCombo("GameObject", selectedGameObject.c_str(), 0)) {
             for (const auto& object: gameObjects) {
@@ -90,21 +90,22 @@ void setupImGuiWindow() {
         }
 
         if (!selectedGameObject.empty()) {
-            GameObject* gmObj = gameObjects.at(selectedGameObject);
+            GameObject gmObj = gameObjects.at(selectedGameObject);
 
             ImGui::Text("Transform");
             ImGui::Indent();
-            ImGui::InputFloat3("Position", &gmObj->transform.position[0]);
-            ImGui::InputFloat3("Rotation", &gmObj->transform.rotation[0]);
-            ImGui::InputFloat3("Scale",    &gmObj->transform.scale[0]   );
+            ImGui::InputFloat3("Position", &gmObj.transform.position[0]);
+            ImGui::InputFloat3("Rotation", &gmObj.transform.rotation[0]);
+            ImGui::InputFloat3("Scale",    &gmObj.transform.scale[0]   );
             ImGui::Unindent();
 
             ImGui::Text("Functions");
             ImGui::Indent();
-            if (gmObj->onUpdate.empty())
+
+            if (gmObj.onUpdate.empty())
                 ImGui::Text("Empty");
             else {
-                for (auto function: gmObj->onUpdate) {
+                for (auto function: gmObj.onUpdate) {
                     if (functionNameMap.find(reinterpret_cast<void*>(function)) == functionNameMap.end()) {
                         ImGui::TextColored({0.75f, 0.75f, 0.75f, 1.0f}, "Function at %lx", (unsigned long) function);
                     } else {
@@ -114,7 +115,8 @@ void setupImGuiWindow() {
             }
             ImGui::Unindent();
 
-            ImGui::Text("Renderable count: %zu", gmObj->renderables.size());
+
+            ImGui::Text("Renderable count: %zu", gmObj.renderables.size());
         }
 
         ImGui::End();

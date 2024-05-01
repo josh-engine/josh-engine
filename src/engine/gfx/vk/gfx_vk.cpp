@@ -137,12 +137,6 @@ const std::vector<const char*> deviceExtensions = {
         "VK_KHR_portability_subset"
 };
 
-#ifndef DEBUG_ENABLED
-const bool enableValidationLayers = false;
-#else
-const bool enableValidationLayers = true;
-#endif
-
 bool framebufferResized = false;
 
 void resizeViewport() {
@@ -386,26 +380,26 @@ void createInstance(const char* name) {
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     createInfo.pApplicationInfo = &appInfo;
 
-    if (enableValidationLayers && !platformSupportsValidationLayers()) {
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+
+#ifdef DEBUG_ENABLED
+    if (!platformSupportsValidationLayers()) {
         throw std::runtime_error("Vulkan: Debug enabled, but platform does not support validation layers!");
     }
+    createInfo.enabledLayerCount = validationLayers.size();
+    createInfo.ppEnabledLayerNames = validationLayers.data();
 
-    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (enableValidationLayers) {
-        createInfo.enabledLayerCount = validationLayers.size();
-        createInfo.ppEnabledLayerNames = validationLayers.data();
+    debugCreateInfo = {};
+    debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debugCreateInfo.pfnUserCallback = debugCallback;
 
-        debugCreateInfo = {};
-        debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        debugCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        debugCreateInfo.pfnUserCallback = debugCallback;
-
-        createInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
-    } else {
-        createInfo.enabledLayerCount = 0;
-        createInfo.pNext = nullptr;
-    }
+    createInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT*>(&debugCreateInfo);
+#else
+    createInfo.enabledLayerCount = 0;
+    createInfo.pNext = nullptr;
+#endif
 
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -418,9 +412,9 @@ void createInstance(const char* name) {
         requiredExtensions.emplace_back(glfwExtensions[i]);
     }
 
-    if (enableValidationLayers) {
-        requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
+#ifdef DEBUG_ENABLED
+    requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
 
     // actual crime against programmer kind
     createInfo.flags |= 0x00000001; //VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
@@ -651,12 +645,12 @@ void createLogicalDevice() {
     deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
     // Compat with old Vulkan implementations. Not actually required in recent.
-    if (enableValidationLayers) {
-        deviceCreateInfo.enabledLayerCount = validationLayers.size();
-        deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-    } else {
-        deviceCreateInfo.enabledLayerCount = 0;
-    }
+#ifdef DEBUG_ENABLED
+    deviceCreateInfo.enabledLayerCount = validationLayers.size();
+    deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
+#else
+    deviceCreateInfo.enabledLayerCount = 0;
+#endif
 
     if (vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &logicalDevice) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create logical device!");

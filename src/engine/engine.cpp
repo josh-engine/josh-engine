@@ -20,8 +20,7 @@ std::vector<void (*)(double dt)> onUpdate;
 std::vector<void (*)(int key, bool pressed, double dt)> onKey;
 std::vector<void (*)(int button, bool pressed, double dt)> onMouse;
 
-std::vector<GameObject> gameObjects;
-std::unordered_map<std::string, GameObject*> gameObjectsNameMap;
+std::unordered_map<std::string, GameObject> gameObjects = {};
 
 Renderable skybox;
 Transform camera(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
@@ -97,17 +96,17 @@ double getFrameTime() {
     return frameTime;
 }
 
-std::unordered_map<std::string, GameObject*> getGameObjects() {
-    return gameObjectsNameMap;
+std::unordered_map<std::string, GameObject> getGameObjects() {
+    return gameObjects;
 }
 
 void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
-void registerProgram(std::string name, std::string vertex, std::string fragment, bool testDepth, bool transparencySupported, bool doubleSided) {
-    unsigned int vertID = loadShader(std::move(vertex), JE_VERTEX_SHADER);
-    unsigned int fragID = loadShader(std::move(fragment), JE_FRAGMENT_SHADER);
+void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, bool testDepth, bool transparencySupported, bool doubleSided) {
+    unsigned int vertID = loadShader(vertex, JE_VERTEX_SHADER);
+    unsigned int fragID = loadShader(fragment, JE_FRAGMENT_SHADER);
     programs.insert({name, createProgram(vertID, fragID, testDepth, transparencySupported, doubleSided)});
 }
 
@@ -115,8 +114,8 @@ unsigned int getProgram(const std::string& name) {
     return programs.at(name);
 }
 
-unsigned int createTextureWithName(std::string name, std::string filePath) {
-    unsigned int id = loadTexture(std::move(filePath));
+unsigned int createTextureWithName(const std::string& name, const std::string& filePath) {
+    unsigned int id = loadTexture(filePath);
 #ifdef GFX_API_OPENGL41
     if (id != 0) {
         textures.insert({name, id});
@@ -127,7 +126,7 @@ unsigned int createTextureWithName(std::string name, std::string filePath) {
     return id;
 }
 
-unsigned int createTexture(std::string folderPath, std::string fileName) {
+unsigned int createTexture(const std::string& folderPath, const std::string& fileName) {
     unsigned int id = loadTexture(folderPath + fileName);
 #ifdef GFX_API_OPENGL41
     if (id != 0) {
@@ -206,14 +205,12 @@ void registerOnMouse(void (*function)(int button, bool pressed, double dt)) {
     onMouse.push_back(function);
 }
 
-void putGameObject(std::string name, GameObject g) {
-    int index = gameObjects.size();
-    gameObjects.push_back(g);
-    gameObjectsNameMap.insert({name, &gameObjects[index]});
+void putGameObject(const std::string& name, GameObject g) {
+    gameObjects.insert({name, g});
 }
 
-GameObject* getGameObject(std::string name) {
-    return gameObjectsNameMap.at(name);
+GameObject& getGameObject(const std::string& name) {
+    return gameObjects.at(name);
 }
 
 int getCurrentWidth() {
@@ -335,8 +332,8 @@ void mainLoop() {
         }
 
         for (auto & g : gameObjects) {
-            for (auto & gameObjectFunction : g.onUpdate) {
-                gameObjectFunction(deltaTime, &g);
+            for (auto & gameObjectFunction : g.second.onUpdate) {
+                gameObjectFunction(deltaTime, &g.second);
             }
         }
 
@@ -374,12 +371,12 @@ void mainLoop() {
         }
 
         for (const auto& item : gameObjects) {
-            for (auto renderable : item.renderables) {
+            for (auto renderable : item.second.renderables) {
                 if (renderable.enabled) {
                     renderableCount++;
-                    renderable.setMatrices(item.transform.getTranslateMatrix(), item.transform.getRotateMatrix(), item.transform.getScaleMatrix());
+                    renderable.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
                     if (renderable.manualDepthSort)
-                        individualSortRenderables.emplace(glm::distance(camera.position, item.transform.position), renderable);
+                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), renderable);
                     else
                         renderables.push_back(renderable);
                 }

@@ -76,16 +76,16 @@ void lockUnlock(int key, bool wasKeyPressed, double dt) {
 
 void mouseClick(int button, bool wasButtonPressed, double dt) {
     glm::vec2 cursorPos = getCursorPos();
-    GameObject* ref = getGameObject("ui_item");
+    GameObject& ref = getGameObject("ui_item");
 
-    if (cursorPos.x <= ref->transform.position.x + ref->transform.scale.x &&
-        cursorPos.x >= ref->transform.position.x - ref->transform.scale.x &&
-        cursorPos.y <= ref->transform.position.y + ref->transform.scale.y &&
-        cursorPos.y >= ref->transform.position.y - ref->transform.scale.y) {
+    if (cursorPos.x <= ref.transform.position.x + ref.transform.scale.x &&
+        cursorPos.x >= ref.transform.position.x - ref.transform.scale.x &&
+        cursorPos.y <= ref.transform.position.y + ref.transform.scale.y &&
+        cursorPos.y >= ref.transform.position.y - ref.transform.scale.y) {
         if (button == GLFW_MOUSE_BUTTON_LEFT && wasButtonPressed) {
-            ref->transform.position += vec3(0, 0.1, 0);
+            ref.transform.position += vec3(0, 0.1, 0);
         } else if (button == GLFW_MOUSE_BUTTON_RIGHT && wasButtonPressed) {
-            ref->transform.position -= vec3(0, 0.1, 0);
+            ref.transform.position -= vec3(0, 0.1, 0);
         }
     }
 }
