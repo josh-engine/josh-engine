@@ -1,6 +1,6 @@
 # This starter workflow is for a CMake project running on a single platform. There is a different starter workflow if you need cross-platform coverage.
 # See: https://github.com/actions/starter-workflows/blob/main/ci/cmake-multi-platform.yml
-name: CMake (Metal)
+name: CMake MacOS (OpenGL)
 
 on:
   push:
@@ -20,18 +20,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-        # Install homebrew so that we can use glslang
       - name: Set up Homebrew
         id: set-up-homebrew
         uses: Homebrew/actions/setup-homebrew@master
 
       - name: Install Dependencies
-        run: brew install glslang spirv-tools glfw glm openal-soft
+        run: brew install glfw glm openal-soft
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DJE_API_VK:BOOL=OFF -DJE_API_MTL:BOOL=ON
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DJE_API_GL:BOOL=ON -DJE_API_VK:BOOL=OFF
 
       - name: Build
         # Build your program with the given configuration
