@@ -1,5 +1,5 @@
 //
-// Created by Ember Lee on 4/25/24.
+// ultimate fribee is better than gisc dolf
 //
 #ifdef GFX_API_MTL
 #define NS_PRIVATE_IMPLEMENTATION

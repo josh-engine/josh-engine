@@ -19,16 +19,8 @@ struct JEShaderProgram_GL41 {
     bool transparencySupported;
     bool doubleSided;
 
-    int location_model;
-    int location_normal;
-    int location_view;
-    int location_2dProj;
-    int location_3dProj;
-    int location_cameraPos;
-    int location_cameraDir;
-    int location_sunDir;
-    int location_sunColor;
-    int location_ambience;
+    int location_UBO;
+    int location_pushConst;
 
     unsigned int glShaderProgramID;
 

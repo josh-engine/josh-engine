@@ -55,21 +55,33 @@ endif()
 # OpenGL
 if (JE_API_GL)
     find_package(OpenGL REQUIRED)
+    find_package(glslang REQUIRED)
     add_compile_definitions(GFX_API_OPENGL41)
     set(JoshEngine_libraries ${JoshEngine_libraries}
-           OpenGL::GL
+            OpenGL::GL
+            glslang::glslang
+            glslang::SPIRV
     )
     set(JoshEngine_sources ${JoshEngine_sources}
             src/engine/gfx/opengl/gfx_gl41.cpp
             src/engine/gfx/imgui/imgui_impl_opengl3.cpp
+            src/engine/gfx/spirv/cross/spirv_glsl.cpp
+            src/engine/gfx/spirv/cross/spirv_parser.cpp
+            src/engine/gfx/spirv/cross/spirv_reflect.cpp
+            src/engine/gfx/spirv/cross/spirv_cross_util.cpp
+            src/engine/gfx/spirv/cross/spirv_cross_parsed_ir.cpp
+            src/engine/gfx/spirv/cross/spirv_cross_c.cpp
+            src/engine/gfx/spirv/cross/spirv_cross.cpp
+            src/engine/gfx/spirv/cross/spirv_cpp.cpp
+            src/engine/gfx/spirv/cross/spirv_cfg.cpp
     )
 endif()
 
 # Metal
 if (JE_API_MTL)
-    add_compile_definitions(GFX_API_MTL)
     find_package(glslang REQUIRED)
     include_directories("${JoshEngine_SOURCE_DIR}/includes/metal-cpp")
+    add_compile_definitions(GFX_API_MTL)
     set(JoshEngine_libraries ${JoshEngine_libraries}
             glslang::glslang
             glslang::SPIRV
@@ -91,7 +103,9 @@ if (JE_API_MTL)
             src/engine/gfx/spirv/cross/spirv_cross_c.cpp
             src/engine/gfx/spirv/cross/spirv_cross.cpp
             src/engine/gfx/spirv/cross/spirv_cpp.cpp
-            src/engine/gfx/spirv/cross/spirv_cfg.cpp)
+            src/engine/gfx/spirv/cross/spirv_cfg.cpp
+    )
 endif()
+
 add_executable(JoshEngine ${JoshEngine_sources})
 target_link_libraries(JoshEngine ${JoshEngine_libraries})

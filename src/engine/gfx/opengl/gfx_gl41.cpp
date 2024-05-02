@@ -17,28 +17,42 @@
 #include "../imgui/imgui_impl_glfw.h"
 #include "../imgui/imgui_impl_opengl3.h"
 
+// SPV
+#include "../spirv/spirv-helper.h"
+#include "../spirv/cross/spirv_glsl.hpp"
+
 JEShaderProgram_GL41::JEShaderProgram_GL41(unsigned int glShader, bool testDepth, bool transparencySupported,
                                            bool doubleSided) {
     this->testDepth = testDepth;
     this->transparencySupported = transparencySupported;
     this->doubleSided = doubleSided;
-    location_model = glGetUniformLocation(glShader, "model");
-    location_normal = glGetUniformLocation(glShader, "normal");
-    location_view = glGetUniformLocation(glShader, "viewMatrix");
-    location_2dProj = glGetUniformLocation(glShader, "_2dProj");
-    location_3dProj = glGetUniformLocation(glShader, "_3dProj");
-    location_cameraPos = glGetUniformLocation(glShader, "cameraPos");
-    location_cameraDir = glGetUniformLocation(glShader, "cameraDir");
-    location_sunDir = glGetUniformLocation(glShader, "sunDir");
-    location_sunColor = glGetUniformLocation(glShader, "sunColor");
-    location_ambience = glGetUniformLocation(glShader, "ambience");
+    this->location_UBO = glGetUniformBlockIndex(glShader, "_26");
+    this->location_pushConst = glGetUniformBlockIndex(glShader, "_36");
     glShaderProgramID = glShader;
 }
+
+struct JEUniformBufferObject_OGL {
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 _2dProj;
+    alignas(16) glm::mat4 _3dProj;
+    alignas(16) glm::vec3 cameraPos;
+    alignas(16) glm::vec3 cameraDir;
+    alignas(16) glm::vec3 sunDir;
+    alignas(16) glm::vec3 sunPos;
+    alignas(16) glm::vec3 ambience;
+};
+
+struct JEPerObjectBuffer_OGL {
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 normal;
+};
 
 GLFWwindow** windowPtr;
 
 // Same ID system as used in Vulkan implementation, but used atop OpenGL now. The irony is wild.
 std::vector<JEShaderProgram_GL41> shaderProgramVector;
+unsigned int UBOid;
+unsigned int PSHid;
 
 void resizeViewport() {
     int width, height;
@@ -122,7 +136,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
 
     if(!glfwInit())
     {
-        throw std::runtime_error("OpenGL 4.1: Could not initialize GLFW!");
+        throw std::runtime_error("OpenGL: Could not initialize GLFW!");
     }
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
@@ -133,7 +147,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     glViewport(0, 0, width, height);
 
     if(*windowPtr == nullptr) {
-        throw std::runtime_error("OpenGL 4.1: Could not open window!");
+        throw std::runtime_error("OpenGL: Could not open window!");
     }
 
     glfwMakeContextCurrent(*windowPtr);
@@ -170,6 +184,9 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
+    glGenBuffers(1, &UBOid);
+    glGenBuffers(1, &PSHid);
+
     // Set up ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -190,45 +207,25 @@ unsigned int loadShader(const std::string& file_path, int target) {
         shaderCode = sstr.str();
         shaderCodeStream.close();
     } else {
-        std::cerr << "Couldn't open \"" << file_path << "\", are you sure it exists?" << std::endl;
+        std::cerr << "OpenGL: Couldn't open \"" << file_path << "\", are you sure it exists?" << std::endl;
         return 0;
     }
 
-    if (shaderCode.starts_with("// JE_TRANSLATE\n#version 420")) {
-        std::cout << "Translating " << file_path << "... (JE_TRANSLATE, Vulkan GLSL 420 -> OpenGL GLSL 410)" << std::endl;
-        std::string tempShaderCode = shaderCode;
-        tempShaderCode.replace(0, 28, "#version 410");
-        std::vector<std::string> lines;
-        std::string line;
-        for (char character : tempShaderCode) {
-            if (character != '\n')
-                line += character;
-            else {
-                lines.push_back(line);
-                line = "";
-            }
-        }
-        lines.push_back(line);
-        shaderCode = "";
-        for (int i = 0; i < lines.size(); i++) {
-            line = lines[i];
-            if (line.starts_with("layout") && (line.find("uniform") != std::string::npos)) {
-                if ((line.find("JE_TRANSLATE") != std::string::npos)) {
-                    line = lines[++i];
-                    do {
-                        line.replace(0, 0, "uniform");
-                        shaderCode.append(line + "\n");
-                        line = lines[++i];
-                    } while (!line.starts_with('}'));
-                    continue;
-                } else {
-                    unsigned long layoutEnd = line.find("uniform");
-                    line.replace(0, layoutEnd, "");
-                }
-            }
-            shaderCode.append(line + "\n");
-        }
+    std::vector<unsigned int> spirv_comp;
+    std::cout << "Compiling " << file_path << " to SPIR-V..." << std::endl;
+    bool compileSuccess = SpirvHelper::GLSLtoSPV(target, &shaderCode[0], &spirv_comp);
+    if (!compileSuccess) {
+        throw std::runtime_error("OpenGL: Could not compile \"" + file_path + "\" to SPIR-V!");
     }
+
+    spirv_cross::CompilerGLSL crossCompiler(spirv_comp);
+    spirv_cross::CompilerGLSL::Options opts{};
+    opts.version = 410;
+    opts.enable_420pack_extension = false;
+    opts.emit_uniform_buffer_as_plain_uniforms = true;
+    crossCompiler.set_common_options(opts);
+
+    shaderCode = crossCompiler.compile();
 
     int InfoLogLength;
 
@@ -281,7 +278,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 }
 
 // Slight performance boost, OpenGL's state machine persists between renderFrame calls.
-int currentTexture = -1;
+int currentTexture = -1, currentVBO = -1;
 bool currentDepth = false, transparency = false, backfaceCull = true;
 
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
@@ -291,6 +288,15 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
         glDepthMask(GL_TRUE);
         transparency = false;
     }
+
+    JEUniformBufferObject_OGL ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
+    glBindBuffer(GL_UNIFORM_BUFFER, UBOid);
+    glBufferData(
+            GL_UNIFORM_BUFFER,
+            sizeof(JEUniformBufferObject_OGL),
+            &ubo,
+            GL_DYNAMIC_DRAW
+    );
 
     // Can't persist program because uniforms change each frame.
     int currentProgram = -1;
@@ -309,7 +315,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
 
     ImGui::Render();
 
-    for (auto r : renderables) {
+    for (const auto& r : renderables) {
         if (r.enabled) {
             if (shaderProgramVector[r.shaderProgram].testDepth ^ currentDepth) {
                 if (shaderProgramVector[r.shaderProgram].testDepth) {
@@ -343,15 +349,7 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
             if (shaderProgramVector[r.shaderProgram].glShaderProgramID != currentProgram) {
                 glUseProgram(shaderProgramVector[r.shaderProgram].glShaderProgramID);
 
-                // We only need to bind per-frame uniforms once per shader
-                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_view,      1, GL_FALSE, &cameraMatrix[0][0]);
-                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_2dProj,    1, GL_FALSE, &_2dProj[0][0]     );
-                glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_3dProj,    1, GL_FALSE, &_3dProj[0][0]     );
-                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_cameraPos, 1,           &camerapos[0]      );
-                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_cameraDir, 1,           &cameradir[0]      );
-                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_sunDir,    1,           &sundir[0]         );
-                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_sunColor,  1,           &suncol[0]         );
-                glUniform3fv      (shaderProgramVector[r.shaderProgram].location_ambience,  1,           &ambient[0]        );
+                glBindBufferBase(GL_UNIFORM_BUFFER, shaderProgramVector[r.shaderProgram].location_UBO, UBOid);
 
                 currentProgram = static_cast<int>(shaderProgramVector[r.shaderProgram].glShaderProgramID);
             }
@@ -361,40 +359,53 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
                 currentTexture = static_cast<int>(r.texture);
             }
 
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_model,  1, GL_FALSE, &r.objectMatrix[0][0]);
-            glUniformMatrix4fv(shaderProgramVector[r.shaderProgram].location_normal, 1, GL_FALSE, &r.rotate[0][0]      );
-
-            glBindBuffer(GL_ARRAY_BUFFER, r.vboID);
-            glVertexAttribPointer(
-                    0,                  // attribute
-                    3,                  // size
-                    GL_FLOAT,           // type
-                    GL_FALSE,           // normalized?
-                    0,                  // stride
-                    nullptr
+            JEPerObjectBuffer_OGL pushConst = {r.objectMatrix, r.rotate};
+            // Put PSH data
+            glBindBuffer(GL_UNIFORM_BUFFER, PSHid);
+            glBufferData(
+                    GL_UNIFORM_BUFFER,
+                    sizeof(JEPerObjectBuffer_OGL),
+                    &pushConst,
+                    GL_DYNAMIC_DRAW
             );
 
-            glBindBuffer(GL_ARRAY_BUFFER, r.tboID);
-            glVertexAttribPointer(
-                    1,                                // attribute
-                    2,                                // size
-                    GL_FLOAT,                         // type
-                    GL_FALSE,                         // normalized?
-                    0,                                // stride
-                    nullptr
-            );
+            glBindBufferBase(GL_UNIFORM_BUFFER, shaderProgramVector[r.shaderProgram].location_pushConst, PSHid);
 
-            glBindBuffer(GL_ARRAY_BUFFER, r.nboID);
-            glVertexAttribPointer(
-                    2,                                // attribute
-                    3,                                // size
-                    GL_FLOAT,                         // type
-                    GL_TRUE,                          // normalized?
-                    0,                                // stride
-                    nullptr
-            );
+            if (r.vboID != currentVBO) {
+                glBindBuffer(GL_ARRAY_BUFFER, r.vboID);
+                glVertexAttribPointer(
+                        0,                  // attribute
+                        3,                  // size
+                        GL_FLOAT,           // type
+                        GL_FALSE,           // normalized?
+                        0,                  // stride
+                        nullptr
+                );
 
-            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r.iboID);
+                glBindBuffer(GL_ARRAY_BUFFER, r.tboID);
+                glVertexAttribPointer(
+                        1,                                // attribute
+                        2,                                // size
+                        GL_FLOAT,                         // type
+                        GL_FALSE,                         // normalized?
+                        0,                                // stride
+                        nullptr
+                );
+
+                glBindBuffer(GL_ARRAY_BUFFER, r.nboID);
+                glVertexAttribPointer(
+                        2,                                // attribute
+                        3,                                // size
+                        GL_FLOAT,                         // type
+                        GL_TRUE,                          // normalized?
+                        0,                                // stride
+                        nullptr
+                );
+
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, r.iboID);
+
+                currentVBO = static_cast<int>(r.vboID);
+            }
 
             glDrawElements(
                     GL_TRIANGLES,      // mode
