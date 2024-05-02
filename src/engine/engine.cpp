@@ -2,7 +2,6 @@
 // Created by Ember Lee on 3/9/24.
 //
 #include "engineconfig.h"
-#include "gfx/opengl/gfx_gl41.h"
 #include "gfx/vk/gfx_vk.h"
 #include "gfx/mtl/gfx_mtl.h"
 #include "sound/engineaudio.h"
@@ -116,25 +115,13 @@ unsigned int getProgram(const std::string& name) {
 
 unsigned int createTextureWithName(const std::string& name, const std::string& filePath) {
     unsigned int id = loadTexture(filePath);
-#ifdef GFX_API_OPENGL41
-    if (id != 0) {
-        textures.insert({name, id});
-    }
-#else
     textures.insert({name, id});
-#endif
     return id;
 }
 
 unsigned int createTexture(const std::string& folderPath, const std::string& fileName) {
     unsigned int id = loadTexture(folderPath + fileName);
-#ifdef GFX_API_OPENGL41
-    if (id != 0) {
-        textures.insert({fileName, id});
-    }
-#else
     textures.insert({fileName, id});
-#endif
     return id;
 }
 

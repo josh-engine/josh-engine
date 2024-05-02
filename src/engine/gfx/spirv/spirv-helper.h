@@ -137,17 +137,6 @@ struct SpirvHelper
                 return EShLangVertex;
         }
     }
-#elif defined(GFX_API_OPENGL41)
-    static EShLanguage FindLanguage(const int shader_type) {
-        switch (shader_type) {
-            case JE_VERTEX_SHADER:
-                return EShLangVertex;
-            case JE_FRAGMENT_SHADER:
-                return EShLangFragment;
-            default:
-                return EShLangVertex;
-        }
-    }
 #endif
     // Weird blend between these sources
     // https://lxjk.github.io/2020/03/10/Translate-GLSL-to-SPIRV-for-Vulkan-at-Runtime.html
@@ -155,7 +144,7 @@ struct SpirvHelper
     // my own code (though hardly any)
 #ifdef GFX_API_VK
     static bool GLSLtoSPV(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int>* spirv) {
-#elif defined(GFX_API_MTL) | defined(GFX_API_OPENGL41)
+#elif defined(GFX_API_MTL)
     static bool GLSLtoSPV(const int shader_type, const char *pshader, std::vector<unsigned int>* spirv) {
 #endif
         glslang::InitializeProcess();

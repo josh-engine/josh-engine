@@ -9,7 +9,7 @@ Alright, I'll cut the theatrics now.
 
 This is the work we have to get done:
 
-- [X] OpenGL working
+- [X] ~~OpenGL working~~ OpenGL has been removed in favor of Vulkan and other modern APIs. If you have old hardware, use Zink.
 - [X] GameObjects working
 - [X] OBJ models and removing duplicate vertices
 - [X] OpenAL sound working

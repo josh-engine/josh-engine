@@ -9,7 +9,6 @@
 
 #define DEBUG_ENABLED
 
-#define GL41_SRGB
 #define METAL_SRGB
 #define METAL_OS_IMGUI_THEME_SYNC
 

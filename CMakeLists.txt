@@ -29,13 +29,13 @@ set(JoshEngine_sources src/main.cpp
 )
 
 option(JE_API_VK "Use Vulkan Graphics API" ON)
-option(JE_API_GL "Use OpenGL Graphics API" OFF)
 if (APPLE)
     option(JE_API_MTL "Use Metal Graphics API (Mac only)" OFF)
     add_compile_definitions(PLATFORM_MAC)
 elseif (UNIX)
     add_compile_definitions(PLATFORM_UNIX)
 endif()
+
 # Vulkan
 if (JE_API_VK)
     find_package(Vulkan REQUIRED)
@@ -49,31 +49,6 @@ if (JE_API_VK)
     set(JoshEngine_sources ${JoshEngine_sources}
             src/engine/gfx/vk/gfx_vk.cpp
             src/engine/gfx/imgui/imgui_impl_vulkan.cpp
-    )
-endif()
-
-# OpenGL
-if (JE_API_GL)
-    find_package(OpenGL REQUIRED)
-    find_package(glslang REQUIRED)
-    add_compile_definitions(GFX_API_OPENGL41)
-    set(JoshEngine_libraries ${JoshEngine_libraries}
-            OpenGL::GL
-            glslang::glslang
-            glslang::SPIRV
-    )
-    set(JoshEngine_sources ${JoshEngine_sources}
-            src/engine/gfx/opengl/gfx_gl41.cpp
-            src/engine/gfx/imgui/imgui_impl_opengl3.cpp
-            src/engine/gfx/spirv/cross/spirv_glsl.cpp
-            src/engine/gfx/spirv/cross/spirv_parser.cpp
-            src/engine/gfx/spirv/cross/spirv_reflect.cpp
-            src/engine/gfx/spirv/cross/spirv_cross_util.cpp
-            src/engine/gfx/spirv/cross/spirv_cross_parsed_ir.cpp
-            src/engine/gfx/spirv/cross/spirv_cross_c.cpp
-            src/engine/gfx/spirv/cross/spirv_cross.cpp
-            src/engine/gfx/spirv/cross/spirv_cpp.cpp
-            src/engine/gfx/spirv/cross/spirv_cfg.cpp
     )
 endif()
 

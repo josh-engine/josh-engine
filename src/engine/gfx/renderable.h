@@ -76,13 +76,6 @@ public:
 
     bool manualDepthSort{};
 
-#ifdef GFX_API_OPENGL41
-    unsigned int vboID{}; // Positions
-    unsigned int tboID{}; // UV coordinates
-    unsigned int nboID{}; // Normals
-    unsigned int iboID{}; // Indices
-#endif //GFX_API_OPENGL41
-
 #ifdef GFX_API_VK
     unsigned int vboID{};
     std::vector<JEInterleavedVertex_VK> interleavedVertices;
