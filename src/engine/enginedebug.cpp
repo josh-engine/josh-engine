@@ -50,14 +50,7 @@ void setupImGuiWindow() {
 
     ImGui::Checkbox("Stats View", &statView);
     ImGui::Checkbox("GameObjects View", &gmObjView);
-#if !defined(GFX_API_MTL)
-    ImGui::BeginDisabled(true);
-#endif
     ImGui::Checkbox("Textures View", &texturesView);
-#if !defined(GFX_API_MTL)
-    ImGui::EndDisabled();
-    ImGui::SetItemTooltip("Texture view is only supported on Metal.");
-#endif
 #ifdef GFX_API_VK
     ImGui::Checkbox("vkAlloc View", &vulkanMemoryView);
 #endif
@@ -119,7 +112,6 @@ void setupImGuiWindow() {
         ImGui::End();
     }
 
-#if defined(GFX_API_MTL)
     if (texturesView) {
         ImGui::Begin("Textures");
         std::unordered_map<std::string, unsigned int> textures = getTexs();
@@ -132,11 +124,11 @@ void setupImGuiWindow() {
             ImGui::EndCombo();
         }
         if (!selectedTexture.empty()) {
-            ImGui::Image(getMTLTex(textures.at(selectedTexture)), {ImGui::GetWindowSize().x-20, ImGui::GetWindowSize().y-60});
+            ImTextureID texture_id = getTex(textures.at(selectedTexture));
+            ImGui::Image(texture_id, {ImGui::GetWindowSize().x-20, ImGui::GetWindowSize().y-60});
         }
         ImGui::End();
     }
-#endif
 
 #ifdef GFX_API_VK
     if (vulkanMemoryView) {

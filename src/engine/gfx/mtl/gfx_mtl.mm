@@ -52,7 +52,7 @@ std::vector<JEProgram_MTL> pipelineVec;
 std::vector<JEShader_MTL> shaderVec;
 std::vector<MTL::Texture*> textureVec;
 #ifdef DEBUG_ENABLED
-void* getMTLTex(unsigned int i) {
+void* getTex(unsigned int i) {
     return reinterpret_cast<void*>(textureVec[i]);
 }
 #endif

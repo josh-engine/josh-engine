@@ -58,7 +58,7 @@ unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 unsigned int createVBO(Renderable* r);
 #ifdef DEBUG_ENABLED
-void* getMTLTex(unsigned int i);
+void* getTex(unsigned int i);
 #endif
 
 #endif

@@ -7,9 +7,9 @@ layout(location = 2) in vec3 vnorm;
 
 layout(location = 0) out vec4 color;
 
-layout(binding = 1) uniform sampler2D textureSampler;
+layout(set = 1, binding = 0) uniform sampler2D textureSampler;
 
-layout(binding = 0) uniform UBO { // JE_TRANSLATE
+layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE
     mat4 viewMatrix;
     mat4 _2dProj;
     mat4 _3dProj;

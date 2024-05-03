@@ -4,7 +4,7 @@
 layout(location = 0) out vec4 c_final;
 layout(location = 2) in vec3 vnorm;
 
-layout(binding = 0) uniform UBO { // JE_TRANSLATE
+layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE
     mat4 viewMatrix;
     mat4 _2dProj;
     mat4 _3dProj;

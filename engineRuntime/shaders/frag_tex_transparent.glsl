@@ -10,7 +10,7 @@ layout(location = 2) in vec3 vnorm;
 layout(location = 0) out vec4 color;
 
 // Values that stay constant for the whole mesh.
-layout(binding = 1) uniform sampler2D textureSampler;
+layout(set = 1, binding = 0) uniform sampler2D textureSampler;
 
 void main() {
     // Output color = color of the texture at the specified UV

@@ -63,6 +63,7 @@ void resizeViewport();
 unsigned int createVBO(Renderable* r);
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory();
+void* getTex(unsigned int i);
 #endif
 
 #endif //JOSHENGINE_GFX_VK_H

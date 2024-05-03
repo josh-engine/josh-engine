@@ -10,7 +10,7 @@ layout(push_constant) uniform PushConstants { // JE_TRANSLATE
     mat4 normal;
 };
 
-layout(binding = 0) uniform UBO { // JE_TRANSLATE
+layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE
     mat4 viewMatrix;
     mat4 _2dProj;
     mat4 _3dProj;
