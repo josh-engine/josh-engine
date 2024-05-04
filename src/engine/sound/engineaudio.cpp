@@ -67,7 +67,8 @@ unsigned int oggToBuffer(const std::string& filePath) {
     audioMap.insert({filePath, buffer});
     return buffer;
 }
-
+// If are not using MVSC
+#ifndef _MSC_VER
 Sound::Sound(glm::vec3 pos, glm::vec3 vel, const std::string &filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
     isLooping = loop;
     position = pos;
@@ -85,6 +86,26 @@ Sound::Sound(glm::vec3 pos, glm::vec3 vel, const std::string &filePath, bool loo
     // Fill buffer
     bufferID = oggToBuffer(filePath);
 }
+// If we are using MVSC
+#else
+Sound::Sound(vec3_mvsc pos, vec3_mvsc vel, const std::string &filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
+    isLooping = loop;
+    position = pos;
+    velocity = vel;
+
+    // Create audio source
+    alGenSources((ALuint)1, &sourceID);
+    alSourcef(sourceID, AL_PITCH, 1);
+    alSourcef(sourceID, AL_GAIN, gain);
+    alSourcef(sourceID, AL_MAX_GAIN, max);
+    alSourcef(sourceID, AL_MIN_GAIN, min);
+    alSourcef(sourceID, AL_REFERENCE_DISTANCE, halfVolumeDistance);
+    updateSource();
+
+    // Fill buffer
+    bufferID = oggToBuffer(filePath);
+}
+#endif
 
 void Sound::updateSource() const {
     alSource3f(sourceID, AL_POSITION, position.x, position.y, position.z);
