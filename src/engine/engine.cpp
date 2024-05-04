@@ -65,10 +65,6 @@ void setSkyboxEnabled(bool enabled) {
     drawSkybox = enabled && skyboxSupported;
 }
 
-void setSunProperties(glm::vec3 position, glm::vec3 color){
-    sunDirection = position;
-    sunColor = color;
-}
 
 void setAmbient(glm::vec3 rgb) {
     ambient = rgb;
@@ -148,13 +144,41 @@ bool isKeyDown(int key) {
 bool isMouseButtonDown(int button) {
     return mouseButtons[button];
 }
+void setSunProperties(glm::vec3 position, glm::vec3 color){
+    sunDirection = position;
+    sunColor = color;
+}
+// If we are using MSVC as a compiler
+#ifdef _MSC_VER
+vec2_mvsc getRawCursorPos() {
+    double xpos, ypos;
+    glfwGetCursorPos(window, (&xpos), (&ypos));
+    return {xpos, ypos};
+}
+vec2_mvsc getCursorPos() {
+    glm::vec2 cpos = getRawCursorPos();
+    // modify to -1, 1 coordinate space
+    cpos /= glm::vec2(getCurrentWidth(), -getCurrentHeight());
+    cpos += glm::vec2(-0.5, 0.5);
+    cpos *= 2;
 
+    // scale Y axis by the current scaled height
+    cpos /= glm::vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
+    return cpos;
+}
+void setRawCursorPos(vec2_mvsc pos) {
+    glfwSetCursorPos(window, pos.x, pos.y);
+}
+void setSunProperties(vec3_mvsc position, vec3_mvsc color){
+    sunDirection = position;
+    sunColor = color;
+}
+#else
 glm::vec2 getRawCursorPos() {
     double xpos, ypos;
     glfwGetCursorPos(window, (&xpos), (&ypos));
     return {xpos, ypos};
 }
-
 glm::vec2 getCursorPos() {
     glm::vec2 cpos = getRawCursorPos();
     // modify to -1, 1 coordinate space
@@ -166,10 +190,11 @@ glm::vec2 getCursorPos() {
     cpos /= glm::vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
     return cpos;
 }
-
 void setRawCursorPos(glm::vec2 pos) {
     glfwSetCursorPos(window, pos.x, pos.y);
 }
+#endif
+
 
 void setCursorPos(glm::vec2 pos) {
     // inverse of getCursorPos's coordinate transformation
@@ -243,7 +268,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
         registerProgram("skybox",
                         "./shaders/skybox_vertex.glsl",
                         "./shaders/skybox_fragment.glsl",
-                     // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
+                // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
                         false, true, false);
         skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
         if (!skybox.enabled) {
@@ -257,7 +282,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
                                              "./skybox/ny_down.jpg",
                                              "./skybox/nz_front.jpg",
                                              "./skybox/pz_back.jpg"
-        });
+                                     });
     }
     std::cout << "Graphics init successful!" << std::endl;
 

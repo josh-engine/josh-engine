@@ -16,7 +16,8 @@
 #include <unordered_map>
 
 using namespace glm;
-
+typedef glm::vec<2, float, (qualifier)3> vec2_mvsc;
+typedef glm::vec<3, float, (qualifier)3> vec3_mvsc;
 struct JEGraphicsSettings {
     bool vsyncEnabled;
     bool skybox;
@@ -112,9 +113,21 @@ Transform* cameraAccess();
 bool isKeyDown(int key);
 bool isMouseButtonDown(int button);
 GLFWwindow** getWindow();
+// If MVSC is our compiler
+#ifdef _MSC_VER
+//then for some reason the vec2 (vec<2, float, 0>) get turned into vec<2, float, 3>
+// So we need to assign alternate functions to fix this.
+vec2_mvsc getRawCursorPos();
+vec2_mvsc getCursorPos();
+void setRawCursorPos(vec2_mvsc pos);
+void setSunProperties(vec3_mvsc position, vec3_mvsc color);
+#else
 vec2 getRawCursorPos();
 vec2 getCursorPos();
 void setRawCursorPos(vec2 pos);
+void setSunProperties(vec3 position, vec3 color);
+#endif
+
 void setCursorPos(vec2 pos);
 unsigned int createTextureWithName(const std::string& name, const std::string& fileName);
 unsigned int createTexture(const std::string& folderPath, const std::string& fileName);
@@ -125,7 +138,7 @@ void registerProgram(const std::string& name, const std::string& vertex, const s
 double getFrameTime();
 size_t getRenderableCount();
 void setMouseVisible(bool vis);
-void setSunProperties(vec3 position, vec3 color);
+
 void setAmbient(float r, float g, float b);
 void setAmbient(vec3 rgb);
 void registerOnMouse(void (*function)(int button, bool pressed, double dt));

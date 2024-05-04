@@ -6,6 +6,7 @@
 #define JOSHENGINE_ENGINEAUDIO_H
 #include <glm/glm.hpp>
 #include <string>
+typedef glm::vec<3, float, (glm::qualifier)3> vec3_mvsc;
 
 void setVolume(float volume);
 unsigned int oggToBuffer(const std::string& filePath);
@@ -17,7 +18,13 @@ public:
     glm::vec3 position{};
     glm::vec3 velocity{};
     bool isLooping;
+    // If we are not using MVSC
+#ifndef _MSC_VER
     Sound(glm::vec3 pos, glm::vec3 vel, const std::string& filePath, bool loop, float halfVolumeDistance, float min, float max, float gain);
+    // If we are using MVSC
+#else
+    Sound(vec3_mvsc pos, vec3_mvsc vel, const std::string& filePath, bool loop, float halfVolumeDistance, float min, float max, float gain);
+#endif
     void updateSource() const;
     void play();
     void stop() const;
