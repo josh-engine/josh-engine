@@ -307,7 +307,7 @@ Transform* cameraAccess() {
     return &camera;
 }
 
-auto compareLambda = [](const std::pair<double, Renderable>& left, const std::pair<double, Renderable>& right){return left.first < right.first;};
+auto compareLambda = [](std::pair<double, Renderable*> left, const std::pair<double, Renderable*>& right){return left.first < right.first;};
 
 void mainLoop() {
     double currentTime = glfwGetTime();
@@ -373,7 +373,8 @@ void mainLoop() {
         }
 
         std::vector<Renderable> renderables(renderableCount); // We're going to guess that we have around the same amount of renderables for this frame.
-        std::priority_queue<std::pair<double, Renderable>, std::deque<std::pair<double, Renderable>>, decltype(compareLambda)> individualSortRenderables;
+        // transparent sort with pointer attached, because cloning renderables is slow as shit.
+        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> individualSortRenderables;
 
         renderableCount = 0;
 
@@ -383,22 +384,22 @@ void mainLoop() {
         }
 
         for (const auto& item : gameObjects) {
-            for (auto renderable : item.second.renderables) {
-                if (renderable.enabled) {
+            for (auto r : item.second.renderables) {
+                if (r.enabled) {
                     renderableCount++;
-                    renderable.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
-                    if (renderable.manualDepthSort)
-                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), renderable);
+                    r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
+                    if (r.manualDepthSort)
+                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
                     else
-                        renderables.push_back(renderable);
+                        renderables.push_back(r);
                 }
             }
         }
 
         size_t a = individualSortRenderables.size();
         for (int i = 0; i < a; i++){
-            std::pair<double, Renderable> r = individualSortRenderables.top();
-            renderables.push_back(r.second);
+            std::pair<double, Renderable*> r = individualSortRenderables.top();
+            renderables.push_back(*r.second);
             individualSortRenderables.pop();
         }
 
