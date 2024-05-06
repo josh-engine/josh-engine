@@ -307,7 +307,7 @@ Transform* cameraAccess() {
     return &camera;
 }
 
-auto compareLambda = [](std::pair<double, Renderable*> left, const std::pair<double, Renderable*>& right){return left.first < right.first;};
+auto compareLambda = [](const std::pair<double, Renderable>& left, const std::pair<double, Renderable>& right){return left.first < right.first;};
 
 void mainLoop() {
     double currentTime = glfwGetTime();
@@ -374,7 +374,7 @@ void mainLoop() {
 
         std::vector<Renderable> renderables(renderableCount); // We're going to guess that we have around the same amount of renderables for this frame.
         // transparent sort with pointer attached, because cloning renderables is slow as shit.
-        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> individualSortRenderables;
+        std::priority_queue<std::pair<double, Renderable>, std::deque<std::pair<double, Renderable>>, decltype(compareLambda)> individualSortRenderables;
 
         renderableCount = 0;
 
@@ -388,18 +388,20 @@ void mainLoop() {
                 if (r.enabled) {
                     renderableCount++;
                     r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
-                    if (r.manualDepthSort)
-                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
-                    else
+                    if (r.manualDepthSort) {
+                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), r);
+                    }
+                    else {
                         renderables.push_back(r);
+                    }
                 }
             }
         }
 
         size_t a = individualSortRenderables.size();
         for (int i = 0; i < a; i++){
-            std::pair<double, Renderable*> r = individualSortRenderables.top();
-            renderables.push_back(*r.second);
+            auto [ignored, r] = individualSortRenderables.top();
+            renderables.push_back(r);
             individualSortRenderables.pop();
         }
 
