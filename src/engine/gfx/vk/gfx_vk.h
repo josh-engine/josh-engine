@@ -61,10 +61,10 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 unsigned int createVBO(Renderable* r);
+/* We are exposing these to the user through engine.h instead.
 unsigned int createUniformBuffer(size_t bufferSize);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
-unsigned int getUBOID();
-unsigned int getLBOID();
+*/
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory();
 void* getTex(unsigned int i);

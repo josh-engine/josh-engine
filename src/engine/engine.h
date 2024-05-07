@@ -170,6 +170,10 @@ void registerOnMouse(void (*function)(int button, bool pressed, double dt));
 void setSkyboxEnabled(bool enabled);
 std::string textureReverseLookup(unsigned int num);
 std::string programReverseLookup(unsigned int num);
+unsigned int createUniformBuffer(size_t bufferSize);
+void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
+unsigned int getUBOID();
+unsigned int getLBOID();
 #ifdef DEBUG_ENABLED
 std::unordered_map<std::string, unsigned int> getTexs();
 #endif

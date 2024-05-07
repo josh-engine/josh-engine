@@ -7,7 +7,6 @@
 #include "engine/sound/engineaudio.h"
 #include "engine/gfx/modelutil.h"
 #include "engine/enginedebug.h"
-#include "engine/gfx/vk/gfx_vk.h"
 
 bool mouseLocked = false;
 bool pressed = false;
@@ -113,7 +112,7 @@ void initTriangle(GameObject* selfObject) {
 
 void initTriangle2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, 1));
-    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), {getUBOID(), getTexture("uv_tex.png")}, true));
+    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), {getUBOID(), getTexture("logo.png")}, true));
     selfObject->onUpdate.push_back(&move);
 }
 
@@ -199,6 +198,7 @@ void setupTest() {
     registerProgram("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", b);
 
     createTexture("./textures/", "uv_tex.png");
+    createTexture("./textures/", "logo.png");
     createTextureWithName("cube_texture", "./textures/cubetex.png");
 
     putGameObject("triangle_test", GameObject(&initTriangle));
