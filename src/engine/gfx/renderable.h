@@ -64,8 +64,8 @@ public:
     std::vector<float> normals;
     std::vector<unsigned int> indices;
 
-    unsigned int shaderProgram{};
-    unsigned int texture{};
+    unsigned int shaderProgram;
+    std::vector<unsigned int> descriptorIDs;
 
     glm::mat4 transform{};
     glm::mat4 rotate{};
@@ -93,7 +93,7 @@ public:
         enabled = false;
     }
 
-    Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex, bool manualDepthSort);
+    Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort);
 
     void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
         this->transform = t;

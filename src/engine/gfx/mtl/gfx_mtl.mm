@@ -477,8 +477,8 @@ void deinitGFX() {
 
 void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     @autoreleasepool {
-        JEUniformBufferObject_MTL ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
-        memcpy(uniformBuffer->contents(), &ubo, sizeof(JEUniformBufferObject_MTL));
+        JEUniformBufferObject ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
+        memcpy(uniformBuffer->contents(), &ubo, sizeof(JEUniformBufferObject));
 
         commandBuffer = commandQueue->commandBuffer();
 #ifdef METAL_OS_IMGUI_THEME_SYNC

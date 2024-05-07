@@ -1306,8 +1306,6 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     createUniformDescriptorSetLayout();
     createTextureDescriptorSetLayout();
 
-    createUniformBuffer(sizeof(JEUniformBufferObject_VK));
-
     clearValues[0].color = {{settings.clearColor[0], settings.clearColor[1], settings.clearColor[2], 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
@@ -1687,7 +1685,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
     return id;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported, bool doubleSided) {
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings) {
     unsigned int pipelineID = pipelineLayoutVector.size();
     pipelineLayoutVector.push_back({});
     pipelineVector.push_back({});
@@ -1761,7 +1759,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
 
-    if (doubleSided){
+    if (settings.doubleSided){
         rasterizer.cullMode = VK_CULL_MODE_NONE;
     } else {
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -1777,7 +1775,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    if (transparencySupported) {
+    if (settings.transparencySupported) {
         colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -1802,8 +1800,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = testDepth;
-    if (transparencySupported) {
+    depthStencil.depthTestEnable = settings.testDepth;
+    if (settings.transparencySupported) {
         depthStencil.depthWriteEnable = VK_FALSE;
     } else {
         depthStencil.depthWriteEnable = VK_TRUE;
@@ -1816,7 +1814,16 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     depthStencil.front = {};
     depthStencil.back = {};
 
-    std::array<VkDescriptorSetLayout, 2> dsls = {uniformDescriptorSetLayout, textureDescriptorSetLayout};
+
+    std::vector<VkDescriptorSetLayout> dsls = {};
+    for (int i = 0; i < settings.shaderInputCount; i++) {
+        //  select single bit from shader inputs
+        if (((settings.shaderInputs >> i) & 0b1) == 1) {
+            dsls.push_back(textureDescriptorSetLayout);
+        } else {
+            dsls.push_back(uniformDescriptorSetLayout);
+        }
+    }
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = dsls.size();
@@ -1959,9 +1966,14 @@ unsigned int createVBO(Renderable* r) {
     return id;
 }
 
+void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
+    if (!updateAll) memcpy(uniformBuffersMapped[id][currentFrame], ptr, size);
+    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[id][i], ptr, size); }
+}
+
 VkDeviceSize offsets[] = {0};
 
-void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
+void renderFrame(const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -2005,9 +2017,6 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
     renderPassInfo.clearValueCount = clearValues.size(); // previous constant was a horrible mistype. no more constants
     renderPassInfo.pClearValues = clearValues.data();
 
-    JEUniformBufferObject_VK ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
-    memcpy(uniformBuffersMapped[0][currentFrame], &ubo, sizeof(ubo));
-
     vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport{};
@@ -2024,22 +2033,28 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
     scissor.extent = swapchainExtent;
     vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
 
-    int activeProgram = -1, activeDescriptorSet = -1;
+    int activeProgram = -1;
 
     for (const auto& r : renderables) {
         if (r.enabled) {
-            if (r.shaderProgram != activeProgram || r.texture != activeDescriptorSet) {
+            if (r.shaderProgram != activeProgram) {
                 vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   pipelineVector[r.shaderProgram]);
                 activeProgram = static_cast<int>(r.shaderProgram);
-
-                std::vector<VkDescriptorSet> descriptor_sets = {descriptorSets[0].sets[currentFrame], descriptorSets[r.texture].sets[0]};
-
-                vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        pipelineLayoutVector[r.shaderProgram], 0, 1,
-                                        descriptor_sets.data(), 0, nullptr);
-                activeDescriptorSet = static_cast<int>(r.texture);
             }
+
+            std::vector<VkDescriptorSet> descriptor_sets = {};
+            for (const auto& d : r.descriptorIDs) {
+                if (descriptorSets[d].type == SINGLE) {
+                    descriptor_sets.push_back(descriptorSets[d].sets[0]);
+                } else {
+                    descriptor_sets.push_back(descriptorSets[d].sets[currentFrame]);
+                }
+            }
+
+            vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipelineLayoutVector[r.shaderProgram], 0, descriptor_sets.size(),
+                                    descriptor_sets.data(), 0, nullptr);
 
             vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r.vboID], offsets);
             vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);

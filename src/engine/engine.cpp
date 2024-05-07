@@ -8,7 +8,6 @@
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
-#include <utility>
 #include <queue>
 #include "gfx/modelutil.h"
 #include "enginedebug.h"
@@ -41,6 +40,17 @@ glm::vec3 sunDirection(0, 1, 0);
 glm::vec3 sunColor(0, 0, 0);
 glm::vec3 ambient(0);
 
+unsigned int uboID{};
+unsigned int lboID{};
+
+unsigned int getUBOID() {
+    return uboID;
+}
+
+unsigned int getLBOID() {
+    return lboID;
+}
+
 #ifdef DEBUG_ENABLED
 std::unordered_map<std::string, unsigned int> getTexs() {
     return textures;
@@ -65,9 +75,14 @@ void setSkyboxEnabled(bool enabled) {
     drawSkybox = enabled && skyboxSupported;
 }
 
+void recopyLightingBuffer() {
+    JELightingBuffer lighting_buffer = {sunDirection, sunColor, ambient};
+    updateUniformBuffer(lboID, &lighting_buffer, sizeof(JELightingBuffer), true);
+}
 
 void setAmbient(glm::vec3 rgb) {
     ambient = rgb;
+    recopyLightingBuffer();
 }
 
 void setAmbient(float r, float g, float b){
@@ -99,10 +114,10 @@ void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
-void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, bool testDepth, bool transparencySupported, bool doubleSided) {
+void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings) {
     unsigned int vertID = loadShader(vertex, JE_VERTEX_SHADER);
     unsigned int fragID = loadShader(fragment, JE_FRAGMENT_SHADER);
-    programs.insert({name, createProgram(vertID, fragID, testDepth, transparencySupported, doubleSided)});
+    programs.insert({name, createProgram(vertID, fragID, settings)});
 }
 
 unsigned int getProgram(const std::string& name) {
@@ -144,18 +159,15 @@ bool isKeyDown(int key) {
 bool isMouseButtonDown(int button) {
     return mouseButtons[button];
 }
-void setSunProperties(glm::vec3 position, glm::vec3 color){
-    sunDirection = position;
-    sunColor = color;
-}
+
 // If we are using MSVC as a compiler
 #ifdef _MSC_VER
-vec2_mvsc getRawCursorPos() {
+vec2_MSVC getRawCursorPos() {
     double xpos, ypos;
     glfwGetCursorPos(window, (&xpos), (&ypos));
     return {xpos, ypos};
 }
-vec2_mvsc getCursorPos() {
+vec2_MSVC getCursorPos() {
     glm::vec2 cpos = getRawCursorPos();
     // modify to -1, 1 coordinate space
     cpos /= glm::vec2(getCurrentWidth(), -getCurrentHeight());
@@ -166,12 +178,13 @@ vec2_mvsc getCursorPos() {
     cpos /= glm::vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
     return cpos;
 }
-void setRawCursorPos(vec2_mvsc pos) {
+void setRawCursorPos(vec2_MSVC pos) {
     glfwSetCursorPos(window, pos.x, pos.y);
 }
-void setSunProperties(vec3_mvsc position, vec3_mvsc color){
+void setSunProperties(vec3_MSVC position, vec3_MSVC color){
     sunDirection = position;
     sunColor = color;
+    recopyLightingBuffer();
 }
 #else
 glm::vec2 getRawCursorPos() {
@@ -192,6 +205,11 @@ glm::vec2 getCursorPos() {
 }
 void setRawCursorPos(glm::vec2 pos) {
     glfwSetCursorPos(window, pos.x, pos.y);
+}
+void setSunProperties(glm::vec3 position, glm::vec3 color){
+    sunDirection = position;
+    sunColor = color;
+    recopyLightingBuffer();
 }
 #endif
 
@@ -253,6 +271,9 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    uboID = createUniformBuffer(sizeof(JEUniformBufferObject));
+    lboID = createUniformBuffer(sizeof(JELightingBuffer));
+
     // Missing texture init
     createTextureWithName("missing", "./textures/missing_tex.png");
     if (!textures.count("missing")) {
@@ -269,20 +290,19 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
                         "./shaders/skybox_vertex.glsl",
                         "./shaders/skybox_fragment.glsl",
                 // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
-                        false, true, false);
-        skybox = loadObj("./models/skybox.obj", getProgram("skybox"))[0];
-        if (!skybox.enabled) {
-            std::cerr << "Essential engine file missing." << std::endl;
-            exit(1);
-        }
-        skybox.texture = loadCubemap({
+                        {false, true, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
+        skybox = loadObj("./models/skybox.obj", getProgram("skybox"), {0, loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
                                              "./skybox/py_up.jpg",
                                              "./skybox/ny_down.jpg",
                                              "./skybox/nz_front.jpg",
                                              "./skybox/pz_back.jpg"
-                                     });
+                                     })})[0];
+        if (!skybox.enabled) {
+            std::cerr << "Essential engine file missing." << std::endl;
+            exit(1);
+        }
     }
     std::cout << "Graphics init successful!" << std::endl;
 
@@ -409,17 +429,18 @@ void mainLoop() {
 
         float scaledHeight = static_cast<float>(windowHeight) * (1.0f / static_cast<float>(windowWidth));
         float scaledWidth = 1.0f;
-        renderFrame(camera.position,
-                    camera.direction(),
-                    sunDirection,
-                    sunColor,
-                    ambient,
-                    cameraMatrix,
-                    glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
-                    glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f),
-                    renderables,
-                    imGuiCalls
-        );
+
+        JEUniformBufferObject ubo = {
+            cameraMatrix,
+            glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
+            glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f),
+            camera.position,
+            camera.direction()
+        };
+
+        updateUniformBuffer(uboID, &ubo, sizeof(JEUniformBufferObject), false);
+
+        renderFrame(renderables, imGuiCalls);
 
         if (doFrameTimeCheck)
             frameTime = glfwGetTime()*1000 - frameDrawStart;

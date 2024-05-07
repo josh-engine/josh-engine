@@ -4,12 +4,13 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <utility>
 #include "renderable.h"
 #include "../engine.h"
 
 Renderable quadBase;
 
-Renderable createQuad(unsigned int shader, unsigned int texture, bool manualDepthSort) {
+Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool manualDepthSort) {
     if (!quadBase.enabled) {
         // Init quad once (we only need one VBO across the lifetime of the engine for a quad)
         quadBase = Renderable(
@@ -17,20 +18,20 @@ Renderable createQuad(unsigned int shader, unsigned int texture, bool manualDept
                 { 0.0f,  0.0f,          1.0f,  0.0f,           0.0f,  1.0f       ,  1.0f,  1.0f},  //UVs
                 { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
                 { 0, 1, 2,     1, 3, 2 }, //indices
-                0,    //shader program
-                0,    //texture
+                shader,
+                {},
                 false //used for transparency
         );
     }
     Renderable copy = quadBase;
     copy.shaderProgram = shader;
-    copy.texture = texture;
+    copy.descriptorIDs = std::move(desc);
     copy.manualDepthSort = manualDepthSort;
     return copy;
 }
 
-Renderable createQuad(unsigned int shader, unsigned int texture) {
-    return createQuad(shader, texture, false);
+Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc) {
+    return createQuad(shader, desc, false);
 }
 
 struct repackVertexObject {
@@ -95,7 +96,7 @@ Renderable repackRenderable(Renderable r) {
         normals.push_back(vert.nml.z);
     }
 
-    return {vertices, uvs, normals, indices, r.shaderProgram, r.texture, r.manualDepthSort};
+    return {vertices, uvs, normals, indices, r.shaderProgram, r.descriptorIDs, r.manualDepthSort};
 }
 
 std::vector<std::string> splitStr(const std::string& in, char del) {
@@ -121,7 +122,7 @@ std::vector<std::string> splitStr(const std::string& in, char del) {
 
 std::unordered_map<std::string, std::vector<Renderable>> objMap;
 
-std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, bool manualDepthSort) {
+std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, std::vector<unsigned int> desc, bool manualDepthSort) {
     if (objMap.contains(path)) {
         std::vector<Renderable> copied;
         copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
@@ -134,6 +135,9 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
             for (auto & i : copied){
                 i.shaderProgram = shaderProgram;
             }
+        }
+        for (auto & i : copied) {
+            i.descriptorIDs = desc;
         }
         return copied;
     }
@@ -151,7 +155,7 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
     std::string currentLine;
     Renderable currentRenderable;
     currentRenderable.enabled = true;
-    currentRenderable.texture = 0;
+    currentRenderable.descriptorIDs = desc;
     currentRenderable.shaderProgram = shaderProgram;
     currentRenderable.manualDepthSort = manualDepthSort;
 
@@ -256,10 +260,7 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
                 }
                 currentRenderable = Renderable();
                 currentRenderable.enabled = true;
-                currentRenderable.texture = getTexture(split[1]);
-                if (!textureExists(split[1])) {
-                    std::cout << "\"" << split[1] << "\" not found in texture map! Please load the associated texture to the map under the name of the .mtl file." << std::endl;
-                }
+                currentRenderable.descriptorIDs = desc;
                 currentRenderable.shaderProgram = shaderProgram;
                 currentRenderable.manualDepthSort = manualDepthSort;
             }
@@ -276,6 +277,6 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
     return renderableList;
 }
 
-std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram) {
-    return loadObj(path, shaderProgram, false);
+std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, std::vector<unsigned int> desc) {
+    return loadObj(path, shaderProgram, std::move(desc), false);
 }

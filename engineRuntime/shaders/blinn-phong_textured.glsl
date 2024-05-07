@@ -7,18 +7,21 @@ layout(location = 2) in vec3 vnorm;
 
 layout(location = 0) out vec4 color;
 
-layout(set = 1, binding = 0) uniform sampler2D textureSampler;
-
 layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE
     mat4 viewMatrix;
     mat4 _2dProj;
     mat4 _3dProj;
     vec3 cameraPos;
     vec3 cameraDir;
+};
+
+layout(set = 1, binding = 0) uniform LBO {
     vec3 sunDir;
     vec3 sunColor;
     vec3 ambience;
 };
+
+layout(set = 2, binding = 0) uniform sampler2D textureSampler;
 
 void main() {
     vec3 normal = normalize(vnorm);
