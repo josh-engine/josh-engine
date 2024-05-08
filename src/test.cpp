@@ -175,19 +175,19 @@ void setupTest() {
     a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputUniformBit << 1);
     a.shaderInputCount = 2;
 
-    registerProgram("toonNorm",     "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", a);
-    registerProgram("bnphColor",    "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", a);
+    registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", a);
+    registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", a);
 
     //               This means the layout will be {Uniform, Texture}.
     a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputTextureBit << 1);
 
-    registerProgram("ui",           "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", a);
+    registerProgram("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", a);
 
     //               This layout is {Uniform, Uniform, Texture}.
     a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputUniformBit << 1) | (JEShaderInputTextureBit << 2);
     a.shaderInputCount = 3;
 
-    registerProgram("bnphTexture",  "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", a);
+    registerProgram("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", a);
 
     JEShaderProgramSettings b{};
     b.testDepth = true;

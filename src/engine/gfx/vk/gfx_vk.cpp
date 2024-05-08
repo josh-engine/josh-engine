@@ -79,7 +79,7 @@ VkDescriptorSetLayout textureDescriptorSetLayout;
 
 std::vector<std::vector<VkBuffer>> uniformBuffers;
 // Didn't want to screw around with mapping only PARTS of an allocation... something was bound to go funky.
-std::vector<std::vector<VkDeviceMemory>> uniformBuffersMemory;
+std::vector<std::vector<JEAllocation_VK>> uniformBuffersMemory;
 std::vector<std::vector<void*>> uniformBuffersMapped;
 std::vector<VkDescriptorPool> uniformDescriptorPools;
 
@@ -229,7 +229,7 @@ void allocateDeviceMemory(VkDeviceMemory& memory, VkDeviceSize size, uint32_t me
     }
 }
 
-JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) {
+JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, bool willMap) {
     for (auto & block : memoryBlocks) {
         // is it the right type?
         if (block.type == memoryType){
@@ -237,24 +237,32 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) 
             VkDeviceSize alignedTop;
             //           get to a lower multiple of align, add it again to get back up
             alignedTop = (block.top - (block.top % align)) + align;
-            // can we fit?
-            if (block.size >= alignedTop + size) {
+            // can we fit and do we have a map conflict?
+            if (block.size >= alignedTop + size && !(willMap ^ block.mapped)) {
                 block.top = alignedTop + size;
-                return {&block.memory, size, alignedTop};
+                return {&block, size, alignedTop};
             }
         }
     }
 
     VkDeviceMemory newMemory;
-    VkDeviceSize newBlockSize = NEW_BLOCK_MIN_SIZE;
+    VkDeviceSize newBlockSize = (willMap ? size : NEW_BLOCK_MIN_SIZE);
     // do the vector thing and be prepared for double the size of our original data (if it is larger than our new min size)
-    if (size*2 > newBlockSize) newBlockSize = size*2;
+    if (size*2 > newBlockSize && !willMap) newBlockSize = size*2;
     allocateDeviceMemory(newMemory, newBlockSize, memoryType);
     memoryBlocks.push_back({newMemory, memoryType, newBlockSize, size});
-    return {&memoryBlocks[memoryBlocks.size()-1].memory, size, 0};
+    return {&memoryBlocks[memoryBlocks.size()-1], size, 0};
 }
 
-void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, JEAllocation_VK& alloc) {
+JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) {
+    return vkalloc(size, memoryType, align, false);
+}
+
+void vkmmap(JEAllocation_VK* alloc, void** toMap) {
+    vkMapMemory(logicalDevice, alloc->memoryRef->memory, alloc->offset, alloc->size, 0, toMap);
+}
+
+void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, JEAllocation_VK& alloc, bool willMap) {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
@@ -268,9 +276,9 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(logicalDevice, buffer, &memRequirements);
 
-    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties), memRequirements.alignment);
+    alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties), memRequirements.alignment, willMap);
 
-    vkBindBufferMemory(logicalDevice, buffer, *alloc.memoryRef, alloc.offset);
+    vkBindBufferMemory(logicalDevice, buffer, alloc.memoryRef->memory, alloc.offset);
 }
 
 void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory) {
@@ -1030,9 +1038,8 @@ unsigned int createUniformBuffer(size_t bufferSize) {
     uniformBuffersMapped[bufferID].resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[bufferID][i], uniformBuffersMemory[bufferID][i]);
-
-        vkMapMemory(logicalDevice, uniformBuffersMemory[bufferID][i], 0, bufferSize, 0, &uniformBuffersMapped[bufferID][i]);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[bufferID][i], uniformBuffersMemory[bufferID][i], true);
+        vkmmap(&uniformBuffersMemory[bufferID][i], &uniformBuffersMapped[bufferID][i]);
     }
 
     createUniformDescriptorPool(&uniformDescriptorPools[bufferID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
@@ -1113,7 +1120,7 @@ void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkForma
 
     alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties), memRequirements.alignment);
 
-    vkBindImageMemory(logicalDevice, image, *alloc.memoryRef, alloc.offset);
+    vkBindImageMemory(logicalDevice, image, alloc.memoryRef->memory, alloc.offset);
 }
 
 void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory, unsigned int mipLevels, VkSampleCountFlagBits samples) {
@@ -1435,7 +1442,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
 
     textureMemoryRefs[internalID] = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), memRequirements.alignment);
 
-    vkBindImageMemory(logicalDevice, textureImages[internalID], *textureMemoryRefs[internalID].memoryRef, textureMemoryRefs[internalID].offset);
+    vkBindImageMemory(logicalDevice, textureImages[internalID], textureMemoryRefs[internalID].memoryRef->memory, textureMemoryRefs[internalID].offset);
 
     transitionImageLayout(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, 1);
 
@@ -1932,7 +1939,8 @@ unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* inter
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                  vertexBuffers[id],
-                 vertexBufferMemoryRefs[id]);
+                 vertexBufferMemoryRefs[id],
+                 false);
 
     copyBuffer(stagingBuffer, vertexBuffers[id], bufferSize);
 
@@ -1956,7 +1964,8 @@ unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* inter
                  VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                  indexBuffers[id],
-                 indexBufferMemoryRefs[id]);
+                 indexBufferMemoryRefs[id],
+                 false);
 
     copyBuffer(stagingBuffer, indexBuffers[id], bufferSize);
 
@@ -2119,6 +2128,11 @@ void deinitGFX() {
 
     vkDestroyDescriptorPool(logicalDevice, imGuiDescriptorPool, nullptr);
 
+    for (auto memoryBlock : memoryBlocks) {
+        if (memoryBlock.mapped) vkUnmapMemory(logicalDevice, memoryBlock.memory);
+        vkFreeMemory(logicalDevice, memoryBlock.memory, nullptr);
+    }
+
     for (auto descriptorPool : textureDescriptorPools) {
         vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
     }
@@ -2143,9 +2157,14 @@ void deinitGFX() {
         vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
     }
 
-
     for (auto indexBuffer : indexBuffers) {
         vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
+    }
+
+    for (const auto& ubVec : uniformBuffers) {
+        for (auto ub : ubVec) {
+            vkDestroyBuffer(logicalDevice, ub, nullptr);
+        }
     }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -2162,17 +2181,6 @@ void deinitGFX() {
 
     for (auto graphicsPipelineLayout : pipelineLayoutVector) {
         vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
-    }
-
-    for (size_t n = 0; n < uniformBuffers.size(); n++) {
-        for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-            vkDestroyBuffer(logicalDevice, uniformBuffers[n][i], nullptr);
-            vkFreeMemory(logicalDevice, uniformBuffersMemory[n][i], nullptr);
-        }
-    }
-
-    for (auto memoryBlock : memoryBlocks) {
-        vkFreeMemory(logicalDevice, memoryBlock.memory, nullptr);
     }
 
     vkDestroyDescriptorSetLayout(logicalDevice, uniformDescriptorSetLayout, nullptr);

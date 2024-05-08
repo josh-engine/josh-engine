@@ -23,17 +23,20 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
-struct JEAllocation_VK {
-    VkDeviceMemory* memoryRef;
-    VkDeviceSize size;
-    VkDeviceSize offset;
-};
+
 
 struct JEMemoryBlock_VK {
     VkDeviceMemory memory;
     uint32_t type;
     VkDeviceSize size;
     VkDeviceSize top;
+    bool mapped = false;
+};
+
+struct JEAllocation_VK {
+    JEMemoryBlock_VK* memoryRef;
+    VkDeviceSize size;
+    VkDeviceSize offset;
 };
 
 struct JEPushConstants_VK {
