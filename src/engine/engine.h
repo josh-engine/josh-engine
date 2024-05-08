@@ -4,7 +4,7 @@
 
 #ifndef JOSHENGINE_ENGINE_H
 #define JOSHENGINE_ENGINE_H
-#if defined(GFX_API_VK) | defined(GFX_API_MTL)
+#if defined(GFX_API_VK)
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #endif
@@ -16,13 +16,25 @@
 #include <unordered_map>
 
 using namespace glm;
-typedef glm::vec<2, float, (qualifier)3> vec2_mvsc;
-typedef glm::vec<3, float, (qualifier)3> vec3_mvsc;
+typedef glm::vec<2, float, (qualifier)3> vec2_MSVC;
+typedef glm::vec<3, float, (qualifier)3> vec3_MSVC;
+
+#define JEShaderInputUniformBit 0
+#define JEShaderInputTextureBit 1
+
 struct JEGraphicsSettings {
     bool vsyncEnabled;
     bool skybox;
     float clearColor[3];
     int msaaSamples;
+};
+
+struct JEShaderProgramSettings {
+    bool testDepth;
+    bool transparencySupported;
+    bool doubleSided;
+    u32  shaderInputs;
+    u8   shaderInputCount;
 };
 
 class Transform {
@@ -97,6 +109,20 @@ public:
     }
 };
 
+struct JEUniformBufferObject {
+    alignas(16) mat4 view;
+    alignas(16) mat4 _2dProj;
+    alignas(16) mat4 _3dProj;
+    alignas(16) vec3 cameraPos;
+    alignas(16) vec3 cameraDir;
+};
+
+struct JELightingBuffer {
+    alignas(16) vec3 sunDirection;
+    alignas(16) vec3 sunColor;
+    alignas(16) vec3 ambient;
+};
+
 void init(const char* windowName, int width, int height, JEGraphicsSettings settings);
 void mainLoop();
 void deinit();
@@ -113,14 +139,14 @@ Transform* cameraAccess();
 bool isKeyDown(int key);
 bool isMouseButtonDown(int button);
 GLFWwindow** getWindow();
-// If MVSC is our compiler
+// If MSVC is our compiler
 #ifdef _MSC_VER
 //then for some reason the vec2 (vec<2, float, 0>) get turned into vec<2, float, 3>
 // So we need to assign alternate functions to fix this.
-vec2_mvsc getRawCursorPos();
-vec2_mvsc getCursorPos();
-void setRawCursorPos(vec2_mvsc pos);
-void setSunProperties(vec3_mvsc position, vec3_mvsc color);
+vec2_MSVC getRawCursorPos();
+vec2_MSVC getCursorPos();
+void setRawCursorPos(vec2_MSVC pos);
+void setSunProperties(vec3_MSVC position, vec3_MSVC color);
 #else
 vec2 getRawCursorPos();
 vec2 getCursorPos();
@@ -134,17 +160,20 @@ unsigned int createTexture(const std::string& folderPath, const std::string& fil
 unsigned int getTexture(const std::string& name);
 bool textureExists(const std::string &name);
 unsigned int getProgram(const std::string& name);
-void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, bool testDepth, bool transparencySupported, bool doubleSided);
+void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings);
 double getFrameTime();
 size_t getRenderableCount();
 void setMouseVisible(bool vis);
-
 void setAmbient(float r, float g, float b);
 void setAmbient(vec3 rgb);
 void registerOnMouse(void (*function)(int button, bool pressed, double dt));
 void setSkyboxEnabled(bool enabled);
 std::string textureReverseLookup(unsigned int num);
 std::string programReverseLookup(unsigned int num);
+unsigned int createUniformBuffer(size_t bufferSize);
+void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
+unsigned int getUBOID();
+unsigned int getLBOID();
 #ifdef DEBUG_ENABLED
 std::unordered_map<std::string, unsigned int> getTexs();
 #endif

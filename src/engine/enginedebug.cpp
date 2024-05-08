@@ -14,10 +14,6 @@
 bool vulkanMemoryView;
 #endif
 
-#ifdef GFX_API_MTL
-#include "gfx/mtl/gfx_mtl.h"
-#endif
-
 bool statView, gmObjView, texturesView;
 std::string selectedGameObject;
 std::string selectedTexture;
@@ -42,11 +38,10 @@ void setupImGuiWindow() {
     ImGui::Begin("Debug Menu");
 
     ImGui::Text("JoshEngine %s", ENGINE_VERSION_STRING);
-#if defined(GFX_API_VK)
-    ImGui::Text("Running on Vulkan");
-#elif defined(GFX_API_MTL)
-    ImGui::Text("Running on Metal");
-#endif
+//#if defined(GFX_API_VK)
+    // No more other graphics APIs... sadge. If/when DX12 will add this feature back.
+    // ImGui::Text("Running on Vulkan");
+//#endif
 
     ImGui::Checkbox("Stats View", &statView);
     ImGui::Checkbox("GameObjects View", &gmObjView);

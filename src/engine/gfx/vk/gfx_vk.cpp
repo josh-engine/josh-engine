@@ -82,18 +82,19 @@ std::vector<std::vector<VkBuffer>> uniformBuffers;
 std::vector<std::vector<VkDeviceMemory>> uniformBuffersMemory;
 std::vector<std::vector<void*>> uniformBuffersMapped;
 std::vector<VkDescriptorPool> uniformDescriptorPools;
-std::vector<std::vector<VkDescriptorSet>>  uniformDescriptorSets;
 
 std::vector<VkImage> textureImages;
 std::vector<unsigned int> textureMipLevels;
 std::vector<JEAllocation_VK> textureMemoryRefs;
 std::vector<VkImageView> textureImageViews;
 std::vector<VkDescriptorPool> textureDescriptorPools;
-std::vector<VkDescriptorSet> textureDescriptorSets;
 std::vector<VkSampler> textureSamplers;
+
+std::vector<JEDescriptorSet_VK> descriptorSets;
+
 #ifdef DEBUG_ENABLED
 void* getTex(unsigned int i) {
-    return textureDescriptorSets[i];
+    return descriptorSets[i].sets[0];
 }
 #endif
 
@@ -990,8 +991,8 @@ void createUniformDescriptorSets(unsigned int bufferID, size_t uniformSize) {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
 
-    uniformDescriptorSets[bufferID].resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, uniformDescriptorSets[bufferID].data()) != VK_SUCCESS) {
+    descriptorSets[bufferID].type = FRAMES_IN_FLIGHT;
+    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[bufferID].sets[0]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to allocate uniform descriptor sets!");
     }
 
@@ -1004,7 +1005,7 @@ void createUniformDescriptorSets(unsigned int bufferID, size_t uniformSize) {
         std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = uniformDescriptorSets[bufferID][i];
+        descriptorWrites[0].dstSet = descriptorSets[bufferID].sets[i];
         descriptorWrites[0].dstBinding = 0;
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1021,7 +1022,7 @@ unsigned int createUniformBuffer(size_t bufferSize) {
     uniformBuffers.emplace_back();
     uniformBuffersMemory.emplace_back();
     uniformBuffersMapped.emplace_back();
-    uniformDescriptorSets.emplace_back();
+    descriptorSets.emplace_back();
     uniformDescriptorPools.push_back({});
 
     uniformBuffers[bufferID].resize(MAX_FRAMES_IN_FLIGHT);
@@ -1057,26 +1058,27 @@ void createTextureDescriptorPool(VkDescriptorPool* pool, VkDescriptorPoolCreateF
     }
 }
 
-void createTextureDescriptorSet(unsigned int textureID) {
+void createTextureDescriptorSet(unsigned int internalID, unsigned int descriptorID) {
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = textureDescriptorPools[textureID];
+    allocInfo.descriptorPool = textureDescriptorPools[internalID];
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &textureDescriptorSetLayout;
 
-    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &textureDescriptorSets[textureID]) != VK_SUCCESS) {
+    descriptorSets[descriptorID].type = SINGLE;
+    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[descriptorID].sets[0]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to allocate texture descriptor set!");
     }
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = textureImageViews[textureID];
-    imageInfo.sampler = textureSamplers[textureID];
+    imageInfo.imageView = textureImageViews[internalID];
+    imageInfo.sampler = textureSamplers[internalID];
 
     std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = textureDescriptorSets[textureID];
+    descriptorWrites[0].dstSet = descriptorSets[descriptorID].sets[0];
     descriptorWrites[0].dstBinding = 0;
     descriptorWrites[0].dstArrayElement = 0;
     descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -1304,8 +1306,6 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
     createUniformDescriptorSetLayout();
     createTextureDescriptorSetLayout();
 
-    createUniformBuffer(sizeof(JEUniformBufferObject_VK));
-
     clearValues[0].color = {{settings.clearColor[0], settings.clearColor[1], settings.clearColor[2], 1.0f}};
     clearValues[1].depthStencil = {1.0f, 0};
 
@@ -1369,14 +1369,15 @@ void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t 
 
 unsigned int loadCubemap(std::vector<std::string> faces) {
     int texWidth[6], texHeight[6], texChannels[6];
-    unsigned int id = textureImages.size();
+    unsigned int internalID = textureImages.size();
+    unsigned int descriptorID = descriptorSets.size();
 
     textureImages.push_back({});
     textureMemoryRefs.push_back({});
     textureImageViews.push_back({});
     textureSamplers.push_back({});
     textureMipLevels.push_back(1);
-    textureDescriptorSets.emplace_back();
+    descriptorSets.emplace_back();
     textureDescriptorPools.push_back({});
 
     stbi_set_flip_vertically_on_load(false);
@@ -1425,29 +1426,29 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-    if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &textureImages[id]) != VK_SUCCESS) {
+    if (vkCreateImage(logicalDevice, &imageInfo, nullptr, &textureImages[internalID]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create cubemap!");
     }
 
     VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(logicalDevice, textureImages[id], &memRequirements);
+    vkGetImageMemoryRequirements(logicalDevice, textureImages[internalID], &memRequirements);
 
-    textureMemoryRefs[id] = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), memRequirements.alignment);
+    textureMemoryRefs[internalID] = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), memRequirements.alignment);
 
-    vkBindImageMemory(logicalDevice, textureImages[id], *textureMemoryRefs[id].memoryRef, textureMemoryRefs[id].offset);
+    vkBindImageMemory(logicalDevice, textureImages[internalID], *textureMemoryRefs[internalID].memoryRef, textureMemoryRefs[internalID].offset);
 
-    transitionImageLayout(textureImages[id], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, 1);
+    transitionImageLayout(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, 1);
 
-    copyBufferToImage(stagingBuffer, textureImages[id], static_cast<uint32_t>(texWidth[0]), static_cast<uint32_t>(texHeight[0]), 6);
+    copyBufferToImage(stagingBuffer, textureImages[internalID], static_cast<uint32_t>(texWidth[0]), static_cast<uint32_t>(texHeight[0]), 6);
 
-    transitionImageLayout(textureImages[id], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 6, 1);
+    transitionImageLayout(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 6, 1);
 
     vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = textureImages[id];
+    viewInfo.image = textureImages[internalID];
     viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
     viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
     viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -1456,17 +1457,17 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     viewInfo.subresourceRange.baseArrayLayer = 0;
     viewInfo.subresourceRange.layerCount = 6;
 
-    if (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &textureImageViews[id]) != VK_SUCCESS) {
+    if (vkCreateImageView(logicalDevice, &viewInfo, nullptr, &textureImageViews[internalID]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to create cubemap image view!");
     }
 
-    createTextureSampler(id, 1);
+    createTextureSampler(internalID, 1);
 
-    createTextureDescriptorPool(&textureDescriptorPools[id], static_cast<VkDescriptorPoolCreateFlagBits>(0));
+    createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
-    createTextureDescriptorSet(id);
+    createTextureDescriptorSet(internalID, descriptorID);
 
-    return id;
+    return descriptorID;
 }
 
 void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
@@ -1558,13 +1559,14 @@ void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int3
 
 unsigned int loadTexture(const std::string& fileName) {
     int texWidth, texHeight, texChannels;
-    unsigned int textureID = textureImages.size();
+    unsigned int internalID = textureImages.size();
+    unsigned int descriptorID = descriptorSets.size();
 
     textureImages.push_back({});
     textureMemoryRefs.push_back({});
     textureImageViews.push_back({});
     textureSamplers.push_back({});
-    textureDescriptorSets.emplace_back();
+    descriptorSets.emplace_back();
     textureDescriptorPools.push_back({});
 
     stbi_set_flip_vertically_on_load(true);
@@ -1591,28 +1593,26 @@ unsigned int loadTexture(const std::string& fileName) {
 
     stbi_image_free(pixels);
 
-    createImage(texWidth, texHeight, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImages[textureID], textureMemoryRefs[textureID], textureMipLevels[textureID], VK_SAMPLE_COUNT_1_BIT);
+    createImage(texWidth, texHeight, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImages[internalID], textureMemoryRefs[internalID], textureMipLevels[internalID], VK_SAMPLE_COUNT_1_BIT);
 
-    transitionImageLayout(textureImages[textureID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, textureMipLevels[textureID]);
+    transitionImageLayout(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, textureMipLevels[internalID]);
 
-    copyBufferToImage(stagingBuffer, textureImages[textureID], static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1);
+    copyBufferToImage(stagingBuffer, textureImages[internalID], static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1);
 
-    // Transition while generating mipmaps
-    //transitionImageLayout(textureImages[id], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 1, textureMipLevels[id]);
-    generateMipmaps(textureImages[textureID], VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, textureMipLevels[textureID]);
+    generateMipmaps(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, textureMipLevels[internalID]);
 
     vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
     vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 
-    textureImageViews[textureID] = createImageView(textureImages[textureID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels[textureID]);
+    textureImageViews[internalID] = createImageView(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels[internalID]);
 
-    createTextureSampler(textureID, textureMipLevels[textureID]);
+    createTextureSampler(internalID, textureMipLevels[internalID]);
 
-    createTextureDescriptorPool(&textureDescriptorPools[textureID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
+    createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
-    createTextureDescriptorSet(textureID);
+    createTextureDescriptorSet(internalID, descriptorID);
 
-    return textureID;
+    return descriptorID;
 }
 
 static std::vector<char> readFile(const std::string& filename) {
@@ -1685,7 +1685,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
     return id;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported, bool doubleSided) {
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings) {
     unsigned int pipelineID = pipelineLayoutVector.size();
     pipelineLayoutVector.push_back({});
     pipelineVector.push_back({});
@@ -1759,7 +1759,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
 
-    if (doubleSided){
+    if (settings.doubleSided){
         rasterizer.cullMode = VK_CULL_MODE_NONE;
     } else {
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -1775,7 +1775,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    if (transparencySupported) {
+    if (settings.transparencySupported) {
         colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -1800,8 +1800,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = testDepth;
-    if (transparencySupported) {
+    depthStencil.depthTestEnable = settings.testDepth;
+    if (settings.transparencySupported) {
         depthStencil.depthWriteEnable = VK_FALSE;
     } else {
         depthStencil.depthWriteEnable = VK_TRUE;
@@ -1814,7 +1814,16 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     depthStencil.front = {};
     depthStencil.back = {};
 
-    std::array<VkDescriptorSetLayout, 2> dsls = {uniformDescriptorSetLayout, textureDescriptorSetLayout};
+
+    std::vector<VkDescriptorSetLayout> dsls = {};
+    for (int i = 0; i < settings.shaderInputCount; i++) {
+        //  select single bit from shader inputs
+        if (((settings.shaderInputs >> i) & 0b1) == 1) {
+            dsls.push_back(textureDescriptorSetLayout);
+        } else {
+            dsls.push_back(uniformDescriptorSetLayout);
+        }
+    }
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = dsls.size();
@@ -1898,14 +1907,14 @@ void recreateSwapchain() {
     createFramebuffers();
 }
 
-unsigned int createVBO(Renderable* r) {
+unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* interleavedVertices, std::vector<unsigned int>* indices) {
     unsigned int id = vertexBuffers.size();
     vertexBuffers.push_back({});
     vertexBufferMemoryRefs.push_back({});
     indexBuffers.push_back({});
     indexBufferMemoryRefs.push_back({});
 
-    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex_VK) * r->interleavedVertices.size();
+    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex_VK) * interleavedVertices->size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize,
@@ -1916,7 +1925,7 @@ unsigned int createVBO(Renderable* r) {
 
     void* data;
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, r->interleavedVertices.data(), (size_t) bufferSize);
+    memcpy(data, interleavedVertices->data(), (size_t) bufferSize);
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
     createBuffer(bufferSize,
@@ -1931,7 +1940,7 @@ unsigned int createVBO(Renderable* r) {
     vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 
     // Index buffers
-    bufferSize = sizeof(unsigned int) * r->indices.size();
+    bufferSize = sizeof(unsigned int) * indices->size();
 
     createBuffer(bufferSize,
                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1940,7 +1949,7 @@ unsigned int createVBO(Renderable* r) {
                  stagingBufferMemory);
 
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, r->indices.data(), (size_t) bufferSize);
+    memcpy(data, indices->data(), (size_t) bufferSize);
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
     createBuffer(bufferSize,
@@ -1957,9 +1966,14 @@ unsigned int createVBO(Renderable* r) {
     return id;
 }
 
+void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
+    if (!updateAll) memcpy(uniformBuffersMapped[id][currentFrame], ptr, size);
+    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[id][i], ptr, size); }
+}
+
 VkDeviceSize offsets[] = {0};
 
-void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls){
+void renderFrame(const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -2003,9 +2017,6 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
     renderPassInfo.clearValueCount = clearValues.size(); // previous constant was a horrible mistype. no more constants
     renderPassInfo.pClearValues = clearValues.data();
 
-    JEUniformBufferObject_VK ubo = {cameraMatrix, _2dProj, _3dProj, camerapos, cameradir, sundir, suncol, ambient};
-    memcpy(uniformBuffersMapped[0][currentFrame], &ubo, sizeof(ubo));
-
     vkCmdBeginRenderPass(commandBuffers[currentFrame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     VkViewport viewport{};
@@ -2022,30 +2033,28 @@ void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm
     scissor.extent = swapchainExtent;
     vkCmdSetScissor(commandBuffers[currentFrame], 0, 1, &scissor);
 
-    int activeProgram = -1, activeDescriptorSet = -1;
+    int activeProgram = -1;
 
     for (const auto& r : renderables) {
         if (r.enabled) {
-            if (r.shaderProgram != activeProgram || r.texture != activeDescriptorSet) {
+            if (r.shaderProgram != activeProgram) {
                 vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                   pipelineVector[r.shaderProgram]);
                 activeProgram = static_cast<int>(r.shaderProgram);
-
-                std::vector<VkDescriptorSet> descriptor_sets = {uniformDescriptorSets[0][currentFrame], textureDescriptorSets[r.texture]};
-                /*
-                vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        pipelineLayoutVector[r.shaderProgram], 0, 1,
-                                        &uniformDescriptorSets[0][currentFrame], 0, nullptr);
-
-                vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        pipelineLayoutVector[r.shaderProgram], 0, 1,
-                                        &textureDescriptorSets[r.texture], 0, nullptr);
-                                        */
-                vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        pipelineLayoutVector[r.shaderProgram], 0, descriptor_sets.size(),
-                                        descriptor_sets.data(), 0, nullptr);
-                activeDescriptorSet = static_cast<int>(r.texture);
             }
+
+            std::vector<VkDescriptorSet> descriptor_sets = {};
+            for (const auto& d : r.descriptorIDs) {
+                if (descriptorSets[d].type == SINGLE) {
+                    descriptor_sets.push_back(descriptorSets[d].sets[0]);
+                } else {
+                    descriptor_sets.push_back(descriptorSets[d].sets[currentFrame]);
+                }
+            }
+
+            vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                    pipelineLayoutVector[r.shaderProgram], 0, descriptor_sets.size(),
+                                    descriptor_sets.data(), 0, nullptr);
 
             vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r.vboID], offsets);
             vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);

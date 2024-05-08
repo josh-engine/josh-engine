@@ -49,23 +49,10 @@ struct JEInterleavedVertex_VK {
 };
 #endif
 
-#ifdef GFX_API_MTL
-struct JEInterleavedVertex_MTL {
-    alignas(16) glm::vec3 position;
-    alignas(8 ) glm::vec2 textureCoordinate;
-    alignas(16) glm::vec3 normal;
-};
-#endif
-
 class Renderable {
 public:
-    std::vector<float> vertices;
-    std::vector<float> uvs;
-    std::vector<float> normals;
-    std::vector<unsigned int> indices;
-
-    unsigned int shaderProgram{};
-    unsigned int texture{};
+    unsigned int shaderProgram;
+    std::vector<unsigned int> descriptorIDs;
 
     glm::mat4 transform{};
     glm::mat4 rotate{};
@@ -78,12 +65,6 @@ public:
 
 #ifdef GFX_API_VK
     unsigned int vboID{};
-    std::vector<JEInterleavedVertex_VK> interleavedVertices;
-#endif
-
-#ifdef GFX_API_MTL
-    unsigned int vboID{};
-    std::vector<JEInterleavedVertex_MTL> interleavedVertices;
 #endif
 
     // Although on OpenGL this was negligible, for some reason on Vulkan this resulted in around +10FPS.
@@ -93,7 +74,7 @@ public:
         enabled = false;
     }
 
-    Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, unsigned int tex, bool manualDepthSort);
+    Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort);
 
     void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
         this->transform = t;
@@ -102,9 +83,6 @@ public:
         this->objectMatrix = (this->transform * this->rotate * this->scale);
     }
 
-    void saveToFile(const std::string& fileName);
 };
-
-Renderable renderableFromFile(const std::string& fileName);
 
 #endif //JOSHENGINE_RENDERABLE_H

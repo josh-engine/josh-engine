@@ -41,26 +41,30 @@ struct JEPushConstants_VK {
     glm::mat4 normal;
 };
 
-struct JEUniformBufferObject_VK {
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 _2dProj;
-    alignas(16) glm::mat4 _3dProj;
-    alignas(16) glm::vec3 cameraPos;
-    alignas(16) glm::vec3 cameraDir;
-    alignas(16) glm::vec3 sunDir;
-    alignas(16) glm::vec3 sunPos;
-    alignas(16) glm::vec3 ambience;
+//TODO: more magic bullshittery could be used here. ask Eli about C++ syntax crack overdosing.
+enum JEDescriptorSetCount_VK {
+    SINGLE,
+    FRAMES_IN_FLIGHT
+};
+
+struct JEDescriptorSet_VK {
+    JEDescriptorSetCount_VK type;
+    VkDescriptorSet sets[MAX_FRAMES_IN_FLIGHT];
 };
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings);
-void renderFrame(glm::vec3 camerapos, glm::vec3 cameradir, glm::vec3 sundir, glm::vec3 suncol, glm::vec3 ambient, glm::mat4 cameraMatrix,  glm::mat4 _2dProj, glm::mat4 _3dProj, const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls);
+void renderFrame(const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls);
 void deinitGFX();
 unsigned int loadTexture(const std::string& fileName);
 unsigned int loadShader(const std::string& file_path, int target);
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, bool testDepth, bool transparencySupported, bool doubleSided);
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
-unsigned int createVBO(Renderable* r);
+unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* interleavedVertices, std::vector<unsigned int>* indices);
+/* We are exposing these to the user through engine.h instead.
+unsigned int createUniformBuffer(size_t bufferSize);
+void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
+*/
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory();
 void* getTex(unsigned int i);
