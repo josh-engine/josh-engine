@@ -238,7 +238,8 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, 
             //           get to a lower multiple of align, add it again to get back up
             alignedTop = (block.top - (block.top % align)) + align;
             // can we fit and do we have a map conflict?
-            if (block.size >= alignedTop + size && !(willMap ^ block.mapped)) {
+            //                                      if it will map and the block already is, we can't use it
+            if (block.size >= alignedTop + size && !(willMap && block.mapped)) {
                 block.top = alignedTop + size;
                 return {&block, size, alignedTop};
             }
@@ -999,7 +1000,7 @@ void createUniformDescriptorSets(unsigned int bufferID, size_t uniformSize) {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
 
-    descriptorSets[bufferID].type = FRAMES_IN_FLIGHT;
+    descriptorSets[bufferID].type = JEDescriptorSetCount_VK::FRAMES_IN_FLIGHT;
     if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[bufferID].sets[0]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to allocate uniform descriptor sets!");
     }
@@ -1072,7 +1073,7 @@ void createTextureDescriptorSet(unsigned int internalID, unsigned int descriptor
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &textureDescriptorSetLayout;
 
-    descriptorSets[descriptorID].type = SINGLE;
+    descriptorSets[descriptorID].type = JEDescriptorSetCount_VK::SINGLE;
     if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[descriptorID].sets[0]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to allocate texture descriptor set!");
     }
@@ -2054,7 +2055,7 @@ void renderFrame(const std::vector<Renderable>& renderables, const std::vector<v
 
             std::vector<VkDescriptorSet> descriptor_sets = {};
             for (const auto& d : r.descriptorIDs) {
-                if (descriptorSets[d].type == SINGLE) {
+                if (descriptorSets[d].type == JEDescriptorSetCount_VK::SINGLE) {
                     descriptor_sets.push_back(descriptorSets[d].sets[0]);
                 } else {
                     descriptor_sets.push_back(descriptorSets[d].sets[currentFrame]);

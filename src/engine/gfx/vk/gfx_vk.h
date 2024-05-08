@@ -23,8 +23,6 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
-
-
 struct JEMemoryBlock_VK {
     VkDeviceMemory memory;
     uint32_t type;
@@ -44,15 +42,14 @@ struct JEPushConstants_VK {
     glm::mat4 normal;
 };
 
-//TODO: more magic bullshittery could be used here. ask Eli about C++ syntax crack overdosing.
-enum JEDescriptorSetCount_VK {
+enum class JEDescriptorSetCount_VK : unsigned char {
     SINGLE,
     FRAMES_IN_FLIGHT
 };
 
 struct JEDescriptorSet_VK {
-    JEDescriptorSetCount_VK type;
     VkDescriptorSet sets[MAX_FRAMES_IN_FLIGHT];
+    JEDescriptorSetCount_VK type;
 };
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings);
