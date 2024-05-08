@@ -1907,14 +1907,14 @@ void recreateSwapchain() {
     createFramebuffers();
 }
 
-unsigned int createVBO(Renderable* r) {
+unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* interleavedVertices, std::vector<unsigned int>* indices) {
     unsigned int id = vertexBuffers.size();
     vertexBuffers.push_back({});
     vertexBufferMemoryRefs.push_back({});
     indexBuffers.push_back({});
     indexBufferMemoryRefs.push_back({});
 
-    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex_VK) * r->interleavedVertices.size();
+    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex_VK) * interleavedVertices->size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize,
@@ -1925,7 +1925,7 @@ unsigned int createVBO(Renderable* r) {
 
     void* data;
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, r->interleavedVertices.data(), (size_t) bufferSize);
+    memcpy(data, interleavedVertices->data(), (size_t) bufferSize);
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
     createBuffer(bufferSize,
@@ -1940,7 +1940,7 @@ unsigned int createVBO(Renderable* r) {
     vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
 
     // Index buffers
-    bufferSize = sizeof(unsigned int) * r->indices.size();
+    bufferSize = sizeof(unsigned int) * indices->size();
 
     createBuffer(bufferSize,
                  VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1949,7 +1949,7 @@ unsigned int createVBO(Renderable* r) {
                  stagingBufferMemory);
 
     vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, r->indices.data(), (size_t) bufferSize);
+    memcpy(data, indices->data(), (size_t) bufferSize);
     vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
     createBuffer(bufferSize,

@@ -59,11 +59,6 @@ struct JEInterleavedVertex_MTL {
 
 class Renderable {
 public:
-    std::vector<float> vertices;
-    std::vector<float> uvs;
-    std::vector<float> normals;
-    std::vector<unsigned int> indices;
-
     unsigned int shaderProgram;
     std::vector<unsigned int> descriptorIDs;
 
@@ -78,12 +73,10 @@ public:
 
 #ifdef GFX_API_VK
     unsigned int vboID{};
-    std::vector<JEInterleavedVertex_VK> interleavedVertices;
 #endif
 
 #ifdef GFX_API_MTL
     unsigned int vboID{};
-    std::vector<JEInterleavedVertex_MTL> interleavedVertices;
 #endif
 
     // Although on OpenGL this was negligible, for some reason on Vulkan this resulted in around +10FPS.
@@ -102,9 +95,6 @@ public:
         this->objectMatrix = (this->transform * this->rotate * this->scale);
     }
 
-    void saveToFile(const std::string& fileName);
 };
-
-Renderable renderableFromFile(const std::string& fileName);
 
 #endif //JOSHENGINE_RENDERABLE_H

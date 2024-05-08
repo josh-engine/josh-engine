@@ -13,8 +13,8 @@
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
 
-unsigned int createVBOFunctionMirror(void* r) {
-    return createVBO(reinterpret_cast<Renderable*>(r));
+unsigned int createVBOFunctionMirror(void* r, void* v, void* i) {
+    return createVBO(reinterpret_cast<Renderable*>(r), reinterpret_cast<std::vector<JEInterleavedVertex_VK>*>(v), reinterpret_cast<std::vector<unsigned int>*>(i));
 }
 #endif
 
@@ -26,16 +26,13 @@ unsigned int createVBOFunctionMirror(void* r) {
 }
 #endif
 
-Renderable::Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
+Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
     enabled = true;
-    vertices = std::move(verts);
-    uvs = std::move(_uvs);
-    normals = std::move(norms);
-    indices = std::move(ind);
     descriptorIDs= std::move(descs);
     this->shaderProgram = shid;
     this->manualDepthSort = manualDepthSort;
 
+    std::vector<JEInterleavedVertex_VK> interleavedVertices{};
     for (int i = 0; i < vertices.size()/3; i++) {
         interleavedVertices.push_back({
             {vertices[3*i],  vertices[(3*i)+1], vertices[(3*i)+2]},
@@ -44,6 +41,6 @@ Renderable::Renderable(std::vector<float> verts, std::vector<float> _uvs, std::v
         });
     }
 
-    vboID = createVBOFunctionMirror(this);
+    vboID = createVBOFunctionMirror(this, &interleavedVertices, &indices);
     indicesSize = indices.size();
 }

@@ -6,6 +6,7 @@
 #include <iostream>
 #include <utility>
 #include "renderable.h"
+#include "modelutil.h"
 #include "../engine.h"
 
 Renderable quadBase;
@@ -44,7 +45,7 @@ struct repackVertexObject {
     }
 };
 
-Renderable repackRenderable(Renderable r) {
+Model repackRenderable(Model r) {
     std::vector<repackVertexObject> repackList = {};
     std::vector<unsigned int> indices = {};
 
@@ -96,7 +97,7 @@ Renderable repackRenderable(Renderable r) {
         normals.push_back(vert.nml.z);
     }
 
-    return {vertices, uvs, normals, indices, r.shaderProgram, r.descriptorIDs, r.manualDepthSort};
+    return {vertices, uvs, normals, indices};
 }
 
 std::vector<std::string> splitStr(const std::string& in, char del) {
@@ -153,11 +154,7 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
     std::vector<Renderable> renderableList;
 
     std::string currentLine;
-    Renderable currentRenderable;
-    currentRenderable.enabled = true;
-    currentRenderable.descriptorIDs = desc;
-    currentRenderable.shaderProgram = shaderProgram;
-    currentRenderable.manualDepthSort = manualDepthSort;
+    Model currentRenderable;
 
     // Stupid solution to everything starting at 1.
     std::vector<glm::vec3> modelVertices = {{0, 0, 0}};
@@ -170,7 +167,11 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
             std::vector<std::string> split = splitStr(currentLine, ' ');
             currentLine = "";
 
-            if (split.empty() || split[0] == "#") {
+            if (!split.empty() && split[split.size()-1].ends_with("\r")) { // Fucking windows.
+                split[split.size()-1] = split[split.size()-1].substr(0, split[split.size()-1].length()-1);
+            }
+
+            if (split.empty() || split[0] == "#" || split[0] == "") {
                 continue; // This line of the file is a comment
             }
 
@@ -253,16 +254,13 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
             } else if ((split[0] == "s") || (split[0] == "mtllib")) {
                 // smooth shaded enabled (ignore this case)
                 // load material (ignore this case)
-            } else if (split[0] == "usemtl" || split[0] == "o") {
+            } else if (split[0] == "usemtl" || split[0] == "o" || split[0] == "g") {
                 // use specific material
                 if (!currentRenderable.vertices.empty()) {
-                    renderableList.push_back(repackRenderable(currentRenderable));
+                    Model repacked = repackRenderable(currentRenderable);
+                    renderableList.push_back({repacked.vertices, repacked.uvs, repacked.normals, repacked.indices, shaderProgram, desc, manualDepthSort});
                 }
-                currentRenderable = Renderable();
-                currentRenderable.enabled = true;
-                currentRenderable.descriptorIDs = desc;
-                currentRenderable.shaderProgram = shaderProgram;
-                currentRenderable.manualDepthSort = manualDepthSort;
+                currentRenderable = {};
             }
             else if (split[0] == "vp" || split[0] == "l") {
                 std::cerr << "OBJ model at " << path << " uses unsupported parameter space vertex or line element! Cancelling load." << std::endl;
@@ -272,8 +270,8 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
             }
         }
     }
-    renderableList.push_back(repackRenderable(currentRenderable));
-    objMap.insert({path, renderableList});
+    Model repacked = repackRenderable(currentRenderable);
+    renderableList.push_back({repacked.vertices, repacked.uvs, repacked.normals, repacked.indices, shaderProgram, desc, manualDepthSort});    objMap.insert({path, renderableList});
     return renderableList;
 }
 
