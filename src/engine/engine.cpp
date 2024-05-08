@@ -3,7 +3,6 @@
 //
 #include "engineconfig.h"
 #include "gfx/vk/gfx_vk.h"
-#include "gfx/mtl/gfx_mtl.h"
 #include "sound/engineaudio.h"
 #include "engine.h"
 #include <iostream>

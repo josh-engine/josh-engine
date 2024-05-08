@@ -4,7 +4,7 @@
 
 #ifndef JOSHENGINE_ENGINE_H
 #define JOSHENGINE_ENGINE_H
-#if defined(GFX_API_VK) | defined(GFX_API_MTL)
+#if defined(GFX_API_VK)
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #endif

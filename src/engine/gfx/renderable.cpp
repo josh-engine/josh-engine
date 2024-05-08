@@ -18,14 +18,6 @@ unsigned int createVBOFunctionMirror(void* r, void* v, void* i) {
 }
 #endif
 
-#ifdef GFX_API_MTL
-#include "mtl/gfx_mtl.h"
-
-unsigned int createVBOFunctionMirror(void* r) {
-    return createVBO(reinterpret_cast<Renderable*>(r));
-}
-#endif
-
 Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
     enabled = true;
     descriptorIDs= std::move(descs);

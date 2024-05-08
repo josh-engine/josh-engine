@@ -30,7 +30,6 @@ set(JoshEngine_sources src/main.cpp
 
 option(JE_API_VK "Use Vulkan Graphics API" ON)
 if (APPLE)
-    option(JE_API_MTL "Use Metal Graphics API (Mac only)" OFF)
     add_compile_definitions(PLATFORM_MAC)
 elseif (UNIX)
     add_compile_definitions(PLATFORM_UNIX)
@@ -49,36 +48,6 @@ if (JE_API_VK)
     set(JoshEngine_sources ${JoshEngine_sources}
             src/engine/gfx/vk/gfx_vk.cpp
             src/engine/gfx/imgui/imgui_impl_vulkan.cpp
-    )
-endif()
-
-# Metal
-if (JE_API_MTL)
-    find_package(glslang REQUIRED)
-    include_directories("${JoshEngine_SOURCE_DIR}/includes/metal-cpp")
-    add_compile_definitions(GFX_API_MTL)
-    set(JoshEngine_libraries ${JoshEngine_libraries}
-            glslang::glslang
-            glslang::SPIRV
-            "-framework Metal"
-            "-framework Foundation"
-            "-framework QuartzCore"
-    )
-    set(JoshEngine_sources ${JoshEngine_sources}
-            src/engine/gfx/mtl/gfx_mtl.mm
-            src/engine/gfx/mtl/mtl_impl.cpp
-            src/engine/gfx/imgui/imgui_impl_metal.mm
-            src/engine/gfx/spirv/cross/spirv_msl.cpp
-            src/engine/gfx/spirv/cross/spirv_glsl.cpp
-            src/engine/gfx/spirv/cross/spirv_hlsl.cpp
-            src/engine/gfx/spirv/cross/spirv_parser.cpp
-            src/engine/gfx/spirv/cross/spirv_reflect.cpp
-            src/engine/gfx/spirv/cross/spirv_cross_util.cpp
-            src/engine/gfx/spirv/cross/spirv_cross_parsed_ir.cpp
-            src/engine/gfx/spirv/cross/spirv_cross_c.cpp
-            src/engine/gfx/spirv/cross/spirv_cross.cpp
-            src/engine/gfx/spirv/cross/spirv_cpp.cpp
-            src/engine/gfx/spirv/cross/spirv_cfg.cpp
     )
 endif()
 

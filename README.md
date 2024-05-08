@@ -26,6 +26,5 @@ Once everything above this line is done, the engine is ready for a beta!
 - [X] Deeply refactor graphics backend to be a little more fluid and support multiple APIs
 - [ ] OpenGL ES 2.0 or 3.0 for Emscripten+WebGL
 - [X] Vulkan
-- [X] Metal
 - [ ] DX12
 - [ ] Skinned animation support

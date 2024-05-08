@@ -49,14 +49,6 @@ struct JEInterleavedVertex_VK {
 };
 #endif
 
-#ifdef GFX_API_MTL
-struct JEInterleavedVertex_MTL {
-    alignas(16) glm::vec3 position;
-    alignas(8 ) glm::vec2 textureCoordinate;
-    alignas(16) glm::vec3 normal;
-};
-#endif
-
 class Renderable {
 public:
     unsigned int shaderProgram;
@@ -72,10 +64,6 @@ public:
     bool manualDepthSort{};
 
 #ifdef GFX_API_VK
-    unsigned int vboID{};
-#endif
-
-#ifdef GFX_API_MTL
     unsigned int vboID{};
 #endif
 

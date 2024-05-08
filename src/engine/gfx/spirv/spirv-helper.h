@@ -110,7 +110,6 @@ struct SpirvHelper
         Resources.limits.generalVariableIndexing = 1;
         Resources.limits.generalConstantMatrixVectorIndexing = 1;
     }
-#ifdef GFX_API_VK
     static EShLanguage FindLanguage(const VkShaderStageFlagBits shader_type) {
 
         switch (shader_type) {
@@ -124,29 +123,11 @@ struct SpirvHelper
                 return EShLangVertex;
         }
     }
-#elif defined(GFX_API_MTL)
-    static EShLanguage FindLanguage(const int shader_type) {
-        switch (shader_type) {
-            case 0:
-                return EShLangVertex;
-            case 1:
-                return EShLangFragment;
-            case 2:
-                return EShLangCompute;
-            default:
-                return EShLangVertex;
-        }
-    }
-#endif
     // Weird blend between these sources
     // https://lxjk.github.io/2020/03/10/Translate-GLSL-to-SPIRV-for-Vulkan-at-Runtime.html
     // https://github.com/Goutch/HellbenderEngine/blob/master/platforms/vk/ShaderCompiler.cpp#L251
     // my own code (though hardly any)
-#ifdef GFX_API_VK
     static bool GLSLtoSPV(const VkShaderStageFlagBits shader_type, const char *pshader, std::vector<unsigned int>* spirv) {
-#elif defined(GFX_API_MTL)
-    static bool GLSLtoSPV(const int shader_type, const char *pshader, std::vector<unsigned int>* spirv) {
-#endif
         glslang::InitializeProcess();
         EShLanguage stage = FindLanguage(shader_type);
 
