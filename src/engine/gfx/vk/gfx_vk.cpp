@@ -78,7 +78,6 @@ VkDescriptorSetLayout uniformDescriptorSetLayout;
 VkDescriptorSetLayout textureDescriptorSetLayout;
 
 std::vector<std::vector<VkBuffer>> uniformBuffers;
-// Didn't want to screw around with mapping only PARTS of an allocation... something was bound to go funky.
 std::vector<std::vector<JEAllocation_VK>> uniformBuffersMemory;
 std::vector<std::vector<void*>> uniformBuffersMapped;
 std::vector<VkDescriptorPool> uniformDescriptorPools;
@@ -95,6 +94,14 @@ std::vector<JEDescriptorSet_VK> descriptorSets;
 #ifdef DEBUG_ENABLED
 void* getTex(unsigned int i) {
     return descriptorSets[i].sets[0];
+}
+
+unsigned int getBufCount() {
+    return uniformBuffers.size();
+}
+
+JEBufferReference_VK getBuf(unsigned int i) {
+    return {&uniformBuffersMemory[i], &uniformBuffersMapped[i]};
 }
 #endif
 
@@ -612,7 +619,7 @@ void choosePhysicalDevice() {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-    auto compareLambda = [](std::pair<int, VkPhysicalDevice> left, std::pair<int, VkPhysicalDevice> right){return left.first > right.first;};
+    auto compareLambda = [](std::pair<int, VkPhysicalDevice> left, std::pair<int, VkPhysicalDevice> right){return left.first < right.first;};
     std::priority_queue<std::pair<int, VkPhysicalDevice>, std::deque<std::pair<int, VkPhysicalDevice>>, decltype(compareLambda)> candidates;
 
     for (const auto& device : devices) {

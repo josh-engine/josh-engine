@@ -47,6 +47,11 @@ enum class JEDescriptorSetCount_VK : unsigned char {
     FRAMES_IN_FLIGHT
 };
 
+struct JEBufferReference_VK {
+    std::vector<JEAllocation_VK>* alloc;
+    std::vector<void*>* map = {nullptr};
+};
+
 struct JEDescriptorSet_VK {
     VkDescriptorSet sets[MAX_FRAMES_IN_FLIGHT];
     JEDescriptorSetCount_VK type;
@@ -68,6 +73,8 @@ void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory();
 void* getTex(unsigned int i);
+JEBufferReference_VK getBuf(unsigned int i);
+unsigned int getBufCount();
 #endif
 
 #endif //JOSHENGINE_GFX_VK_H
