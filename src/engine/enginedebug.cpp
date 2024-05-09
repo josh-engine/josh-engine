@@ -4,6 +4,7 @@
 #include "engineconfig.h"
 #ifdef DEBUG_ENABLED
 #include <string>
+#include <bit>
 #include "enginedebug.h"
 #include "engine.h"
 #include "gfx/imgui/imgui.h"

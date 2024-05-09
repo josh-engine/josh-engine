@@ -1,14 +1,9 @@
 //
 // Created by Ember Lee on 3/27/24.
 //
-#include <fstream>
 #include <istream>
-#include <filesystem>
-#include <iostream>
 #include <iterator>
 #include "renderable.h"
-#include "../engine.h"
-#include <bit>
 
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
@@ -24,7 +19,7 @@ Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std:
     this->shaderProgram = shid;
     this->manualDepthSort = manualDepthSort;
 
-    std::vector<JEInterleavedVertex_VK> interleavedVertices{};
+    std::vector<JEInterleavedVertex_VK> interleavedVertices(vertices.size()/3);
     for (int i = 0; i < vertices.size()/3; i++) {
         interleavedVertices.push_back({
             {vertices[3*i],  vertices[(3*i)+1], vertices[(3*i)+2]},
