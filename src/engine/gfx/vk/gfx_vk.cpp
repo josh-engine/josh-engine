@@ -77,9 +77,9 @@ std::vector<JEAllocation_VK> indexBufferMemoryRefs;
 VkDescriptorSetLayout uniformDescriptorSetLayout;
 VkDescriptorSetLayout textureDescriptorSetLayout;
 
-std::vector<std::vector<VkBuffer>> uniformBuffers;
-std::vector<std::vector<JEAllocation_VK>> uniformBuffersMemory;
-std::vector<std::vector<void*>> uniformBuffersMapped;
+std::vector<std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT>> uniformBuffers;
+std::vector<std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMemory;
+std::vector<std::array<void*, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMapped;
 std::vector<VkDescriptorPool> uniformDescriptorPools;
 
 std::vector<VkImage> textureImages;
@@ -90,20 +90,6 @@ std::vector<VkDescriptorPool> textureDescriptorPools;
 std::vector<VkSampler> textureSamplers;
 
 std::vector<JEDescriptorSet_VK> descriptorSets;
-
-#ifdef DEBUG_ENABLED
-void* getTex(unsigned int i) {
-    return descriptorSets[i].sets[0];
-}
-
-unsigned int getBufCount() {
-    return uniformBuffers.size();
-}
-
-JEBufferReference_VK getBuf(unsigned int i) {
-    return {&uniformBuffersMemory[i], &uniformBuffersMapped[i]};
-}
-#endif
 
 VkDescriptorPool imGuiDescriptorPool;
 
@@ -122,6 +108,18 @@ std::vector<JEMemoryBlock_VK> memoryBlocks{};
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory() {
     return memoryBlocks;
+}
+
+void* getTex(unsigned int i) {
+    return descriptorSets[i].sets[0];
+}
+
+unsigned int getBufCount() {
+    return uniformBuffers.size();
+}
+
+JEBufferReference_VK getBuf(unsigned int i) {
+    return {&(uniformBuffersMemory[i]), &(uniformBuffersMapped[i])};
 }
 #endif
 
@@ -237,6 +235,7 @@ void allocateDeviceMemory(VkDeviceMemory& memory, VkDeviceSize size, uint32_t me
 }
 
 JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, bool willMap) {
+    unsigned int i = 0;
     for (auto & block : memoryBlocks) {
         // is it the right type?
         if (block.type == memoryType){
@@ -247,19 +246,20 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, 
             // can we fit and do we have a map conflict?
             //                                      if it will map and the block already is, we can't use it
             if (block.size >= alignedTop + size && !(willMap && block.mapped)) {
-                block.top = alignedTop + size;
-                return {&block, size, alignedTop};
+                block.top   = alignedTop + size;
+                return {i, size, alignedTop};
             }
         }
+        i++;
     }
 
     VkDeviceMemory newMemory;
-    VkDeviceSize newBlockSize = (willMap ? size : NEW_BLOCK_MIN_SIZE);
+    VkDeviceSize newBlockSize =  (willMap ? size : NEW_BLOCK_MIN_SIZE);
     // do the vector thing and be prepared for double the size of our original data (if it is larger than our new min size)
     if (size*2 > newBlockSize && !willMap) newBlockSize = size*2;
-    allocateDeviceMemory(newMemory, newBlockSize, memoryType);
+    allocateDeviceMemory   (newMemory, newBlockSize, memoryType);
     memoryBlocks.push_back({newMemory, memoryType, newBlockSize, size});
-    return {&memoryBlocks[memoryBlocks.size()-1], size, 0};
+    return {static_cast<unsigned int>(memoryBlocks.size()-1), size, 0};
 }
 
 JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) {
@@ -267,7 +267,7 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) 
 }
 
 void vkmmap(JEAllocation_VK* alloc, void** toMap) {
-    vkMapMemory(logicalDevice, alloc->memoryRef->memory, alloc->offset, alloc->size, 0, toMap);
+    vkMapMemory(logicalDevice, memoryBlocks[alloc->memoryRefID].memory, alloc->offset, alloc->size, 0, toMap);
 }
 
 void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, JEAllocation_VK& alloc, bool willMap) {
@@ -286,7 +286,7 @@ void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyF
 
     alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties), memRequirements.alignment, willMap);
 
-    vkBindBufferMemory(logicalDevice, buffer, alloc.memoryRef->memory, alloc.offset);
+    vkBindBufferMemory(logicalDevice, buffer, memoryBlocks[alloc.memoryRefID].memory, alloc.offset);
 }
 
 void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& memory) {
@@ -841,12 +841,12 @@ void createRenderPass() {
     colorAttachmentResolveRef.attachment = 2;
     colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-    subpass.pResolveAttachments = &colorAttachmentResolveRef;
+    std::array<VkSubpassDescription, 1> subpasses{};
+    subpasses[0].pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpasses[0].colorAttachmentCount = 1;
+    subpasses[0].pColorAttachments = &colorAttachmentRef;
+    subpasses[0].pDepthStencilAttachment = &depthAttachmentRef;
+    subpasses[0].pResolveAttachments = &colorAttachmentResolveRef;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -862,8 +862,8 @@ void createRenderPass() {
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = attachments.size();
     renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.subpassCount = subpasses.size();
+    renderPassInfo.pSubpasses = subpasses.data();
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
@@ -1041,10 +1041,6 @@ unsigned int createUniformBuffer(size_t bufferSize) {
     descriptorSets.emplace_back();
     uniformDescriptorPools.push_back({});
 
-    uniformBuffers[bufferID].resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMemory[bufferID].resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMapped[bufferID].resize(MAX_FRAMES_IN_FLIGHT);
-
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
         createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[bufferID][i], uniformBuffersMemory[bufferID][i], true);
         vkmmap(&uniformBuffersMemory[bufferID][i], &uniformBuffersMapped[bufferID][i]);
@@ -1128,7 +1124,7 @@ void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkForma
 
     alloc = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, properties), memRequirements.alignment);
 
-    vkBindImageMemory(logicalDevice, image, alloc.memoryRef->memory, alloc.offset);
+    vkBindImageMemory(logicalDevice, image, memoryBlocks[alloc.memoryRefID].memory, alloc.offset);
 }
 
 void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& memory, unsigned int mipLevels, VkSampleCountFlagBits samples) {
@@ -1450,7 +1446,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
 
     textureMemoryRefs[internalID] = vkalloc(memRequirements.size, findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT), memRequirements.alignment);
 
-    vkBindImageMemory(logicalDevice, textureImages[internalID], textureMemoryRefs[internalID].memoryRef->memory, textureMemoryRefs[internalID].offset);
+    vkBindImageMemory(logicalDevice, textureImages[internalID], memoryBlocks[textureMemoryRefs[internalID].memoryRefID].memory, textureMemoryRefs[internalID].offset);
 
     transitionImageLayout(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, 1);
 

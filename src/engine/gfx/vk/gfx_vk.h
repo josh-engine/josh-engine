@@ -32,7 +32,7 @@ struct JEMemoryBlock_VK {
 };
 
 struct JEAllocation_VK {
-    JEMemoryBlock_VK* memoryRef;
+    unsigned int memoryRefID;
     VkDeviceSize size;
     VkDeviceSize offset;
 };
@@ -48,8 +48,8 @@ enum class JEDescriptorSetCount_VK : unsigned char {
 };
 
 struct JEBufferReference_VK {
-    std::vector<JEAllocation_VK>* alloc;
-    std::vector<void*>* map = {nullptr};
+    std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>* alloc;
+    std::array<void*, MAX_FRAMES_IN_FLIGHT>* map = {nullptr}; // Just applies to uniforms.
 };
 
 struct JEDescriptorSet_VK {

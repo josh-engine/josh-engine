@@ -68,7 +68,7 @@ void setupImGuiWindow() {
         ImGui::Begin("Stats");
 
         ImGui::Text("Frame time: %ims (~%i fps)", static_cast<int>(getFrameTime()), static_cast<int>(1/(getFrameTime()/1000)));
-        ImGui::Text("Renderables: %i", getRenderableCount());
+        ImGui::Text("Renderables: %zu", getRenderableCount());
 
         ImGui::End();
     }
@@ -143,13 +143,13 @@ void setupImGuiWindow() {
             ImGui::Text("Buffer %zu", i);
             ImGui::Indent();
             JEBufferReference_VK ref = getBuf(i);
-            for (int i1 = 0; i1 < MAX_FRAMES_IN_FLIGHT; i1++) {
-                JEAllocation_VK ac = (*ref.alloc)[i1];
-                ImGui::Text("Frame %i", i1);
+            for (int j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
+                JEAllocation_VK alloc = (*ref.alloc)[j];
+                ImGui::Text("Frame %i", j);
                 ImGui::Indent();
-                ImGui::Text("Allocation is %s", sizeFormat(ac.size).c_str());
-                ImGui::Text("Stored in block of size %s and type %i", sizeFormat(ac.memoryRef->size).c_str(), ac.memoryRef->type);
-                ImGui::Text("Map pointer is 0x%lx", std::bit_cast<unsigned long>((*ref.map)[i1]));
+                ImGui::Text("Allocation is %s", sizeFormat(alloc.size).c_str());
+                ImGui::Text("Stored in block %i", alloc.memoryRefID);
+                ImGui::Text("Map pointer is 0x%lx", std::bit_cast<unsigned long>((*ref.map)[j]));
                 ImGui::Unindent();
             }
             ImGui::Unindent();
