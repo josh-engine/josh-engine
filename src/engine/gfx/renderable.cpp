@@ -19,7 +19,8 @@ Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std:
     this->shaderProgram = shid;
     this->manualDepthSort = manualDepthSort;
 
-    std::vector<JEInterleavedVertex_VK> interleavedVertices(vertices.size()/3);
+    std::vector<JEInterleavedVertex_VK> interleavedVertices{};
+    interleavedVertices.reserve(vertices.size()/3);
     for (int i = 0; i < vertices.size()/3; i++) {
         interleavedVertices.push_back({
             {vertices[3*i],  vertices[(3*i)+1], vertices[(3*i)+2]},
