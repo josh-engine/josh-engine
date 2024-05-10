@@ -4,7 +4,6 @@
 #include "engineconfig.h"
 #ifdef DEBUG_ENABLED
 #include <string>
-#include <bit>
 #include "enginedebug.h"
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
@@ -149,7 +148,7 @@ void setupImGuiWindow() {
                 ImGui::Indent();
                 ImGui::Text("Allocation is %s", sizeFormat(alloc.size).c_str());
                 ImGui::Text("Stored in block %i", alloc.memoryRefID);
-                ImGui::Text("Map pointer is 0x%lx", std::bit_cast<unsigned long>((*ref.map)[j]));
+                ImGui::Text("Map pointer is 0x%lx", (unsigned long) (*ref.map)[j]);
                 ImGui::Unindent();
             }
             ImGui::Unindent();
