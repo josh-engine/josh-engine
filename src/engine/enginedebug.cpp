@@ -34,7 +34,7 @@ void registerFunctionToDebug(const std::string& name, void* function) {
 #endif //DEBUG_ENABLED
 }
 
-inline constexpr std::string sizeFormat(size_t s) {
+inline std::string sizeFormat(size_t s) {
     if (s > 1024*1024) {
         return std::to_string((s/1024)/1024) + " MiB";
     } else if (s > 1024) {
