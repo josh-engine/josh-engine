@@ -16,8 +16,15 @@ jobs:
       - name: Install Conan
         id: conan
         uses: turtlebrowser/get-conan@main
-
-      - name: Create default profile
+      - name: Cache Conan Dependencies
+        id: cache-conan
+        uses: actions/cache@v2
+        with:
+          path: C:\Users\runneradmin\.conan2
+          key: ${{runner.os}}-conan-${{hashFiles('**/conan_vk.txt')}}
+      #if we don't hit the cache we need to create a conan default profile
+      - if: ${{ steps.cache-conan.outputs.cache-hit != 'true' }}
+        name: Create default profile
         run: conan profile detect
 
       - name: Install Dependencies
