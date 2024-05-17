@@ -1,11 +1,14 @@
 # JoshEngine
+![Cmake Macos Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-macos-vulkan.yml/badge.svg)
+![Cmake Ubuntu Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-ubuntu-vulkan.yml/badge.svg)
+![Cmake Windows Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-windows-vulkan.yml/badge.svg)
 
 > *Code it for the meme, end up using it somehow.*
 
-Hello ladies, gents, and fellows anywhere inbetween! 
+Hello ladies, gents, and fellows anywhere inbetween!
 Welcome to the amazing and wonderful home of JoshCo's *fourth attempt* at a usable game engine!
 
-Alright, I'll cut the theatrics now. 
+Alright, I'll cut the theatrics now.
 
 This is the work we have to get done:
 
