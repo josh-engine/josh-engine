@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
         # Install homebrew so that we can use glslang
       - name: Set up Homebrew
         id: set-up-homebrew
