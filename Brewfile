@@ -1,0 +1,7 @@
+brew 'glfw'
+brew 'glm'
+brew 'openal-soft'
+brew 'spirv-tools'
+brew 'glslang'
+brew 'vulkan-headers'
+brew 'vulkan-loader'

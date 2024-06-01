@@ -25,7 +25,7 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
 
       - name: Install Dependencies
-        run: brew install glfw glm openal-soft spirv-tools glslang vulkan-validationlayers vulkan-headers
+        run: brew bundle install --file=${{github.workspace}}/Brewfile
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
