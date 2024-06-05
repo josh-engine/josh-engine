@@ -54,35 +54,26 @@ public:
     unsigned int shaderProgram;
     std::vector<unsigned int> descriptorIDs;
 
-    glm::mat4 transform{};
-    glm::mat4 rotate{};
-    glm::mat4 scale{};
-    glm::mat4 objectMatrix{};
+    glm::mat4 transform;
+    glm::mat4 rotate;
+    glm::mat4 scale;
+    glm::mat4 objectMatrix;
 
     bool enabled;
 
-    bool manualDepthSort{};
+    bool manualDepthSort;
 
 #ifdef GFX_API_VK
-    unsigned int vboID{};
+    unsigned int vboID;
 #endif
 
-    // Although on OpenGL this was negligible, for some reason on Vulkan this resulted in around +10FPS.
-    unsigned int indicesSize{};
+    unsigned int indicesSize;
 
-    Renderable() {
-        enabled = false;
-    }
+    Renderable();
 
     Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort);
 
-    void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
-        this->transform = t;
-        this->rotate = r;
-        this->scale = s;
-        this->objectMatrix = (this->transform * this->rotate * this->scale);
-    }
-
+    void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s);
 };
 
 #endif //JOSHENGINE_RENDERABLE_H

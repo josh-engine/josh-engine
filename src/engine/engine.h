@@ -115,6 +115,7 @@ struct JEUniformBufferObject {
     alignas(16) mat4 _3dProj;
     alignas(16) vec3 cameraPos;
     alignas(16) vec3 cameraDir;
+    alignas(8)  vec2 screenSize;
 };
 
 struct JELightingBuffer {
@@ -139,9 +140,9 @@ Transform* cameraAccess();
 bool isKeyDown(int key);
 bool isMouseButtonDown(int button);
 GLFWwindow** getWindow();
-// If MSVC is our compiler
 #ifdef _MSC_VER
-//then for some reason the vec2 (vec<2, float, 0>) get turned into vec<2, float, 3>
+// If MSVC is our compiler
+// then for some reason the vec2 (vec<2, float, 0>) get turned into vec<2, float, 3>
 // So we need to assign alternate functions to fix this.
 vec2_MSVC getRawCursorPos();
 vec2_MSVC getCursorPos();
@@ -153,7 +154,6 @@ vec2 getCursorPos();
 void setRawCursorPos(vec2 pos);
 void setSunProperties(vec3 position, vec3 color);
 #endif
-
 void setCursorPos(vec2 pos);
 unsigned int createTextureWithName(const std::string& name, const std::string& fileName);
 unsigned int createTexture(const std::string& folderPath, const std::string& fileName);
