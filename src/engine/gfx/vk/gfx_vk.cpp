@@ -80,7 +80,6 @@ VkDescriptorSetLayout textureDescriptorSetLayout;
 std::vector<std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT>> uniformBuffers;
 std::vector<std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMemory;
 std::vector<std::array<void*, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMapped;
-std::vector<unsigned int> uniformBuffersIDRefs;
 std::vector<VkDescriptorPool> uniformDescriptorPools;
 
 std::vector<VkImage> textureImages;
@@ -1033,12 +1032,6 @@ void createUniformDescriptorSets(unsigned int bufferID, unsigned int descriptorI
     }
 }
 
-//TODO: HORRIBLE BUGFIX SO I CAN GET ON WITH MY LIFE. FIX LATER, FINISH ENGLISH NOW.
-void newDescriptorSet(unsigned int ubufref) {
-    descriptorSets.emplace_back();
-    uniformBuffersIDRefs.emplace_back(ubufref);
-}
-
 unsigned int createUniformBuffer(size_t bufferSize) {
     unsigned int bufferID = uniformBuffers.size();
     unsigned int descriptorID = descriptorSets.size();
@@ -1046,7 +1039,7 @@ unsigned int createUniformBuffer(size_t bufferSize) {
     uniformBuffers.emplace_back();
     uniformBuffersMemory.emplace_back();
     uniformBuffersMapped.emplace_back();
-    newDescriptorSet(bufferID);
+    descriptorSets.emplace_back();
     uniformDescriptorPools.push_back({});
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -1056,6 +1049,7 @@ unsigned int createUniformBuffer(size_t bufferSize) {
 
     createUniformDescriptorPool(&uniformDescriptorPools[bufferID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
     createUniformDescriptorSets(bufferID, descriptorID, bufferSize);
+    descriptorSets[descriptorID].idRef = bufferID;
 
     return descriptorID;
 }
@@ -1396,7 +1390,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     textureImageViews.push_back({});
     textureSamplers.push_back({});
     textureMipLevels.push_back(1);
-    newDescriptorSet(0);
+    descriptorSets.emplace_back();
     textureDescriptorPools.push_back({});
 
     stbi_set_flip_vertically_on_load(false);
@@ -1585,7 +1579,7 @@ unsigned int loadTexture(const std::string& fileName) {
     textureMemoryRefs.push_back({});
     textureImageViews.push_back({});
     textureSamplers.push_back({});
-    newDescriptorSet(0);
+    descriptorSets.emplace_back();
     textureDescriptorPools.push_back({});
 
     stbi_set_flip_vertically_on_load(true);
@@ -1988,8 +1982,8 @@ unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* inter
 }
 
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
-    if (!updateAll) memcpy(uniformBuffersMapped[uniformBuffersIDRefs[id]][currentFrame], ptr, size);
-    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[uniformBuffersIDRefs[id]][i], ptr, size); }
+    if (!updateAll) memcpy(uniformBuffersMapped[descriptorSets[id].idRef][currentFrame], ptr, size);
+    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[descriptorSets[id].idRef][i], ptr, size); }
 }
 
 VkDeviceSize offsets[] = {0};

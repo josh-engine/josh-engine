@@ -55,6 +55,7 @@ struct JEBufferReference_VK {
 struct JEDescriptorSet_VK {
     VkDescriptorSet sets[MAX_FRAMES_IN_FLIGHT];
     JEDescriptorSetCount_VK type;
+    unsigned int idRef;
 };
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings);
