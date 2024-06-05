@@ -1,4 +1,5 @@
 # JoshEngine
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/ee205adff9224b1e8695efb40d1aca68)](https://app.codacy.com/gh/josh-engine/josh-engine?utm_source=github.com&utm_medium=referral&utm_content=josh-engine/josh-engine&utm_campaign=Badge_Grade)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/fcf5292d6c294c2e81749f87f41c4e50)](https://app.codacy.com?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![Cmake Macos Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-macos-vulkan.yml/badge.svg)
 ![Cmake Ubuntu Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-ubuntu-vulkan.yml/badge.svg)
