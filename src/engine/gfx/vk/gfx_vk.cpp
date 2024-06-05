@@ -80,6 +80,7 @@ VkDescriptorSetLayout textureDescriptorSetLayout;
 std::vector<std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT>> uniformBuffers;
 std::vector<std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMemory;
 std::vector<std::array<void*, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMapped;
+std::vector<unsigned int> uniformBuffersIDRefs;
 std::vector<VkDescriptorPool> uniformDescriptorPools;
 
 std::vector<VkImage> textureImages;
@@ -872,7 +873,7 @@ void createRenderPass() {
     }
 }
 
-void createFramebuffers() {
+void createSwapchainFramebuffers() {
     swapchainFramebuffers.resize(swapchainImageViews.size());
     for (size_t i = 0; i < swapchainImageViews.size(); i++) {
         std::array<VkImageView, 3> attachments = {
@@ -998,7 +999,7 @@ void createUniformDescriptorPool(VkDescriptorPool* pool, VkDescriptorPoolCreateF
     }
 }
 
-void createUniformDescriptorSets(unsigned int bufferID, size_t uniformSize) {
+void createUniformDescriptorSets(unsigned int bufferID, unsigned int descriptorID, size_t uniformSize) {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, uniformDescriptorSetLayout);
 
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -1007,8 +1008,8 @@ void createUniformDescriptorSets(unsigned int bufferID, size_t uniformSize) {
     allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
 
-    descriptorSets[bufferID].type = JEDescriptorSetCount_VK::FRAMES_IN_FLIGHT;
-    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[bufferID].sets[0]) != VK_SUCCESS) {
+    descriptorSets[descriptorID].type = JEDescriptorSetCount_VK::FRAMES_IN_FLIGHT;
+    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[descriptorID].sets[0]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to allocate uniform descriptor sets!");
     }
 
@@ -1021,7 +1022,7 @@ void createUniformDescriptorSets(unsigned int bufferID, size_t uniformSize) {
         std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = descriptorSets[bufferID].sets[i];
+        descriptorWrites[0].dstSet = descriptorSets[descriptorID].sets[i];
         descriptorWrites[0].dstBinding = 0;
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1032,13 +1033,20 @@ void createUniformDescriptorSets(unsigned int bufferID, size_t uniformSize) {
     }
 }
 
+//TODO: HORRIBLE BUGFIX SO I CAN GET ON WITH MY LIFE. FIX LATER, FINISH ENGLISH NOW.
+void newDescriptorSet(unsigned int ubufref) {
+    descriptorSets.emplace_back();
+    uniformBuffersIDRefs.emplace_back(ubufref);
+}
+
 unsigned int createUniformBuffer(size_t bufferSize) {
     unsigned int bufferID = uniformBuffers.size();
+    unsigned int descriptorID = descriptorSets.size();
 
     uniformBuffers.emplace_back();
     uniformBuffersMemory.emplace_back();
     uniformBuffersMapped.emplace_back();
-    descriptorSets.emplace_back();
+    newDescriptorSet(bufferID);
     uniformDescriptorPools.push_back({});
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -1047,9 +1055,9 @@ unsigned int createUniformBuffer(size_t bufferSize) {
     }
 
     createUniformDescriptorPool(&uniformDescriptorPools[bufferID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
-    createUniformDescriptorSets(bufferID, bufferSize);
+    createUniformDescriptorSets(bufferID, descriptorID, bufferSize);
 
-    return bufferID;
+    return descriptorID;
 }
 
 void createTextureDescriptorPool(VkDescriptorPool* pool, VkDescriptorPoolCreateFlagBits flags) {
@@ -1069,7 +1077,7 @@ void createTextureDescriptorPool(VkDescriptorPool* pool, VkDescriptorPoolCreateF
     }
 }
 
-void createTextureDescriptorSet(unsigned int internalID, unsigned int descriptorID) {
+void createTextureDescriptorSet(unsigned int internalID, VkImageView* iv, unsigned int descriptorID) {
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = textureDescriptorPools[internalID];
@@ -1083,7 +1091,7 @@ void createTextureDescriptorSet(unsigned int internalID, unsigned int descriptor
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = textureImageViews[internalID];
+    imageInfo.imageView = *iv;
     imageInfo.sampler = textureSamplers[internalID];
 
     std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
@@ -1246,8 +1254,8 @@ void createColorResources() {
     try {
         createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, colorFormat,
                     VK_IMAGE_TILING_OPTIMAL,
-                    VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, colorImage,
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage,
                     colorImageMemory, 1, msaaSamples);
     } catch (std::exception& e) { // noah bug fix 2 attempt 2
         vkDestroyImage(logicalDevice, colorImage, nullptr); // noah bug fix 3 attempt 1
@@ -1312,7 +1320,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
 
     createDepthResources();
     createColorResources();
-    createFramebuffers();
+    createSwapchainFramebuffers();
 
     createUniformDescriptorSetLayout();
     createTextureDescriptorSetLayout();
@@ -1388,7 +1396,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
     textureImageViews.push_back({});
     textureSamplers.push_back({});
     textureMipLevels.push_back(1);
-    descriptorSets.emplace_back();
+    newDescriptorSet(0);
     textureDescriptorPools.push_back({});
 
     stbi_set_flip_vertically_on_load(false);
@@ -1476,7 +1484,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
 
     createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
-    createTextureDescriptorSet(internalID, descriptorID);
+    createTextureDescriptorSet(internalID, &textureImageViews[internalID], descriptorID);
 
     return descriptorID;
 }
@@ -1577,7 +1585,7 @@ unsigned int loadTexture(const std::string& fileName) {
     textureMemoryRefs.push_back({});
     textureImageViews.push_back({});
     textureSamplers.push_back({});
-    descriptorSets.emplace_back();
+    newDescriptorSet(0);
     textureDescriptorPools.push_back({});
 
     stbi_set_flip_vertically_on_load(true);
@@ -1621,7 +1629,7 @@ unsigned int loadTexture(const std::string& fileName) {
 
     createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
-    createTextureDescriptorSet(internalID, descriptorID);
+    createTextureDescriptorSet(internalID, &textureImageViews[internalID], descriptorID);
 
     return descriptorID;
 }
@@ -1915,7 +1923,7 @@ void recreateSwapchain() {
     createImageViews();
     createDepthResources();
     createColorResources();
-    createFramebuffers();
+    createSwapchainFramebuffers();
 }
 
 unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* interleavedVertices, std::vector<unsigned int>* indices) {
@@ -1980,8 +1988,8 @@ unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* inter
 }
 
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
-    if (!updateAll) memcpy(uniformBuffersMapped[id][currentFrame], ptr, size);
-    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[id][i], ptr, size); }
+    if (!updateAll) memcpy(uniformBuffersMapped[uniformBuffersIDRefs[id]][currentFrame], ptr, size);
+    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[uniformBuffersIDRefs[id]][i], ptr, size); }
 }
 
 VkDeviceSize offsets[] = {0};

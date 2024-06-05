@@ -32,3 +32,14 @@ Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std:
     vboID = createVBOFunctionMirror(this, &interleavedVertices, &indices);
     indicesSize = indices.size();
 }
+
+Renderable::Renderable() {
+    enabled = false;
+}
+
+void Renderable::setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
+    this->transform = t;
+    this->rotate = r;
+    this->scale = s;
+    this->objectMatrix = (this->transform * this->rotate * this->scale);
+}

@@ -212,7 +212,6 @@ void setSunProperties(glm::vec3 position, glm::vec3 color){
 }
 #endif
 
-
 void setCursorPos(glm::vec2 pos) {
     // inverse of getCursorPos's coordinate transformation
     pos *= glm::vec2(1, static_cast<float>(getCurrentWidth()) * (1.0f / static_cast<float>(getCurrentHeight())));
@@ -290,7 +289,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
                         "./shaders/skybox_fragment.glsl",
                 // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
                         {false, true, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
-        skybox = loadObj("./models/skybox.obj", getProgram("skybox"), {0, loadCubemap({
+        skybox = loadObj("./models/skybox.obj", getProgram("skybox"), {uboID, loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
                                              "./skybox/py_up.jpg",
@@ -434,7 +433,8 @@ void mainLoop() {
             glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
             glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f),
             camera.position,
-            camera.direction()
+            camera.direction(),
+            {windowWidth, windowHeight}
         };
 
         updateUniformBuffer(uboID, &ubo, sizeof(JEUniformBufferObject), false);

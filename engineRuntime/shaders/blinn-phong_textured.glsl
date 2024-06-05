@@ -13,6 +13,7 @@ layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE
     mat4 _3dProj;
     vec3 cameraPos;
     vec3 cameraDir;
+    vec2 screenSize;
 };
 
 layout(set = 1, binding = 0) uniform LBO {
