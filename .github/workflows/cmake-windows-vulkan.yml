@@ -30,7 +30,6 @@ jobs:
           path: C:\Users\runneradmin\.conan2
           key: ${{runner.os}}-conan-${{hashFiles('**/conan_vk.txt')}}
 
-      #if we don't hit the cache we need to create a conan default profile
       - if: ${{ steps.cache-conan.outputs.cache-hit != 'true' }}
         name: Create default profile
         run: conan profile detect
@@ -39,7 +38,6 @@ jobs:
         run: conan install ${{github.workspace}}\conan_vk.txt -s build_type=${{env.BUILD_TYPE}} --build=missing
 
       - name: Cache CMake Build
-        id: cache-cmake
         uses: actions/cache@v2
         with:
           path: ${{github.workspace}}\build
