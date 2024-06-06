@@ -1,8 +1,6 @@
 # JoshEngine
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d48b09d1f17e4d38bc40fd5b14bde807)](https://app.codacy.com/gh/josh-engine/josh-engine/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
-![Cmake Macos Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-macos-vulkan.yml/badge.svg)
-![Cmake Ubuntu Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-ubuntu-vulkan.yml/badge.svg)
-![Cmake Windows Status](https://github.com/josh-engine/josh-engine/actions/workflows/cmake-windows-vulkan.yml/badge.svg)
+![CI Status](https://github.com/josh-engine/josh-engine/actions/workflows/ci.yml/badge.svg)
 
 > *Code it for the meme, end up using it somehow.*
 
