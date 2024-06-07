@@ -9,7 +9,8 @@
 #include "vk/gfx_vk.h"
 
 unsigned int createVBOFunctionMirror(void* r, void* v, void* i) {
-    return createVBO(reinterpret_cast<Renderable*>(r), reinterpret_cast<std::vector<JEInterleavedVertex_VK>*>(v), reinterpret_cast<std::vector<unsigned int>*>(i));
+    return createVBO(reinterpret_cast<std::vector<JEInterleavedVertex_VK> *>(v),
+                     reinterpret_cast<std::vector<unsigned int> *>(i));
 }
 #endif
 

@@ -118,7 +118,7 @@ unsigned int getBufCount() {
     return uniformBuffers.size();
 }
 
-JEBufferReference_VK getBuf(unsigned int i) {
+JEUniformBufferReference_VK getBuf(unsigned int i) {
     return {&(uniformBuffersMemory[i]), &(uniformBuffersMapped[i])};
 }
 #endif
@@ -1007,7 +1007,7 @@ void createUniformDescriptorSets(unsigned int bufferID, unsigned int descriptorI
     allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
     allocInfo.pSetLayouts = layouts.data();
 
-    descriptorSets[descriptorID].type = JEDescriptorSetCount_VK::FRAMES_IN_FLIGHT;
+    descriptorSets[descriptorID].idRef = bufferID;
     if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[descriptorID].sets[0]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to allocate uniform descriptor sets!");
     }
@@ -1049,7 +1049,7 @@ unsigned int createUniformBuffer(size_t bufferSize) {
 
     createUniformDescriptorPool(&uniformDescriptorPools[bufferID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
     createUniformDescriptorSets(bufferID, descriptorID, bufferSize);
-    descriptorSets[descriptorID].idRef = bufferID;
+    descriptorSets[descriptorID].idRef = bufferID+1;
 
     return descriptorID;
 }
@@ -1078,7 +1078,7 @@ void createTextureDescriptorSet(unsigned int internalID, VkImageView* iv, unsign
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &textureDescriptorSetLayout;
 
-    descriptorSets[descriptorID].type = JEDescriptorSetCount_VK::SINGLE;
+    descriptorSets[descriptorID].idRef = 0;
     if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSets[descriptorID].sets[0]) != VK_SUCCESS) {
         throw std::runtime_error("Vulkan: Failed to allocate texture descriptor set!");
     }
@@ -1698,7 +1698,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
     return id;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings) {
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& shaderProgramSettings) {
     unsigned int pipelineID = pipelineLayoutVector.size();
     pipelineLayoutVector.push_back({});
     pipelineVector.push_back({});
@@ -1772,7 +1772,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
 
-    if (settings.doubleSided){
+    if (shaderProgramSettings.doubleSided){
         rasterizer.cullMode = VK_CULL_MODE_NONE;
     } else {
         rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
@@ -1788,7 +1788,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    if (settings.transparencySupported) {
+    if (shaderProgramSettings.transparencySupported) {
         colorBlendAttachment.blendEnable = VK_TRUE;
         colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -1813,8 +1813,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable = settings.testDepth;
-    if (settings.transparencySupported) {
+    depthStencil.depthTestEnable = shaderProgramSettings.testDepth;
+    if (shaderProgramSettings.transparencySupported) {
         depthStencil.depthWriteEnable = VK_FALSE;
     } else {
         depthStencil.depthWriteEnable = VK_TRUE;
@@ -1829,11 +1829,13 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
 
     std::vector<VkDescriptorSetLayout> dsls = {};
-    for (int i = 0; i < settings.shaderInputCount; i++) {
+    for (int i = 0; i < shaderProgramSettings.shaderInputCount; i++) {
         //  select single bit from shader inputs
-        if (((settings.shaderInputs >> i) & 0b1) == 1) {
+        if (((shaderProgramSettings.shaderInputs >> i) & 0b1) == 1) {
+            // texture
             dsls.push_back(textureDescriptorSetLayout);
         } else {
+            // uniform
             dsls.push_back(uniformDescriptorSetLayout);
         }
     }
@@ -1920,7 +1922,7 @@ void recreateSwapchain() {
     createSwapchainFramebuffers();
 }
 
-unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* interleavedVertices, std::vector<unsigned int>* indices) {
+unsigned int createVBO(std::vector<JEInterleavedVertex_VK> *interleavedVertices, std::vector<unsigned int> *indices) {
     unsigned int id = vertexBuffers.size();
     vertexBuffers.push_back({});
     vertexBufferMemoryRefs.push_back({});
@@ -1982,8 +1984,8 @@ unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* inter
 }
 
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
-    if (!updateAll) memcpy(uniformBuffersMapped[descriptorSets[id].idRef][currentFrame], ptr, size);
-    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[descriptorSets[id].idRef][i], ptr, size); }
+    if (!updateAll) memcpy(uniformBuffersMapped[descriptorSets[id].idRef-1][currentFrame], ptr, size);
+    else for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) { memcpy(uniformBuffersMapped[descriptorSets[id].idRef-1][i], ptr, size); }
 }
 
 VkDeviceSize offsets[] = {0};
@@ -2060,7 +2062,7 @@ void renderFrame(const std::vector<Renderable>& renderables, const std::vector<v
 
             std::vector<VkDescriptorSet> descriptor_sets = {};
             for (const auto& d : r.descriptorIDs) {
-                if (descriptorSets[d].type == JEDescriptorSetCount_VK::SINGLE) {
+                if (descriptorSets[d].idRef == 0) { // not uniform
                     descriptor_sets.push_back(descriptorSets[d].sets[0]);
                 } else {
                     descriptor_sets.push_back(descriptorSets[d].sets[currentFrame]);

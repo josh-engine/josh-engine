@@ -141,7 +141,7 @@ void setupImGuiWindow() {
         for (size_t i = 0; i < getBufCount(); i++) {
             ImGui::Text("Buffer %zu", i);
             ImGui::Indent();
-            JEBufferReference_VK ref = getBuf(i);
+            JEUniformBufferReference_VK ref = getBuf(i);
             for (int j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
                 JEAllocation_VK alloc = (*ref.alloc)[j];
                 ImGui::Text("Frame %i", j);

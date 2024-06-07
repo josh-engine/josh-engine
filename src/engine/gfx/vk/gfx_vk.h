@@ -42,21 +42,17 @@ struct JEPushConstants_VK {
     glm::mat4 normal;
 };
 
-enum class JEDescriptorSetCount_VK : unsigned char {
-    SINGLE,
-    FRAMES_IN_FLIGHT
-};
-
-struct JEBufferReference_VK {
-    std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>* alloc;
-    std::array<void*, MAX_FRAMES_IN_FLIGHT>* map = {nullptr}; // Just applies to uniforms.
-};
-
 struct JEDescriptorSet_VK {
     VkDescriptorSet sets[MAX_FRAMES_IN_FLIGHT];
-    JEDescriptorSetCount_VK type;
-    unsigned int idRef;
+    uint32_t idRef;
 };
+
+#ifdef DEBUG_ENABLED
+struct JEUniformBufferReference_VK {
+    std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>* alloc = nullptr;
+    std::array<void*, MAX_FRAMES_IN_FLIGHT>* map = {nullptr};
+};
+#endif
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings);
 void renderFrame(const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls);
@@ -66,7 +62,7 @@ unsigned int loadShader(const std::string& file_path, int target);
 unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
-unsigned int createVBO(Renderable* r, std::vector<JEInterleavedVertex_VK>* interleavedVertices, std::vector<unsigned int>* indices);
+unsigned int createVBO(std::vector<JEInterleavedVertex_VK> *interleavedVertices, std::vector<unsigned int> *indices);
 /* We are exposing these to the user through engine.h instead.
 unsigned int createUniformBuffer(size_t bufferSize);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
@@ -74,7 +70,7 @@ void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory();
 void* getTex(unsigned int i);
-JEBufferReference_VK getBuf(unsigned int i);
+JEUniformBufferReference_VK getBuf(unsigned int i);
 unsigned int getBufCount();
 #endif
 
