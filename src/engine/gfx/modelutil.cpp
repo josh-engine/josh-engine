@@ -12,7 +12,7 @@
 Renderable quadBase;
 
 Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool manualDepthSort) {
-    if (!quadBase.enabled) {
+    if (!quadBase.enabled()) {
         // Init quad once (we only need one VBO across the lifetime of the engine for a quad)
         quadBase = Renderable(
                 {-1.0f, -1.0f,  0.0f,   1.0f, -1.0f,  0.0f,   -1.0f,  1.0f,  0.0f,  1.0f,  1.0f,  0.0f},    //verts

@@ -47,6 +47,8 @@ struct JEDescriptorSet_VK {
     uint32_t idRef;
 };
 
+
+
 #ifdef DEBUG_ENABLED
 struct JEUniformBufferReference_VK {
     std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>* alloc = nullptr;

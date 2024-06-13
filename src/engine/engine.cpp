@@ -297,7 +297,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
                                              "./skybox/nz_front.jpg",
                                              "./skybox/pz_back.jpg"
                                      })})[0];
-        if (!skybox.enabled) {
+        if (!skybox.enabled()) {
             std::cerr << "Essential engine file missing." << std::endl;
             exit(1);
         }
@@ -403,7 +403,7 @@ void mainLoop() {
 
         for (const auto& item : gameObjects) {
             for (auto r : item.second.renderables) {
-                if (r.enabled) {
+                if (r.enabled()) {
                     renderableCount++;
                     r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
                     if (r.manualDepthSort) {

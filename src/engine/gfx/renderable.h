@@ -59,7 +59,7 @@ public:
     glm::mat4 scale;
     glm::mat4 objectMatrix;
 
-    bool enabled;
+    char flags;
 
     bool manualDepthSort;
 
@@ -74,6 +74,8 @@ public:
     Renderable(std::vector<float> verts, std::vector<float> _uvs, std::vector<float> norms, std::vector<unsigned int> ind, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort);
 
     void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s);
+
+    bool enabled() const;
 };
 
 #endif //JOSHENGINE_RENDERABLE_H

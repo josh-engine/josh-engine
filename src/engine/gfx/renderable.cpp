@@ -15,7 +15,7 @@ unsigned int createVBOFunctionMirror(void* r, void* v, void* i) {
 #endif
 
 Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
-    enabled = true;
+    flags = 0b1;
     descriptorIDs= std::move(descs);
     this->shaderProgram = shid;
     this->manualDepthSort = manualDepthSort;
@@ -35,7 +35,7 @@ Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std:
 }
 
 Renderable::Renderable() {
-    enabled = false;
+    flags = 0;
 }
 
 void Renderable::setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
@@ -43,4 +43,8 @@ void Renderable::setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
     this->rotate = r;
     this->scale = s;
     this->objectMatrix = (this->transform * this->rotate * this->scale);
+}
+
+bool Renderable::enabled() const {
+    return (this->flags & 0b1) == 1;
 }

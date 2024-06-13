@@ -856,7 +856,6 @@ void createRenderPass() {
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-
     std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -2053,35 +2052,33 @@ void renderFrame(const std::vector<Renderable>& renderables, const std::vector<v
     int activeProgram = -1;
 
     for (const auto& r : renderables) {
-        if (r.enabled) {
-            if (r.shaderProgram != activeProgram) {
-                vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                  pipelineVector[r.shaderProgram]);
-                activeProgram = static_cast<int>(r.shaderProgram);
-            }
-
-            std::vector<VkDescriptorSet> descriptor_sets = {};
-            for (const auto& d : r.descriptorIDs) {
-                if (descriptorSets[d].idRef == 0) { // not uniform
-                    descriptor_sets.push_back(descriptorSets[d].sets[0]);
-                } else {
-                    descriptor_sets.push_back(descriptorSets[d].sets[currentFrame]);
-                }
-            }
-
-            vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    pipelineLayoutVector[r.shaderProgram], 0, descriptor_sets.size(),
-                                    descriptor_sets.data(), 0, nullptr);
-
-            vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r.vboID], offsets);
-            vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);
-
-            JEPushConstants_VK constants = {r.objectMatrix, r.rotate};
-            vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
-                               VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
-
-            vkCmdDrawIndexed(commandBuffers[currentFrame], r.indicesSize, 1, 0, 0, 0);
+        if (r.shaderProgram != activeProgram) {
+            vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              pipelineVector[r.shaderProgram]);
+            activeProgram = static_cast<int>(r.shaderProgram);
         }
+
+        std::vector<VkDescriptorSet> descriptor_sets = {};
+        for (const auto& d : r.descriptorIDs) {
+            if (descriptorSets[d].idRef == 0) { // not uniform
+                descriptor_sets.push_back(descriptorSets[d].sets[0]);
+            } else {
+                descriptor_sets.push_back(descriptorSets[d].sets[currentFrame]);
+            }
+        }
+
+        vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                pipelineLayoutVector[r.shaderProgram], 0, descriptor_sets.size(),
+                                descriptor_sets.data(), 0, nullptr);
+
+        vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r.vboID], offsets);
+        vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);
+
+        JEPushConstants_VK constants = {r.objectMatrix, r.rotate};
+        vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
+                           VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
+
+        vkCmdDrawIndexed(commandBuffers[currentFrame], r.indicesSize, 1, 0, 0, 0);
     }
 
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[currentFrame]);
