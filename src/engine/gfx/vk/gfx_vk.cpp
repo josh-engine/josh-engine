@@ -1989,7 +1989,7 @@ void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll
 
 VkDeviceSize offsets[] = {0};
 
-void renderFrame(const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls) {
+void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls) {
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -2052,14 +2052,14 @@ void renderFrame(const std::vector<Renderable>& renderables, const std::vector<v
     int activeProgram = -1;
 
     for (const auto& r : renderables) {
-        if (r.shaderProgram != activeProgram) {
+        if (r->shaderProgram != activeProgram) {
             vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              pipelineVector[r.shaderProgram]);
-            activeProgram = static_cast<int>(r.shaderProgram);
+                              pipelineVector[r->shaderProgram]);
+            activeProgram = static_cast<int>(r->shaderProgram);
         }
 
         std::vector<VkDescriptorSet> descriptor_sets = {};
-        for (const auto& d : r.descriptorIDs) {
+        for (const auto& d : r->descriptorIDs) {
             if (descriptorSets[d].idRef == 0) { // not uniform
                 descriptor_sets.push_back(descriptorSets[d].sets[0]);
             } else {
@@ -2068,17 +2068,17 @@ void renderFrame(const std::vector<Renderable>& renderables, const std::vector<v
         }
 
         vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayoutVector[r.shaderProgram], 0, descriptor_sets.size(),
+                                pipelineLayoutVector[r->shaderProgram], 0, descriptor_sets.size(),
                                 descriptor_sets.data(), 0, nullptr);
 
-        vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r.vboID], offsets);
-        vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r.vboID], 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r->vboID], offsets);
+        vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r->vboID], 0, VK_INDEX_TYPE_UINT32);
 
-        JEPushConstants_VK constants = {r.objectMatrix, r.rotate};
+        JEPushConstants_VK constants = {r->objectMatrix, r->rotate};
         vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
                            VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
 
-        vkCmdDrawIndexed(commandBuffers[currentFrame], r.indicesSize, 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffers[currentFrame], r->indicesSize, 1, 0, 0, 0);
     }
 
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffers[currentFrame]);

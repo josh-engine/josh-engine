@@ -57,7 +57,7 @@ struct JEUniformBufferReference_VK {
 #endif
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings);
-void renderFrame(const std::vector<Renderable>& renderables, const std::vector<void (*)()>& imGuiCalls);
+void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls);
 void deinitGFX();
 unsigned int loadTexture(const std::string& fileName);
 unsigned int loadShader(const std::string& file_path, int target);

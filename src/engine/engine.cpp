@@ -390,20 +390,20 @@ void mainLoop() {
             frameDrawStart = glfwGetTime()*1000;
         }
 
-        std::vector<Renderable> renderables;
+        std::vector<Renderable*> renderables;
         // We're going to guess that we have around the same amount of renderables for this frame.
         renderables.reserve(renderableCount);
-        std::priority_queue<std::pair<double, Renderable>, std::deque<std::pair<double, Renderable>>, decltype(compareLambda)> individualSortRenderables;
+        std::priority_queue<std::pair<double, Renderable&>, std::deque<std::pair<double, Renderable&>>, decltype(compareLambda)> individualSortRenderables;
 
         renderableCount = 0;
 
         if (drawSkybox) {
             skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
-            renderables.push_back(skybox);
+            renderables.push_back(&skybox);
         }
 
-        for (const auto& item : gameObjects) {
-            for (auto r : item.second.renderables) {
+        for (auto& item : gameObjects) {
+            for (auto& r : item.second.renderables) {
                 if (r.enabled()) {
                     renderableCount++;
                     r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
@@ -411,7 +411,7 @@ void mainLoop() {
                         individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), r);
                     }
                     else {
-                        renderables.push_back(r);
+                        renderables.push_back(&r);
                     }
                 }
             }
@@ -420,7 +420,7 @@ void mainLoop() {
         size_t a = individualSortRenderables.size();
         for (int i = 0; i < a; i++){
             auto [ignored, r] = individualSortRenderables.top();
-            renderables.push_back(r);
+            renderables.push_back(&r);
             individualSortRenderables.pop();
         }
 
