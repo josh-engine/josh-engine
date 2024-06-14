@@ -61,8 +61,6 @@ public:
 
     char flags;
 
-    bool manualDepthSort;
-
 #ifdef GFX_API_VK
     unsigned int vboID;
 #endif
@@ -75,7 +73,8 @@ public:
 
     void setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s);
 
-    bool enabled() const;
+    [[nodiscard]] bool enabled() const;
+    [[nodiscard]] bool manualDepthSort() const;
 };
 
 #endif //JOSHENGINE_RENDERABLE_H

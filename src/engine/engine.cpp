@@ -390,8 +390,9 @@ void mainLoop() {
             frameDrawStart = glfwGetTime()*1000;
         }
 
-        std::vector<Renderable> renderables(renderableCount); // We're going to guess that we have around the same amount of renderables for this frame.
-        // transparent sort with pointer attached, because cloning renderables is slow as shit.
+        std::vector<Renderable> renderables;
+        // We're going to guess that we have around the same amount of renderables for this frame.
+        renderables.reserve(renderableCount);
         std::priority_queue<std::pair<double, Renderable>, std::deque<std::pair<double, Renderable>>, decltype(compareLambda)> individualSortRenderables;
 
         renderableCount = 0;
@@ -406,7 +407,7 @@ void mainLoop() {
                 if (r.enabled()) {
                     renderableCount++;
                     r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
-                    if (r.manualDepthSort) {
+                    if (r.manualDepthSort()) {
                         individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), r);
                     }
                     else {
@@ -422,8 +423,6 @@ void mainLoop() {
             renderables.push_back(r);
             individualSortRenderables.pop();
         }
-
-        renderableCount += a-1;
 
         float scaledHeight = static_cast<float>(windowHeight) * (1.0f / static_cast<float>(windowWidth));
         float scaledWidth = 1.0f;

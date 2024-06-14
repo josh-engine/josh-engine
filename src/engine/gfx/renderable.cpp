@@ -15,10 +15,9 @@ unsigned int createVBOFunctionMirror(void* r, void* v, void* i) {
 #endif
 
 Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
-    flags = 0b1;
+    flags = 0b1 | (manualDepthSort ? 0b10 : 0);
     descriptorIDs= std::move(descs);
     this->shaderProgram = shid;
-    this->manualDepthSort = manualDepthSort;
 
     std::vector<JEInterleavedVertex_VK> interleavedVertices{};
     interleavedVertices.reserve(vertices.size()/3);
@@ -46,5 +45,9 @@ void Renderable::setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
 }
 
 bool Renderable::enabled() const {
-    return (this->flags & 0b1) == 1;
+    return (this->flags & 0b1) == 0b1;
+}
+
+bool Renderable::manualDepthSort() const {
+    return (this->flags & 0b10) == 0b10;
 }

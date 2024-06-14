@@ -27,7 +27,7 @@ Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool 
     Renderable copy = quadBase;
     copy.shaderProgram = shader;
     copy.descriptorIDs = std::move(desc);
-    copy.manualDepthSort = manualDepthSort;
+    copy.flags = quadBase.flags | (manualDepthSort ? 0b10 : 0);
     return copy;
 }
 
@@ -127,10 +127,8 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
     if (objMap.contains(path)) {
         std::vector<Renderable> copied;
         copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
-        if (copied[0].manualDepthSort != manualDepthSort) {
-            for (auto & i : copied){
-                i.manualDepthSort = manualDepthSort;
-            }
+        for (auto & i : copied){
+            i.flags |= (manualDepthSort ? 0b10 : 0b0);
         }
         if (copied[0].shaderProgram != shaderProgram) {
             for (auto & i : copied){
