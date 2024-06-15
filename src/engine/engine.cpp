@@ -325,7 +325,7 @@ Transform* cameraAccess() {
     return &camera;
 }
 
-auto compareLambda = [](const std::pair<double, Renderable>& left, const std::pair<double, Renderable>& right){return left.first < right.first;};
+auto compareLambda = [](std::pair<double, Renderable *>& left, const std::pair<double, Renderable*>& right){return left.first < right.first;};
 
 void mainLoop() {
     double currentTime = glfwGetTime();
@@ -393,7 +393,7 @@ void mainLoop() {
         std::vector<Renderable*> renderables;
         // We're going to guess that we have around the same amount of renderables for this frame.
         renderables.reserve(renderableCount);
-        std::priority_queue<std::pair<double, Renderable&>, std::deque<std::pair<double, Renderable&>>, decltype(compareLambda)> individualSortRenderables;
+        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> individualSortRenderables;
 
         renderableCount = 0;
 
@@ -408,7 +408,7 @@ void mainLoop() {
                     renderableCount++;
                     r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
                     if (r.manualDepthSort()) {
-                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), r);
+                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
                     }
                     else {
                         renderables.push_back(&r);
@@ -420,7 +420,7 @@ void mainLoop() {
         size_t a = individualSortRenderables.size();
         for (int i = 0; i < a; i++){
             auto [ignored, r] = individualSortRenderables.top();
-            renderables.push_back(&r);
+            renderables.push_back(r);
             individualSortRenderables.pop();
         }
 
