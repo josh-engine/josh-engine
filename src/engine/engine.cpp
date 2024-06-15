@@ -105,8 +105,8 @@ double getFrameTime() {
     return frameTime;
 }
 
-std::unordered_map<std::string, GameObject> getGameObjects() {
-    return gameObjects;
+std::unordered_map<std::string, GameObject>* getGameObjects() {
+    return &gameObjects;
 }
 
 void putImGuiCall(void (*argument)()) {

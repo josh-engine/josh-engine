@@ -2053,9 +2053,9 @@ void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<
 
     for (const auto& r : renderables) {
         if (r->shaderProgram != activeProgram) {
-            vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              pipelineVector[r->shaderProgram]);
             activeProgram = static_cast<int>(r->shaderProgram);
+            vkCmdBindPipeline(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              pipelineVector[activeProgram]);
         }
 
         std::vector<VkDescriptorSet> descriptor_sets = {};
@@ -2068,7 +2068,7 @@ void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<
         }
 
         vkCmdBindDescriptorSets(commandBuffers[currentFrame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                pipelineLayoutVector[r->shaderProgram], 0, descriptor_sets.size(),
+                                pipelineLayoutVector[activeProgram], 0, descriptor_sets.size(),
                                 descriptor_sets.data(), 0, nullptr);
 
         vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r->vboID], offsets);

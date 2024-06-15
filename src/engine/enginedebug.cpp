@@ -14,8 +14,9 @@
 bool vulkanMemoryView;
 #endif
 
-bool statView, gmObjView, texturesView, buffersView;
+bool statView, gmObjView, texturesView, buffersView, graphicsView;
 std::string selectedGameObject;
+std::string selectedFunction;
 std::string selectedTexture;
 std::unordered_map<void*, std::string> functionNameMap;
 #endif //DEBUG_ENABLED
@@ -53,15 +54,20 @@ void setupImGuiWindow() {
     // ImGui::Text("Running on Vulkan");
 //#endif
 
-    ImGui::Checkbox("Stats View", &statView);
-    ImGui::Checkbox("GameObjects View", &gmObjView);
-    ImGui::Checkbox("Textures View", &texturesView);
-    ImGui::Checkbox("Uniforms View", &buffersView);
+    ImGui::Checkbox("Stats", &statView);
+    ImGui::Checkbox("GameObjects Editor", &gmObjView);
+    ImGui::Checkbox("Show Graphics Menus", &graphicsView);
+    if (graphicsView) {
+        ImGui::Checkbox("Textures", &texturesView);
+        ImGui::Checkbox("Uniform Memory Info", &buffersView);
 #ifdef GFX_API_VK
-    ImGui::Checkbox("vkAlloc View", &vulkanMemoryView);
+        ImGui::Checkbox("vkAlloc Allocation View", &vulkanMemoryView);
 #endif
+    }
 
     ImGui::End();
+
+
 
     if (statView) {
         ImGui::Begin("Stats");
@@ -75,10 +81,10 @@ void setupImGuiWindow() {
     if (gmObjView) {
         ImGui::Begin("GameObjects");
 
-        std::unordered_map<std::string, GameObject> gameObjects = getGameObjects();
+        std::unordered_map<std::string, GameObject>* gameObjects = getGameObjects();
 
         if (ImGui::BeginCombo("GameObject", selectedGameObject.c_str(), 0)) {
-            for (const auto &object: gameObjects) {
+            for (const auto& object: *gameObjects) {
                 if (ImGui::Selectable(object.first.c_str(), selectedGameObject == object.first))
                     selectedGameObject = object.first;
             }
@@ -86,39 +92,66 @@ void setupImGuiWindow() {
         }
 
         if (!selectedGameObject.empty()) {
-            GameObject gmObj = gameObjects.at(selectedGameObject);
+            GameObject* gmObj = &gameObjects->at(selectedGameObject);
+
+            if (ImGui::Button("Duplicate GameObject", {ImGui::GetWindowSize().x-20, ImGui::GetTextLineHeight()+5})){
+                GameObject copy = gameObjects->at(selectedGameObject);
+                gameObjects->insert({selectedGameObject + " (copy)", copy});
+            }
+
+            ImGui::Text("Renderable count: %zu", gmObj->renderables.size());
 
             ImGui::Text("Transform");
             ImGui::Indent();
-            ImGui::InputFloat3("Position", &gmObj.transform.position[0]);
-            ImGui::InputFloat3("Rotation", &gmObj.transform.rotation[0]);
-            ImGui::InputFloat3("Scale",    &gmObj.transform.scale[0]   );
+            ImGui::InputFloat3("Position", &gmObj->transform.position[0]);
+            ImGui::InputFloat3("Rotation", &gmObj->transform.rotation[0]);
+            ImGui::InputFloat3("Scale",    &gmObj->transform.scale[0]   );
             ImGui::Unindent();
 
             ImGui::Text("Functions");
             ImGui::Indent();
 
-            if (gmObj.onUpdate.empty())
+            if (gmObj->onUpdate.empty())
                 ImGui::Text("Empty");
             else {
-                for (auto function: gmObj.onUpdate) {
+                for (auto function: gmObj->onUpdate) {
                     if (functionNameMap.find(reinterpret_cast<void*>(function)) == functionNameMap.end()) {
                         ImGui::TextColored({0.75f, 0.75f, 0.75f, 1.0f}, "Function at %lx", (unsigned long) function);
                     } else {
                         ImGui::Text("%s", functionNameMap.at(reinterpret_cast<void*>(function)).c_str());
                     }
                 }
+                if (ImGui::BeginCombo("Remove", selectedFunction.c_str(), 0)) {
+                    for (int i = 0; i < gmObj->onUpdate.size(); i++) {
+                        std::string str;
+                        if (functionNameMap.find(reinterpret_cast<void*>(gmObj->onUpdate[i])) == functionNameMap.end()) {
+                            str = "Function at %lx";
+                        } else {
+                            str = functionNameMap.at(reinterpret_cast<void*>(gmObj->onUpdate[i])).c_str();
+                        }
+                        if (ImGui::Selectable(str.c_str())){
+                            gmObj->onUpdate.erase(gmObj->onUpdate.begin() + i);
+                            break;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            if (ImGui::BeginCombo("Add", selectedFunction.c_str(), 0)) {
+                for (const auto& fn : functionNameMap) {
+                    if (ImGui::Selectable(fn.second.c_str())) {
+                        gmObj->onUpdate.push_back(reinterpret_cast<void (*)(double dt, GameObject* g)>(fn.first));
+                    }
+                }
+                ImGui::EndCombo();
             }
             ImGui::Unindent();
-
-
-            ImGui::Text("Renderable count: %zu", gmObj.renderables.size());
         }
 
         ImGui::End();
     }
 
-    if (texturesView) {
+    if (texturesView && graphicsView) {
         ImGui::Begin("Textures");
         std::unordered_map<std::string, unsigned int> textures = getTexs();
 
@@ -136,7 +169,7 @@ void setupImGuiWindow() {
         ImGui::End();
     }
 
-    if (buffersView) {
+    if (buffersView && graphicsView) {
         ImGui::Begin("Uniform Buffers");
         for (size_t i = 0; i < getBufCount(); i++) {
             ImGui::Text("Buffer %zu", i);
@@ -157,7 +190,7 @@ void setupImGuiWindow() {
     }
 
 #ifdef GFX_API_VK
-    if (vulkanMemoryView) {
+    if (vulkanMemoryView && graphicsView) {
         ImGui::Begin("vkAlloc Memory Viewer");
         std::vector<JEMemoryBlock_VK> mem = getMemory();
         ImGui::Text("Minimum alloc: %s", sizeFormat(NEW_BLOCK_MIN_SIZE).c_str());
