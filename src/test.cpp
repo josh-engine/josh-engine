@@ -162,7 +162,7 @@ void setupTest() {
     registerOnKey(&lockUnlock);
     registerOnMouse(&mouseClick);
 
-    registerFunctionToDebug("spin", reinterpret_cast<void*>(&spin));
+    //registerFunctionToDebug("spin", reinterpret_cast<void*>(&spin));
     registerFunctionToDebug("move", reinterpret_cast<void*>(&move));
 
 

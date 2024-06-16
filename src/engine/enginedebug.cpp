@@ -7,6 +7,7 @@
 #include "enginedebug.h"
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
+#include <cstdio>
 #include <unordered_map>
 
 #ifdef GFX_API_VK
@@ -125,7 +126,7 @@ void setupImGuiWindow() {
                     for (int i = 0; i < gmObj->onUpdate.size(); i++) {
                         std::string str;
                         if (functionNameMap.find(reinterpret_cast<void*>(gmObj->onUpdate[i])) == functionNameMap.end()) {
-                            str = "Function at %lx";
+                            snprintf(const_cast<char*>(str.c_str()), 22, "Function at %lx", (unsigned long) gmObj->onUpdate[i]);
                         } else {
                             str = functionNameMap.at(reinterpret_cast<void*>(gmObj->onUpdate[i]));
                         }

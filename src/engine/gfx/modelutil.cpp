@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iostream>
 #include <utility>
+#include <unordered_map>
 #include "renderable.h"
 #include "modelutil.h"
 
