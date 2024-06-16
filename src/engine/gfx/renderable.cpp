@@ -15,7 +15,7 @@ unsigned int createVBOFunctionMirror(void* r, void* v, void* i) {
 #endif
 
 Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
-    flags = 0b1 | (manualDepthSort ? 0b10 : 0);
+    flags = static_cast<unsigned char>(0b1 | (manualDepthSort ? 0b10 : 0));
     descriptorIDs= std::move(descs);
     this->shaderProgram = shid;
 

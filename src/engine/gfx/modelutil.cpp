@@ -7,7 +7,6 @@
 #include <utility>
 #include "renderable.h"
 #include "modelutil.h"
-#include "../engine.h"
 
 Renderable quadBase;
 
@@ -27,12 +26,12 @@ Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool 
     Renderable copy = quadBase;
     copy.shaderProgram = shader;
     copy.descriptorIDs = std::move(desc);
-    copy.flags = quadBase.flags | (manualDepthSort ? 0b10 : 0);
+    copy.flags = static_cast<char>(quadBase.flags | (manualDepthSort ? 0b10 : 0));
     return copy;
 }
 
 Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc) {
-    return createQuad(shader, desc, false);
+    return createQuad(shader, std::move(desc), false);
 }
 
 struct repackVertexObject {
@@ -45,7 +44,7 @@ struct repackVertexObject {
     }
 };
 
-Model repackRenderable(Model r) {
+Model repackModel(Model r) {
     std::vector<repackVertexObject> repackList = {};
     std::vector<unsigned int> indices = {};
 
@@ -123,12 +122,12 @@ std::vector<std::string> splitStr(const std::string& in, char del) {
 
 std::unordered_map<std::string, std::vector<Renderable>> objMap;
 
-std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, std::vector<unsigned int> desc, bool manualDepthSort) {
+std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort) {
     if (objMap.contains(path)) {
         std::vector<Renderable> copied;
         copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
         for (auto & i : copied){
-            i.flags |= (manualDepthSort ? 0b10 : 0b0);
+            i.flags |= static_cast<unsigned char>(manualDepthSort ? 0b10 : 0b0);
         }
         if (copied[0].shaderProgram != shaderProgram) {
             for (auto & i : copied){
@@ -169,7 +168,7 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
                 split[split.size()-1] = split[split.size()-1].substr(0, split[split.size()-1].length()-1);
             }
 
-            if (split.empty() || split[0] == "#" || split[0] == "") {
+            if (split.empty() || split[0] == "#" || split[0].empty()) {
                 continue; // This line of the file is a comment
             }
 
@@ -255,8 +254,8 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
             } else if (split[0] == "usemtl" || split[0] == "o" || split[0] == "g") {
                 // use specific material
                 if (!currentRenderable.vertices.empty()) {
-                    Model repacked = repackRenderable(currentRenderable);
-                    renderableList.push_back({repacked.vertices, repacked.uvs, repacked.normals, repacked.indices, shaderProgram, desc, manualDepthSort});
+                    Model repacked = repackModel(currentRenderable);
+                    renderableList.emplace_back(repacked.vertices, repacked.uvs, repacked.normals, repacked.indices, shaderProgram, desc, manualDepthSort);
                 }
                 currentRenderable = {};
             }
@@ -268,11 +267,12 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
             }
         }
     }
-    Model repacked = repackRenderable(currentRenderable);
-    renderableList.push_back({repacked.vertices, repacked.uvs, repacked.normals, repacked.indices, shaderProgram, desc, manualDepthSort});    objMap.insert({path, renderableList});
+    Model repacked = repackModel(currentRenderable);
+    renderableList.emplace_back(repacked.vertices, repacked.uvs, repacked.normals, repacked.indices, shaderProgram, desc, manualDepthSort);
+    objMap.insert({path, renderableList});
     return renderableList;
 }
 
-std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, std::vector<unsigned int> desc) {
-    return loadObj(path, shaderProgram, std::move(desc), false);
+std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, const std::vector<unsigned int>& desc) {
+    return loadObj(path, shaderProgram, desc, false);
 }

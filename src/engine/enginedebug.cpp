@@ -127,7 +127,7 @@ void setupImGuiWindow() {
                         if (functionNameMap.find(reinterpret_cast<void*>(gmObj->onUpdate[i])) == functionNameMap.end()) {
                             str = "Function at %lx";
                         } else {
-                            str = functionNameMap.at(reinterpret_cast<void*>(gmObj->onUpdate[i])).c_str();
+                            str = functionNameMap.at(reinterpret_cast<void*>(gmObj->onUpdate[i]));
                         }
                         if (ImGui::Selectable(str.c_str())){
                             gmObj->onUpdate.erase(gmObj->onUpdate.begin() + i);

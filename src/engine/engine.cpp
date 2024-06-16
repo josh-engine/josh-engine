@@ -233,7 +233,7 @@ void registerOnMouse(void (*function)(int button, bool pressed, double dt)) {
     onMouse.push_back(function);
 }
 
-void putGameObject(const std::string& name, GameObject g) {
+void putGameObject(const std::string& name, const GameObject& g) {
     gameObjects.insert({name, g});
 }
 

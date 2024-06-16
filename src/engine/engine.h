@@ -129,7 +129,7 @@ void mainLoop();
 void deinit();
 void registerOnUpdate(void (*function)(double dt));
 void registerOnKey(void (*function)(int key, bool pressed, double dt));
-void putGameObject(const std::string& name, GameObject g);
+void putGameObject(const std::string& name, const GameObject& g);
 std::unordered_map<std::string, GameObject>* getGameObjects();
 void putImGuiCall(void (*argument)());
 GameObject& getGameObject(const std::string& name);

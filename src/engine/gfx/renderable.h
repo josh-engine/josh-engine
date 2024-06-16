@@ -51,21 +51,21 @@ struct JEInterleavedVertex_VK {
 
 class Renderable {
 public:
-    unsigned int shaderProgram;
+    unsigned int shaderProgram{};
     std::vector<unsigned int> descriptorIDs;
 
-    glm::mat4 transform;
-    glm::mat4 rotate;
-    glm::mat4 scale;
-    glm::mat4 objectMatrix;
+    glm::mat4 transform{};
+    glm::mat4 rotate{};
+    glm::mat4 scale{};
+    glm::mat4 objectMatrix{};
 
-    char flags;
+    unsigned char flags;
 
 #ifdef GFX_API_VK
-    unsigned int vboID;
+    unsigned int vboID{};
 #endif
 
-    unsigned int indicesSize;
+    unsigned int indicesSize{};
 
     Renderable();
 
