@@ -14,7 +14,6 @@ set(JoshEngine_libraries
         OpenAL::OpenAL
 )
 set(JoshEngine_sources src/main.cpp
-        src/test.cpp
         src/engine/engine.cpp
         src/engine/sound/engineaudio.cpp
         src/engine/gfx/modelutil.cpp
@@ -50,6 +49,10 @@ if (JE_API_VK)
             src/engine/gfx/imgui/imgui_impl_vulkan.cpp
     )
 endif()
+
+set(Game_src )
+set(JoshEngine_sources ${JoshEngine_sources}
+                       ${Game_src})
 
 add_executable(JoshEngine ${JoshEngine_sources})
 target_link_libraries(JoshEngine ${JoshEngine_libraries})

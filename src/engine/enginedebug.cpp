@@ -73,8 +73,41 @@ void setupImGuiWindow() {
     if (statView) {
         ImGui::Begin("Stats");
 
-        ImGui::Text("Frame time: %ims (~%i fps)", static_cast<int>(getFrameTime()), static_cast<int>(1/(getFrameTime()/1000)));
+        ImGui::Text("FPS: %i", getFPS());
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text(
+                    "The frames per second the engine is running at.");
+            ImGui::EndTooltip();
+        }
+        ImGui::Text("Est. FPS: ~%i", static_cast<int>(1/(getUpdateTime()/1000 + getFrameTime()/1000)));
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text(
+                    "Estimated \"Perfect World\" framerate. \nBased off update/render time. \nIn theory Renderable sorting time and prep should be negligible.");
+            ImGui::EndTooltip();
+        }
+        ImGui::Text("Update time: %ims (~%i ups)", static_cast<int>(getUpdateTime()), static_cast<int>(1/(getUpdateTime()/1000)));
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text(
+                    "Input query and all game logic is included in this time.");
+            ImGui::EndTooltip();
+        }
+        ImGui::Text("Render time: %ims (~%i rps)", static_cast<int>(getFrameTime()), static_cast<int>(1/(getFrameTime()/1000)));
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text(
+                    "Only frame rendering is included in this time.");
+            ImGui::EndTooltip();
+        }
         ImGui::Text("Renderables: %zu", getRenderableCount());
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text(
+                    "The amount of Renderables being rendered.");
+            ImGui::EndTooltip();
+        }
 
         ImGui::End();
     }

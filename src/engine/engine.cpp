@@ -100,9 +100,19 @@ size_t getRenderableCount() {
 int windowWidth, windowHeight;
 
 double frameTime = 0;
+double updateTime = 0;
+int fps = 0;
 
 double getFrameTime() {
     return frameTime;
+}
+
+double getUpdateTime() {
+    return updateTime;
+}
+
+int getFPS() {
+    return fps;
 }
 
 std::unordered_map<std::string, GameObject>* getGameObjects() {
@@ -331,12 +341,27 @@ auto compareLambda = [](std::pair<double, Renderable *>& left, const std::pair<d
 void mainLoop() {
     double currentTime = glfwGetTime();
     double lastTime = currentTime;
-    double lastFrameCheck = glfwGetTime();
-    double frameDrawStart;
+    double lastTimesCheck = currentTime;
+    double frameDrawStart = currentTime;
+    double updateStart;
+    double lastFPSUpdateTime = currentTime;
+    int currentFPSCtr = 0;
     while (glfwWindowShouldClose(window) == 0) {
         currentTime = glfwGetTime();
         double deltaTime = currentTime - lastTime;
         lastTime = currentTime;
+
+        if (currentTime - lastFPSUpdateTime > 1){
+            lastFPSUpdateTime = currentTime;
+            fps = currentFPSCtr;
+            currentFPSCtr = 0;
+        }
+
+        bool doTimesCheck = currentTime - lastTimesCheck > 0.1;
+        if (doTimesCheck) {
+            lastTimesCheck = glfwGetTime();
+            updateStart = glfwGetTime()*1000;
+        }
 
         for (int keyActionIter = 0; keyActionIter < GLFW_KEY_LAST; keyActionIter++) {
             bool current = glfwGetKey(window, keyActionIter) == GLFW_PRESS;
@@ -385,9 +410,8 @@ void mainLoop() {
 
         updateListener(camera.position, glm::vec3(0), camera.direction(), up);
 
-        bool doFrameTimeCheck = currentTime - lastFrameCheck > 0.1;
-        if (doFrameTimeCheck) {
-            lastFrameCheck = glfwGetTime();
+        if (doTimesCheck) {
+            updateTime = glfwGetTime()*1000 - updateStart;
             frameDrawStart = glfwGetTime()*1000;
         }
 
@@ -401,6 +425,7 @@ void mainLoop() {
         if (drawSkybox) {
             skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
             renderables.push_back(&skybox);
+            renderableCount += 1;
         }
 
         for (auto& item : gameObjects) {
@@ -440,8 +465,9 @@ void mainLoop() {
         updateUniformBuffer(uboID, &ubo, sizeof(JEUniformBufferObject), false);
 
         renderFrame(renderables, imGuiCalls);
+        ++currentFPSCtr;
 
-        if (doFrameTimeCheck)
+        if (doTimesCheck)
             frameTime = glfwGetTime()*1000 - frameDrawStart;
 
         glfwPollEvents();

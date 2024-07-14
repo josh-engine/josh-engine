@@ -162,6 +162,8 @@ bool textureExists(const std::string &name);
 unsigned int getProgram(const std::string& name);
 void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings);
 double getFrameTime();
+double getUpdateTime();
+int getFPS();
 size_t getRenderableCount();
 void setMouseVisible(bool vis);
 void setAmbient(float r, float g, float b);
