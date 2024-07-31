@@ -8,7 +8,7 @@
 #include <string>
 typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
 
-void setVolume(float volume);
+void setMasterVolume(float volume);
 unsigned int oggToBuffer(const std::string& filePath);
 
 class Sound {
@@ -18,6 +18,7 @@ public:
     glm::vec3 position{};
     glm::vec3 velocity{};
     bool isLooping;
+    bool isPaused;
     // If we are not using MSVC
 #ifndef _MSC_VER
     Sound(glm::vec3 pos, glm::vec3 vel, const std::string& filePath, bool loop, float halfVolumeDistance, float min, float max, float gain);
@@ -28,6 +29,12 @@ public:
     void updateSource() const;
     void play();
     void stop() const;
+    void pause();
+    void togglePaused();
+    void deleteSource() const;
+
+    [[nodiscard]] bool isPlaying() const;
+
 };
 
 void initAudio();

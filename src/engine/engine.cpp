@@ -10,6 +10,13 @@
 #include <queue>
 #include "gfx/modelutil.h"
 #include "enginedebug.h"
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
+
+[[nodiscard]] mat4 Transform::getRotateMatrix() const {
+    vec3 radianRotation = radians(rotation);
+    return glm::eulerAngleXYZ(radianRotation.x, radianRotation.y, radianRotation.z);
+}
 
 GLFWwindow* window;
 
@@ -41,6 +48,14 @@ glm::vec3 ambient(0);
 
 unsigned int uboID{};
 unsigned int lboID{};
+
+JETextureFilter currentFilterMode = JE_TEXTURE;
+
+bool runUpdates = true;
+bool runObjectUpdates = true;
+
+bool* runUpdatesAccess() {return &runUpdates;}
+bool* runObjectUpdatesAccess() {return &runObjectUpdates;}
 
 unsigned int getUBOID() {
     return uboID;
@@ -119,6 +134,10 @@ std::unordered_map<std::string, GameObject>* getGameObjects() {
     return &gameObjects;
 }
 
+void clearGameObjects() {
+    gameObjects = {};
+}
+
 void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
@@ -133,15 +152,19 @@ unsigned int getProgram(const std::string& name) {
     return programs.at(name);
 }
 
-unsigned int createTextureWithName(const std::string& name, const std::string& filePath) {
-    unsigned int id = loadTexture(filePath);
-    textures.insert({name, id});
-    return id;
+void setTextureFilterMode(const JETextureFilter filter) {
+    currentFilterMode = filter;
 }
 
-unsigned int createTexture(const std::string& folderPath, const std::string& fileName) {
-    unsigned int id = loadTexture(folderPath + fileName);
-    textures.insert({fileName, id});
+unsigned int createTexture(const std::string& name, const std::string& filePath) {
+    unsigned int id;
+    try {
+        id = loadTexture(filePath, currentFilterMode);
+    } catch (std::runtime_error e) {
+        id = textures.at("missing");
+        std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
+    }
+    textures.insert({name, id});
     return id;
 }
 
@@ -251,6 +274,10 @@ GameObject& getGameObject(const std::string& name) {
     return gameObjects.at(name);
 }
 
+void deleteGameObject(const std::string& name) {
+    gameObjects.erase(name);
+}
+
 int getCurrentWidth() {
     return windowWidth;
 }
@@ -283,7 +310,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
     lboID = createUniformBuffer(sizeof(JELightingBuffer));
 
     // Missing texture init
-    createTextureWithName("missing", "./textures/missing_tex.png");
+    createTexture("missing", "./textures/missing_tex.png");
     if (!textures.count("missing")) {
         std::cerr << "Essential engine file missing." << std::endl;
         exit(1);
@@ -330,6 +357,9 @@ float fov = 78.0f;
 
 void setFOV(float n) {
     fov = n;
+}
+float getFOV() {
+    return fov;
 }
 
 Transform* cameraAccess() {
@@ -383,13 +413,17 @@ void mainLoop() {
             }
         }
 
-        for (auto & onUpdateFunction : onUpdate) {
-            onUpdateFunction(deltaTime);
+        if (runUpdates) {
+            for (auto &onUpdateFunction: onUpdate) {
+                onUpdateFunction(deltaTime);
+            }
         }
 
-        for (auto & g : gameObjects) {
-            for (auto & gameObjectFunction : g.second.onUpdate) {
-                gameObjectFunction(deltaTime, &g.second);
+        if (runObjectUpdates) {
+            for (auto &g: gameObjects) {
+                for (auto &gameObjectFunction: g.second.onUpdate) {
+                    gameObjectFunction(deltaTime, &g.second);
+                }
             }
         }
 

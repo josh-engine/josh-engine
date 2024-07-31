@@ -15,8 +15,8 @@ Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool 
     if (!quadBase.enabled()) {
         // Init quad once (we only need one VBO across the lifetime of the engine for a quad)
         quadBase = Renderable(
-                {-1.0f, -1.0f,  0.0f,   1.0f, -1.0f,  0.0f,   -1.0f,  1.0f,  0.0f,  1.0f,  1.0f,  0.0f},    //verts
-                { 0.0f,  0.0f,          1.0f,  0.0f,           0.0f,  1.0f       ,  1.0f,  1.0f},  //UVs
+                {-1.0f, -1.0f,  0.0f,   1.0f, -1.0f,  0.0f,   -1.0f,  1.0f,  0.0f,  1.0f,  1.0f,  0.0f},   //verts
+                { 0.0f,  0.0f       ,   1.0f,  0.0f       ,    0.0f,  1.0f       ,  1.0f,  1.0f       },  //UVs
                 { 0.0f,  0.0f, -1.0f,   0.0f,  0.0f, -1.0f,    0.0f,  0.0f, -1.0f,  0.0f,  0.0f, -1.0f}, //normals
                 { 0, 1, 2,     1, 3, 2 }, //indices
                 shader,

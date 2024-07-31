@@ -1261,11 +1261,11 @@ void createColorResources() {
     colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
-void createTextureSampler(unsigned int id, unsigned int mipLevels) {
+void createTextureSampler(unsigned int id, unsigned int mipLevels, unsigned int samplerFilter) {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.magFilter = static_cast<VkFilter>(samplerFilter);
+    samplerInfo.minFilter = static_cast<VkFilter>(samplerFilter);
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -1293,6 +1293,10 @@ void createTextureSampler(unsigned int id, unsigned int mipLevels) {
 // god im starting to hate this but not really because i love coding (more than schoolwork)
 // renderdoc for mac when
 std::array<VkClearValue, 2> clearValues{};
+
+void setClearColor(float r, float g, float b) {
+    clearValues[0].color = {{r, g, b, 1.0f}};
+}
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings) {
     windowPtr = window;
@@ -1473,7 +1477,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
         throw std::runtime_error("Vulkan: Failed to create cubemap image view!");
     }
 
-    createTextureSampler(internalID, 1);
+    createTextureSampler(internalID, 1, VK_FILTER_LINEAR);
 
     createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
@@ -1569,7 +1573,7 @@ void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int3
     endSingleTimeCommands(commandBuffer);
 }
 
-unsigned int loadTexture(const std::string& fileName) {
+unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
     int texWidth, texHeight, texChannels;
     unsigned int internalID = textureImages.size();
     unsigned int descriptorID = descriptorSets.size();
@@ -1618,7 +1622,7 @@ unsigned int loadTexture(const std::string& fileName) {
 
     textureImageViews[internalID] = createImageView(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels[internalID]);
 
-    createTextureSampler(internalID, textureMipLevels[internalID]);
+    createTextureSampler(internalID, textureMipLevels[internalID], samplerFilter);
 
     createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
@@ -2074,7 +2078,7 @@ void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<
         vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r->vboID], offsets);
         vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r->vboID], 0, VK_INDEX_TYPE_UINT32);
 
-        JEPushConstants_VK constants = {r->objectMatrix, r->rotate};
+        JEPushConstants_VK constants = {r->objectMatrix, r->normal};
         vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
                            VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
 

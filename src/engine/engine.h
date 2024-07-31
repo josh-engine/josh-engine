@@ -22,11 +22,16 @@ typedef glm::vec<3, float, (qualifier)3> vec3_MSVC;
 #define JEShaderInputUniformBit 0
 #define JEShaderInputTextureBit 1
 
+enum JETextureFilter {
+    JE_PIXEL_ART = 0,
+    JE_TEXTURE = 1
+};
+
 struct JEGraphicsSettings {
-    bool vsyncEnabled;
-    bool skybox;
+    bool  vsyncEnabled;
+    bool  skybox;
     float clearColor[3];
-    int msaaSamples;
+    int   msaaSamples;
 };
 
 struct JEShaderProgramSettings {
@@ -42,6 +47,9 @@ public:
     vec3 position{};
     vec3 rotation{};
     vec3 scale{};
+
+    vec3 pos_vel = vec3(0);
+    vec3 rot_vel = vec3(0);
 
     Transform() {
         this->position = vec3(0.0f);
@@ -77,15 +85,7 @@ public:
         return translate(mat4(1.0f), position);
     }
 
-    [[nodiscard]] mat4 getRotateMatrix() const {
-        vec3 radianRotation = radians(rotation);
-        auto rotationMatrix = identity<mat4>();
-        //TODO: There HAS to be a better way to do this.
-        rotationMatrix = rotate(rotationMatrix, radianRotation.x, vec3(1, 0, 0));
-        rotationMatrix = rotate(rotationMatrix, radianRotation.y, vec3(0, 1, 0));
-        rotationMatrix = rotate(rotationMatrix, radianRotation.z, vec3(0, 0, 1));
-        return rotationMatrix;
-    }
+    [[nodiscard]] mat4 getRotateMatrix() const;
 
     [[nodiscard]] mat4 getScaleMatrix() const {
         return glm::scale(mat4(1.0f), scale);
@@ -97,6 +97,9 @@ public:
     Transform transform;
     std::vector<void (*)(double dt, GameObject* g)> onUpdate = {};
     std::vector<Renderable> renderables = {};
+    union { //TODO maybe more things
+        uint64_t flags;
+    };
 
     explicit GameObject(void (*initFunc)(GameObject *g)) {
         transform = Transform();
@@ -133,7 +136,9 @@ void putGameObject(const std::string& name, const GameObject& g);
 std::unordered_map<std::string, GameObject>* getGameObjects();
 void putImGuiCall(void (*argument)());
 GameObject& getGameObject(const std::string& name);
+void deleteGameObject(const std::string& name);
 void setFOV(float n);
+float getFOV();
 int getCurrentWidth();
 int getCurrentHeight();
 Transform* cameraAccess();
@@ -155,8 +160,7 @@ void setRawCursorPos(vec2 pos);
 void setSunProperties(vec3 position, vec3 color);
 #endif
 void setCursorPos(vec2 pos);
-unsigned int createTextureWithName(const std::string& name, const std::string& fileName);
-unsigned int createTexture(const std::string& folderPath, const std::string& fileName);
+unsigned int createTexture(const std::string& name, const std::string& fileName);
 unsigned int getTexture(const std::string& name);
 bool textureExists(const std::string &name);
 unsigned int getProgram(const std::string& name);
@@ -173,9 +177,14 @@ void setSkyboxEnabled(bool enabled);
 std::string textureReverseLookup(unsigned int num);
 std::string programReverseLookup(unsigned int num);
 unsigned int createUniformBuffer(size_t bufferSize);
+void setClearColor(float r, float g, float b);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
 unsigned int getUBOID();
 unsigned int getLBOID();
+void setTextureFilterMode(JETextureFilter filter);
+void clearGameObjects();
+bool* runUpdatesAccess();
+bool* runObjectUpdatesAccess();
 #ifdef DEBUG_ENABLED
 std::unordered_map<std::string, unsigned int> getTexs();
 #endif

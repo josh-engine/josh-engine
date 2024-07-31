@@ -15,7 +15,7 @@
 bool vulkanMemoryView;
 #endif
 
-bool statView, gmObjView, texturesView, buffersView, graphicsView;
+bool statView, sceneInfoView, texturesView, buffersView, graphicsView;
 std::string selectedGameObject;
 std::string selectedFunction;
 std::string selectedTexture;
@@ -45,6 +45,26 @@ inline std::string sizeFormat(size_t s) {
     }
 }
 
+void putTransformImGui(Transform* t) {
+    ImGui::InputFloat3("Position", &t->position[0]);
+    ImGui::InputFloat3("Rotation", &t->rotation[0]);
+    ImGui::InputFloat3("Scale",    &t->scale[0]   );
+    if (ImGui::Button("Copy Transform Code", {ImGui::GetWindowSize().x-20, ImGui::GetTextLineHeight()+5})){
+        glm::vec3 pos = t->position;
+        glm::vec3 rot = t->rotation;
+        glm::vec3 sca = t->scale;
+        std::string code = "self->transform.position = glm::vec3(" + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ", " + std::to_string(pos.z) + ");\n" +
+                           "self->transform.rotation = glm::vec3(" + std::to_string(rot.x) + ", " + std::to_string(rot.y) + ", " + std::to_string(rot.z) + ");\n" +
+                           "self->transform.scale    = glm::vec3(" + std::to_string(sca.x) + ", " + std::to_string(sca.y) + ", " + std::to_string(sca.z) + ");";
+        ImGui::SetClipboardText(code.c_str());
+    }
+    ImGui::Text("Other Transform Info");
+    ImGui::BeginDisabled();
+    ImGui::InputFloat3("Positional Velocity", &t->pos_vel[0]);
+    ImGui::InputFloat3("Rotational Velocity", &t->rot_vel[0]);
+    ImGui::EndDisabled();
+}
+
 void setupImGuiWindow() {
 #ifdef DEBUG_ENABLED
     ImGui::Begin("Debug Menu");
@@ -56,7 +76,7 @@ void setupImGuiWindow() {
 //#endif
 
     ImGui::Checkbox("Stats", &statView);
-    ImGui::Checkbox("GameObjects Editor", &gmObjView);
+    ImGui::Checkbox("Scene Editor", &sceneInfoView);
     ImGui::Checkbox("Show Graphics Menus", &graphicsView);
     if (graphicsView) {
         ImGui::Checkbox("Textures", &texturesView);
@@ -112,8 +132,17 @@ void setupImGuiWindow() {
         ImGui::End();
     }
 
-    if (gmObjView) {
-        ImGui::Begin("GameObjects");
+    if (sceneInfoView) {
+        ImGui::Begin("Scene Editor");
+        ImGui::Text("Pause");
+        ImGui::Checkbox("Run Global Updates", runUpdatesAccess());
+        ImGui::Checkbox("Run GameObject Updates", runObjectUpdatesAccess());
+        ImGui::Text("Camera Info");
+        ImGui::NewLine();
+        ImGui::Text("FOV: %f", getFOV());
+        putTransformImGui(cameraAccess());
+        ImGui::NewLine();
+        ImGui::Text("GameObjects");
 
         std::unordered_map<std::string, GameObject>* gameObjects = getGameObjects();
 
@@ -131,15 +160,15 @@ void setupImGuiWindow() {
             if (ImGui::Button("Duplicate GameObject", {ImGui::GetWindowSize().x-20, ImGui::GetTextLineHeight()+5})){
                 GameObject copy = gameObjects->at(selectedGameObject);
                 gameObjects->insert({selectedGameObject + " (copy)", copy});
+                selectedGameObject = selectedGameObject + " (copy)";
+                gmObj = &gameObjects->at(selectedGameObject);
             }
 
             ImGui::Text("Renderable count: %zu", gmObj->renderables.size());
 
             ImGui::Text("Transform");
             ImGui::Indent();
-            ImGui::InputFloat3("Position", &gmObj->transform.position[0]);
-            ImGui::InputFloat3("Rotation", &gmObj->transform.rotation[0]);
-            ImGui::InputFloat3("Scale",    &gmObj->transform.scale[0]   );
+            putTransformImGui(&gmObj->transform);
             ImGui::Unindent();
 
             ImGui::Text("Functions");
