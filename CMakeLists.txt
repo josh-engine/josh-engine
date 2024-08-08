@@ -27,6 +27,10 @@ set(JoshEngine_sources src/main.cpp
         src/engine/gfx/renderable.cpp
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG_ENABLED)
+endif()
+
 option(JE_API_VK "Use Vulkan Graphics API" ON)
 if (APPLE)
     add_compile_definitions(PLATFORM_MAC)
@@ -52,7 +56,8 @@ endif()
 
 set(Game_src )
 set(JoshEngine_sources ${JoshEngine_sources}
-                       ${Game_src})
+                       ${Game_src}
+)
 
 add_executable(JoshEngine ${JoshEngine_sources})
 target_link_libraries(JoshEngine ${JoshEngine_libraries})

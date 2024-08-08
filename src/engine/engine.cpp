@@ -28,6 +28,7 @@ std::unordered_map<std::string, GameObject> gameObjects = {};
 
 Renderable skybox;
 Transform camera(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
+vec2 clippingPlanesPerspective{0.01f, 500.0f};
 
 bool keys[GLFW_KEY_LAST];
 bool mouseButtons[GLFW_MOUSE_BUTTON_8-GLFW_MOUSE_BUTTON_1];
@@ -53,9 +54,11 @@ JETextureFilter currentFilterMode = JE_TEXTURE;
 
 bool runUpdates = true;
 bool runObjectUpdates = true;
+bool forceSkipUpdate = false;
 
 bool* runUpdatesAccess() {return &runUpdates;}
 bool* runObjectUpdatesAccess() {return &runObjectUpdates;}
+bool* forceSkipUpdateAccess() {return &forceSkipUpdate;}
 
 unsigned int getUBOID() {
     return uboID;
@@ -69,8 +72,6 @@ unsigned int getLBOID() {
 std::unordered_map<std::string, unsigned int> getTexs() {
     return textures;
 }
-#endif
-
 std::string programReverseLookup(unsigned int num){
     for (const auto& i : programs){
         if (i.second == num) return i.first;
@@ -84,6 +85,12 @@ std::string textureReverseLookup(unsigned int num){
     }
     return "";
 }
+#endif
+
+void setClippingPlanes(vec2 near_far) {
+    clippingPlanesPerspective = near_far;
+}
+
 
 void setSkyboxEnabled(bool enabled) {
     drawSkybox = enabled && skyboxSupported;
@@ -136,6 +143,7 @@ std::unordered_map<std::string, GameObject>* getGameObjects() {
 
 void clearGameObjects() {
     gameObjects = {};
+    (*forceSkipUpdateAccess()) = true; // prevent the gameobject update loop from accessing a null reference
 }
 
 void putImGuiCall(void (*argument)()) {
@@ -325,7 +333,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
                         "./shaders/skybox_vertex.glsl",
                         "./shaders/skybox_fragment.glsl",
                 // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
-                        {false, true, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
+                        {false, true, false, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
         skybox = loadObj("./models/skybox.obj", getProgram("skybox"), {uboID, loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
@@ -416,6 +424,10 @@ void mainLoop() {
         if (runUpdates) {
             for (auto &onUpdateFunction: onUpdate) {
                 onUpdateFunction(deltaTime);
+                if (forceSkipUpdate) {
+                    forceSkipUpdate = false;
+                    break;
+                }
             }
         }
 
@@ -423,6 +435,11 @@ void mainLoop() {
             for (auto &g: gameObjects) {
                 for (auto &gameObjectFunction: g.second.onUpdate) {
                     gameObjectFunction(deltaTime, &g.second);
+                    if (forceSkipUpdate) break;
+                }
+                if (forceSkipUpdate) {
+                    forceSkipUpdate = false;
+                    break;
                 }
             }
         }
@@ -490,7 +507,7 @@ void mainLoop() {
         JEUniformBufferObject ubo = {
             cameraMatrix,
             glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
-            glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f),
+            glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, clippingPlanesPerspective.x, clippingPlanesPerspective.y),
             camera.position,
             camera.direction(),
             {windowWidth, windowHeight}

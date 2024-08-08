@@ -2,8 +2,8 @@
 // Created by Ember Lee on 3/24/24.
 //
 #include "engineconfig.h"
-#ifdef DEBUG_ENABLED
 #include <string>
+#ifdef DEBUG_ENABLED
 #include "enginedebug.h"
 #include "engine.h"
 #include "gfx/imgui/imgui.h"
@@ -43,26 +43,6 @@ inline std::string sizeFormat(size_t s) {
     } else {
         return std::to_string(s) + " bytes";
     }
-}
-
-void putTransformImGui(Transform* t) {
-    ImGui::InputFloat3("Position", &t->position[0]);
-    ImGui::InputFloat3("Rotation", &t->rotation[0]);
-    ImGui::InputFloat3("Scale",    &t->scale[0]   );
-    if (ImGui::Button("Copy Transform Code", {ImGui::GetWindowSize().x-20, ImGui::GetTextLineHeight()+5})){
-        glm::vec3 pos = t->position;
-        glm::vec3 rot = t->rotation;
-        glm::vec3 sca = t->scale;
-        std::string code = "self->transform.position = glm::vec3(" + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ", " + std::to_string(pos.z) + ");\n" +
-                           "self->transform.rotation = glm::vec3(" + std::to_string(rot.x) + ", " + std::to_string(rot.y) + ", " + std::to_string(rot.z) + ");\n" +
-                           "self->transform.scale    = glm::vec3(" + std::to_string(sca.x) + ", " + std::to_string(sca.y) + ", " + std::to_string(sca.z) + ");";
-        ImGui::SetClipboardText(code.c_str());
-    }
-    ImGui::Text("Other Transform Info");
-    ImGui::BeginDisabled();
-    ImGui::InputFloat3("Positional Velocity", &t->pos_vel[0]);
-    ImGui::InputFloat3("Rotational Velocity", &t->rot_vel[0]);
-    ImGui::EndDisabled();
 }
 
 void setupImGuiWindow() {
@@ -140,7 +120,29 @@ void setupImGuiWindow() {
         ImGui::Text("Camera Info");
         ImGui::NewLine();
         ImGui::Text("FOV: %f", getFOV());
-        putTransformImGui(cameraAccess());
+        ImGui::InputFloat3("Camera Position", &cameraAccess()->position[0]);
+        ImGui::InputFloat3("Camera Rotation", &cameraAccess()->rotation[0]);
+        ImGui::InputFloat3("Camera Scale",    &cameraAccess()->scale[0]   );
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text(
+                    "This does not affect any rendering. Useful for player colliders.");
+            ImGui::EndTooltip();
+        }
+        if (ImGui::Button("Copy Camera Transform Code", {ImGui::GetWindowSize().x-20, ImGui::GetTextLineHeight()+5})){
+            glm::vec3 pos = cameraAccess()->position;
+            glm::vec3 rot = cameraAccess()->rotation;
+            glm::vec3 sca = cameraAccess()->scale;
+            std::string code = "cameraAccess()->position = glm::vec3(" + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ", " + std::to_string(pos.z) + ");\n" +
+                               "cameraAccess()->rotation = glm::vec3(" + std::to_string(rot.x) + ", " + std::to_string(rot.y) + ", " + std::to_string(rot.z) + ");\n" +
+                               "cameraAccess()->scale    = glm::vec3(" + std::to_string(sca.x) + ", " + std::to_string(sca.y) + ", " + std::to_string(sca.z) + ");";
+            ImGui::SetClipboardText(code.c_str());
+        }
+        ImGui::Text("Other Camera Transform Info");
+        ImGui::BeginDisabled();
+        ImGui::InputFloat3("Camera Positional Velocity", &cameraAccess()->pos_vel[0]);
+        ImGui::InputFloat3("Camera Rotational Velocity", &cameraAccess()->rot_vel[0]);
+        ImGui::EndDisabled();
         ImGui::NewLine();
         ImGui::Text("GameObjects");
 
@@ -168,7 +170,24 @@ void setupImGuiWindow() {
 
             ImGui::Text("Transform");
             ImGui::Indent();
-            putTransformImGui(&gmObj->transform);
+            Transform* t = &gmObj->transform;
+            ImGui::InputFloat3("Position", &t->position[0]);
+            ImGui::InputFloat3("Rotation", &t->rotation[0]);
+            ImGui::InputFloat3("Scale",    &t->scale[0]   );
+            if (ImGui::Button("Copy Transform Code", {ImGui::GetWindowSize().x-20, ImGui::GetTextLineHeight()+5})){
+                glm::vec3 pos = t->position;
+                glm::vec3 rot = t->rotation;
+                glm::vec3 sca = t->scale;
+                std::string code = "self->transform.position = glm::vec3(" + std::to_string(pos.x) + ", " + std::to_string(pos.y) + ", " + std::to_string(pos.z) + ");\n" +
+                                   "self->transform.rotation = glm::vec3(" + std::to_string(rot.x) + ", " + std::to_string(rot.y) + ", " + std::to_string(rot.z) + ");\n" +
+                                   "self->transform.scale    = glm::vec3(" + std::to_string(sca.x) + ", " + std::to_string(sca.y) + ", " + std::to_string(sca.z) + ");";
+                ImGui::SetClipboardText(code.c_str());
+            }
+            ImGui::Text("Other Transform Info");
+            ImGui::BeginDisabled();
+            ImGui::InputFloat3("Positional Velocity", &t->pos_vel[0]);
+            ImGui::InputFloat3("Rotational Velocity", &t->rot_vel[0]);
+            ImGui::EndDisabled();
             ImGui::Unindent();
 
             ImGui::Text("Functions");

@@ -1774,12 +1774,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-
-    if (shaderProgramSettings.doubleSided){
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-    } else {
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    }
+    rasterizer.cullMode = shaderProgramSettings.doubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     rasterizer.depthBiasEnable = VK_FALSE;
@@ -1817,12 +1812,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = shaderProgramSettings.testDepth;
-    if (shaderProgramSettings.transparencySupported) {
-        depthStencil.depthWriteEnable = VK_FALSE;
-    } else {
-        depthStencil.depthWriteEnable = VK_TRUE;
-    }
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    depthStencil.depthWriteEnable = shaderProgramSettings.transparencySupported ? VK_FALSE : VK_TRUE;
+    depthStencil.depthCompareOp = shaderProgramSettings.depthAlwaysPass ? VK_COMPARE_OP_ALWAYS : VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f;
     depthStencil.maxDepthBounds = 1.0f;

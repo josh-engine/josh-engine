@@ -38,6 +38,7 @@ struct JEShaderProgramSettings {
     bool testDepth;
     bool transparencySupported;
     bool doubleSided;
+    bool depthAlwaysPass = false;
     u32  shaderInputs;
     u8   shaderInputCount;
 };
@@ -174,8 +175,6 @@ void setAmbient(float r, float g, float b);
 void setAmbient(vec3 rgb);
 void registerOnMouse(void (*function)(int button, bool pressed, double dt));
 void setSkyboxEnabled(bool enabled);
-std::string textureReverseLookup(unsigned int num);
-std::string programReverseLookup(unsigned int num);
 unsigned int createUniformBuffer(size_t bufferSize);
 void setClearColor(float r, float g, float b);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
@@ -185,8 +184,11 @@ void setTextureFilterMode(JETextureFilter filter);
 void clearGameObjects();
 bool* runUpdatesAccess();
 bool* runObjectUpdatesAccess();
+bool* forceSkipUpdateAccess();
 #ifdef DEBUG_ENABLED
 std::unordered_map<std::string, unsigned int> getTexs();
+std::string textureReverseLookup(unsigned int num);
+std::string programReverseLookup(unsigned int num);
 #endif
 
 #endif //JOSHENGINE_ENGINE_H
