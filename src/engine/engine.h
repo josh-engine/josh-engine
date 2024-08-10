@@ -175,6 +175,7 @@ void setAmbient(float r, float g, float b);
 void setAmbient(vec3 rgb);
 void registerOnMouse(void (*function)(int button, bool pressed, double dt));
 void setSkyboxEnabled(bool enabled);
+void setClippingPlanes(vec2 near_far);
 unsigned int createUniformBuffer(size_t bufferSize);
 void setClearColor(float r, float g, float b);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
