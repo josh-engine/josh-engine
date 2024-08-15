@@ -74,6 +74,7 @@ std::vector<JEMemoryBlock_VK> getMemory();
 void* getTex(unsigned int i);
 JEUniformBufferReference_VK getBuf(unsigned int i);
 unsigned int getBufCount();
+void vk_setClearColor(float r, float g, float b);
 #endif
 
 #endif //JOSHENGINE_GFX_VK_H

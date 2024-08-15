@@ -99,7 +99,7 @@ public:
     std::vector<void (*)(double dt, GameObject* g)> onUpdate = {};
     std::vector<Renderable> renderables = {};
     union { //TODO maybe more things
-        uint64_t flags;
+        uint64_t flags = 0;
     };
 
     explicit GameObject(void (*initFunc)(GameObject *g)) {
@@ -122,10 +122,12 @@ struct JEUniformBufferObject {
     alignas(8)  vec2 screenSize;
 };
 
-struct JELightingBuffer {
+struct JEGlobalLightingBufferObject {
     alignas(16) vec3 sunDirection;
     alignas(16) vec3 sunColor;
     alignas(16) vec3 ambient;
+    alignas(16) vec3 clearColor;
+    alignas(8)  vec2 fogPlanes;
 };
 
 void init(const char* windowName, int width, int height, JEGraphicsSettings settings);
@@ -178,6 +180,8 @@ void setSkyboxEnabled(bool enabled);
 void setClippingPlanes(vec2 near_far);
 unsigned int createUniformBuffer(size_t bufferSize);
 void setClearColor(float r, float g, float b);
+void setClearColor(glm::vec3 rgb);
+void setFogPlanes(float near, float far);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
 unsigned int getUBOID();
 unsigned int getLBOID();

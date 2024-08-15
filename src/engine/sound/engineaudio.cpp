@@ -149,3 +149,7 @@ bool Sound::isPlaying() const {
 void Sound::deleteSource() const {
     alDeleteSources((ALuint)1, &sourceID);
 }
+
+void Sound::setGain(float gain) const {
+    alSourcef(sourceID, AL_GAIN, gain);
+}

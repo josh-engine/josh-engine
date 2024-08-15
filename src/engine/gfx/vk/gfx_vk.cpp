@@ -1294,7 +1294,7 @@ void createTextureSampler(unsigned int id, unsigned int mipLevels, unsigned int 
 // renderdoc for mac when
 std::array<VkClearValue, 2> clearValues{};
 
-void setClearColor(float r, float g, float b) {
+void vk_setClearColor(float r, float g, float b) {
     clearValues[0].color = {{r, g, b, 1.0f}};
 }
 

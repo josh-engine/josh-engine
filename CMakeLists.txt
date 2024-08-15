@@ -53,6 +53,8 @@ if (JE_API_VK)
             src/engine/gfx/imgui/imgui_impl_vulkan.cpp
     )
 endif()
+# Please put your game's sources under Game_src to stay organized!
+# You don't have to though, I'm not the police.
 
 set(Game_src )
 set(JoshEngine_sources ${JoshEngine_sources}

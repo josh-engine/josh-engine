@@ -32,6 +32,7 @@ public:
     void pause();
     void togglePaused();
     void deleteSource() const;
+    void setGain(float gain) const;
 
     [[nodiscard]] bool isPlaying() const;
 

@@ -46,6 +46,8 @@ bool skyboxSupported;
 glm::vec3 sunDirection(0, 1, 0);
 glm::vec3 sunColor(0, 0, 0);
 glm::vec3 ambient(0);
+glm::vec3 clearColor;
+glm::vec2 fogPlanes(0, 200);
 
 unsigned int uboID{};
 unsigned int lboID{};
@@ -97,8 +99,8 @@ void setSkyboxEnabled(bool enabled) {
 }
 
 void recopyLightingBuffer() {
-    JELightingBuffer lighting_buffer = {sunDirection, sunColor, ambient};
-    updateUniformBuffer(lboID, &lighting_buffer, sizeof(JELightingBuffer), true);
+    JEGlobalLightingBufferObject lighting_buffer = {sunDirection, sunColor, ambient, clearColor, fogPlanes};
+    updateUniformBuffer(lboID, &lighting_buffer, sizeof(JEGlobalLightingBufferObject), true);
 }
 
 void setAmbient(glm::vec3 rgb) {
@@ -108,6 +110,21 @@ void setAmbient(glm::vec3 rgb) {
 
 void setAmbient(float r, float g, float b){
     setAmbient(glm::vec3(r, g, b));
+}
+
+void setClearColor(float r, float g, float b) {
+    clearColor = vec3(r, g, b);
+    recopyLightingBuffer();
+    vk_setClearColor(r, g, b);
+}
+
+void setClearColor(glm::vec3 rgb) {
+    setClearColor(rgb.r, rgb.g, rgb.b);
+}
+
+void setFogPlanes(float near, float far) {
+    fogPlanes = {near, far};
+    recopyLightingBuffer();
 }
 
 void setMouseVisible(bool vis) {
@@ -168,7 +185,7 @@ unsigned int createTexture(const std::string& name, const std::string& filePath)
     unsigned int id;
     try {
         id = loadTexture(filePath, currentFilterMode);
-    } catch (std::runtime_error e) {
+    } catch (std::runtime_error &e) {
         id = textures.at("missing");
         std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
     }
@@ -309,13 +326,14 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
     windowHeight = height;
 
     ambient = {glm::max(graphicsSettings.clearColor[0] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[1] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[2] - 0.5f, 0.1f)};
+    clearColor = vec3(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2]);
 
     initGFX(&window, windowName, width, height, graphicsSettings);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     uboID = createUniformBuffer(sizeof(JEUniformBufferObject));
-    lboID = createUniformBuffer(sizeof(JELightingBuffer));
+    lboID = createUniformBuffer(sizeof(JEGlobalLightingBufferObject));
 
     // Missing texture init
     createTexture("missing", "./textures/missing_tex.png");

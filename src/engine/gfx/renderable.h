@@ -59,7 +59,7 @@ public:
     glm::mat4 scale{};
     glm::mat4 normal{};
     glm::mat4 objectMatrix{};
-    bool use_faked_nmat;
+    bool use_faked_nmat{};
 
     unsigned char flags;
 
