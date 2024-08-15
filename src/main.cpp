@@ -1,6 +1,5 @@
 #include "engine/engine.h"
 #include "game.h"
-#include <iostream>
 
 int main() {
     JEGraphicsSettings graphicsSettings{};
@@ -11,7 +10,7 @@ int main() {
     graphicsSettings.clearColor[2] = 0.8f;
     graphicsSettings.msaaSamples = 4;
 
-    init("Rebuild", 1280, 720, graphicsSettings);
+    init("JoshEngine Demo", 1280, 720, graphicsSettings);
     gameSetup();
     mainLoop();
     deinit();
