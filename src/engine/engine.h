@@ -190,6 +190,7 @@ void clearGameObjects();
 bool* runUpdatesAccess();
 bool* runObjectUpdatesAccess();
 bool* forceSkipUpdateAccess();
+void skipUpdate();
 #ifdef DEBUG_ENABLED
 std::unordered_map<std::string, unsigned int> getTexs();
 std::string textureReverseLookup(unsigned int num);

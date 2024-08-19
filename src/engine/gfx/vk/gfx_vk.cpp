@@ -579,7 +579,8 @@ int scoreDevice(VkPhysicalDevice device) {
     score += (static_cast<int>(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))*1000;
 
     // big textures go brrrr
-    score += static_cast<int>(deviceProperties.limits.maxImageDimension2D/25);
+    // We will likely never hit the texture limit of modern GPUs, this scoring is BS
+    //score += static_cast<int>(deviceProperties.limits.maxImageDimension2D/25);
 
     // higher msaa = bueno
     score += static_cast<int>(getMaxSamples(device)*10);

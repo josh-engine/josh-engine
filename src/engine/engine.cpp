@@ -61,6 +61,7 @@ bool forceSkipUpdate = false;
 bool* runUpdatesAccess() {return &runUpdates;}
 bool* runObjectUpdatesAccess() {return &runObjectUpdates;}
 bool* forceSkipUpdateAccess() {return &forceSkipUpdate;}
+void  skipUpdate() { forceSkipUpdate = true; }
 
 unsigned int getUBOID() {
     return uboID;
@@ -160,7 +161,7 @@ std::unordered_map<std::string, GameObject>* getGameObjects() {
 
 void clearGameObjects() {
     gameObjects = {};
-    (*forceSkipUpdateAccess()) = true; // prevent the gameobject update loop from accessing a null reference
+    skipUpdate(); // prevent the gameobject update loop from accessing a null reference
 }
 
 void putImGuiCall(void (*argument)()) {
@@ -439,28 +440,24 @@ void mainLoop() {
             }
         }
 
-        if (runUpdates) {
+        if (runUpdates && !forceSkipUpdate) {
             for (auto &onUpdateFunction: onUpdate) {
                 onUpdateFunction(deltaTime);
-                if (forceSkipUpdate) {
-                    forceSkipUpdate = false;
-                    break;
-                }
+                if (forceSkipUpdate) break;
             }
         }
 
-        if (runObjectUpdates) {
+        if (runObjectUpdates && !forceSkipUpdate) {
             for (auto &g: gameObjects) {
                 for (auto &gameObjectFunction: g.second.onUpdate) {
                     gameObjectFunction(deltaTime, &g.second);
                     if (forceSkipUpdate) break;
                 }
-                if (forceSkipUpdate) {
-                    forceSkipUpdate = false;
-                    break;
-                }
+                if (forceSkipUpdate) break;
             }
         }
+
+        forceSkipUpdate = false;
 
         // Right vector
         glm::vec3 right = glm::vec3(
@@ -494,7 +491,7 @@ void mainLoop() {
         if (drawSkybox) {
             skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
             renderables.push_back(&skybox);
-            renderableCount += 1;
+            renderableCount++;
         }
 
         for (auto& item : gameObjects) {

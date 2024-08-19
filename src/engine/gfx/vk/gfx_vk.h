@@ -69,12 +69,12 @@ unsigned int createVBO(std::vector<JEInterleavedVertex_VK> *interleavedVertices,
 unsigned int createUniformBuffer(size_t bufferSize);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
 */
+void vk_setClearColor(float r, float g, float b);
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory();
 void* getTex(unsigned int i);
 JEUniformBufferReference_VK getBuf(unsigned int i);
 unsigned int getBufCount();
-void vk_setClearColor(float r, float g, float b);
 #endif
 
 #endif //JOSHENGINE_GFX_VK_H
