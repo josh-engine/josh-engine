@@ -2,8 +2,8 @@
 // Created by Ember Lee on 3/22/24.
 //
 
-#ifndef JOSHENGINE_ENGINEAUDIO_H
-#define JOSHENGINE_ENGINEAUDIO_H
+#ifndef JOSHENGINE_AUDIOUTIL_H
+#define JOSHENGINE_AUDIOUTIL_H
 #include <glm/glm.hpp>
 #include <string>
 typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
@@ -41,4 +41,4 @@ public:
 void initAudio();
 void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, glm::vec3 upVec);
 
-#endif //JOSHENGINE_ENGINEAUDIO_H
+#endif //JOSHENGINE_AUDIOUTIL_H

@@ -60,6 +60,7 @@ void initGFX(GLFWwindow **window, const char* windowName, int width, int height,
 void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls);
 void deinitGFX();
 unsigned int loadTexture(const std::string& fileName, const int& samplerFilter);
+unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter);
 unsigned int loadShader(const std::string& file_path, int target);
 unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings);
 unsigned int loadCubemap(std::vector<std::string> faces);

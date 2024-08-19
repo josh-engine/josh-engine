@@ -3,13 +3,13 @@
 //
 #include "engineconfig.h"
 #include "gfx/vk/gfx_vk.h"
-#include "sound/engineaudio.h"
+#include "sound/audioutil.h"
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
 #include <queue>
 #include "gfx/modelutil.h"
-#include "enginedebug.h"
+#include "debug/debugutil.h"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 
@@ -90,8 +90,8 @@ std::string textureReverseLookup(unsigned int num){
 }
 #endif
 
-void setClippingPlanes(vec2 near_far) {
-    clippingPlanesPerspective = near_far;
+void setClippingPlanes(float near, float far) {
+    clippingPlanesPerspective = {near, far};
 }
 
 
@@ -117,10 +117,6 @@ void setClearColor(float r, float g, float b) {
     clearColor = vec3(r, g, b);
     recopyLightingBuffer();
     vk_setClearColor(r, g, b);
-}
-
-void setClearColor(glm::vec3 rgb) {
-    setClearColor(rgb.r, rgb.g, rgb.b);
 }
 
 void setFogPlanes(float near, float far) {
@@ -168,13 +164,13 @@ void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
-void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings) {
+void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings) {
     unsigned int vertID = loadShader(vertex, JE_VERTEX_SHADER);
     unsigned int fragID = loadShader(fragment, JE_FRAGMENT_SHADER);
     programs.insert({name, createProgram(vertID, fragID, settings)});
 }
 
-unsigned int getProgram(const std::string& name) {
+unsigned int getShader(const std::string& name) {
     return programs.at(name);
 }
 
@@ -348,12 +344,12 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
 
     if (graphicsSettings.skybox) {
         // Skybox init
-        registerProgram("skybox",
-                        "./shaders/skybox_vertex.glsl",
-                        "./shaders/skybox_fragment.glsl",
+        createShader("skybox",
+                     "./shaders/skybox_vertex.glsl",
+                     "./shaders/skybox_fragment.glsl",
                 // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
-                        {false, true, false, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
-        skybox = loadObj("./models/skybox.obj", getProgram("skybox"), {uboID, loadCubemap({
+                     {false, true, false, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
+        skybox = loadObj("./models/skybox.obj", getShader("skybox"), {uboID, loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
                                              "./skybox/py_up.jpg",

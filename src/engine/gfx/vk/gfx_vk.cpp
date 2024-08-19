@@ -1574,8 +1574,7 @@ void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int3
     endSingleTimeCommands(commandBuffer);
 }
 
-unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
-    int texWidth, texHeight, texChannels;
+unsigned int loadSTBI2DTexture(stbi_uc* pixels, int texWidth, int texHeight, int texChannels, const int& samplerFilter) {
     unsigned int internalID = textureImages.size();
     unsigned int descriptorID = descriptorSets.size();
 
@@ -1586,16 +1585,9 @@ unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) 
     descriptorSets.emplace_back();
     textureDescriptorPools.push_back({});
 
-    stbi_set_flip_vertically_on_load(true);
-
-    stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     textureMipLevels.push_back(static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1);
-
-    if (!pixels) {
-        throw std::runtime_error("Vulkan: Failed to load image \"" + fileName + "\"!");
-    }
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1630,6 +1622,26 @@ unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) 
     createTextureDescriptorSet(internalID, &textureImageViews[internalID], descriptorID);
 
     return descriptorID;
+}
+
+unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
+    stbi_set_flip_vertically_on_load(true);
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    if (!pixels) {
+        throw std::runtime_error("Vulkan: Failed to load image \"" + fileName + "\"!");
+    }
+    return loadSTBI2DTexture(pixels, texWidth, texHeight, texChannels, samplerFilter);
+}
+
+unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter) {
+    stbi_set_flip_vertically_on_load(true);
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(fileFirstBytePtr), fileLength, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    if (!pixels) {
+        throw std::runtime_error("Vulkan: Failed to load image from bundle!");
+    }
+    return loadSTBI2DTexture(pixels, texWidth, texHeight, texChannels, samplerFilter);
 }
 
 static std::vector<char> readFile(const std::string& filename) {

@@ -1,17 +1,17 @@
 //
 // Created by Ember Lee on 3/24/24.
 //
-#include "engineconfig.h"
+#include "../engineconfig.h"
 #include <string>
 #ifdef DEBUG_ENABLED
-#include "enginedebug.h"
-#include "engine.h"
-#include "gfx/imgui/imgui.h"
+#include "debugutil.h"
+#include "../engine.h"
+#include "../gfx/imgui/imgui.h"
 #include <cstdio>
 #include <unordered_map>
 
 #ifdef GFX_API_VK
-#include "gfx/vk/gfx_vk.h"
+#include "../gfx/vk/gfx_vk.h"
 bool vulkanMemoryView;
 #endif
 

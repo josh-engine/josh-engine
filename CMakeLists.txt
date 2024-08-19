@@ -15,7 +15,7 @@ set(JoshEngine_libraries
 )
 set(JoshEngine_sources src/main.cpp
         src/engine/engine.cpp
-        src/engine/sound/engineaudio.cpp
+        src/engine/sound/audioutil.cpp
         src/engine/gfx/modelutil.cpp
         src/engine/gfx/imgui/imgui.cpp
         src/engine/gfx/imgui/imgui_demo.cpp
@@ -23,7 +23,7 @@ set(JoshEngine_sources src/main.cpp
         src/engine/gfx/imgui/imgui_tables.cpp
         src/engine/gfx/imgui/imgui_widgets.cpp
         src/engine/gfx/imgui/imgui_impl_glfw.cpp
-        src/engine/enginedebug.cpp
+        src/engine/debug/debugutil.cpp
         src/engine/gfx/renderable.cpp
 )
 
