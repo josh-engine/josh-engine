@@ -10,6 +10,8 @@
 #include <queue>
 #include "gfx/modelutil.h"
 #include "debug/debugutil.h"
+#include "jbd/bundleutil.h"
+
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 
@@ -182,6 +184,19 @@ unsigned int createTexture(const std::string& name, const std::string& filePath)
     unsigned int id;
     try {
         id = loadTexture(filePath, currentFilterMode);
+    } catch (std::runtime_error &e) {
+        id = textures.at("missing");
+        std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
+    }
+    textures.insert({name, id});
+    return id;
+}
+
+unsigned int createTexture(const std::string& name, const std::string& filePath, const std::string& bundleFilePath) {
+    unsigned int id;
+    try {
+        std::vector<unsigned char> file = getFileCharVec(filePath, bundleFilePath);
+        id = loadBundledTexture(reinterpret_cast<char *>(&file[0]), file.size(), currentFilterMode);
     } catch (std::runtime_error &e) {
         id = textures.at("missing");
         std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;

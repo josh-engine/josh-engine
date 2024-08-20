@@ -244,6 +244,14 @@ void setMouseVisible(bool vis);
  */
 unsigned int createTexture(const std::string& name, const std::string& fileName);
 /**
+ * Create texture in GPU memory with a Descriptor ID.
+ * @param name Texture name to be accessed by
+ * @param fileName Alias to load texture from in bundle
+ * @param bundleFilePath Bundle to load bytes from
+ * @return Texture Descriptor ID
+ */
+unsigned int createTexture(const std::string& name, const std::string& filePath, const std::string& bundleFilePath);
+/**
  * Get texture Descriptor ID
  * @param name Texture name to retrieve descriptor ID of
  * @return Texture Descriptor ID

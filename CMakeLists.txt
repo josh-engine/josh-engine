@@ -25,6 +25,7 @@ set(JoshEngine_sources src/main.cpp
         src/engine/gfx/imgui/imgui_impl_glfw.cpp
         src/engine/debug/debugutil.cpp
         src/engine/gfx/renderable.cpp
+        src/engine/jbd/bundleutil.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
