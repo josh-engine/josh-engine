@@ -13,8 +13,8 @@ set(JoshEngine_libraries
         glfw
         OpenAL::OpenAL
 )
-set(JoshEngine_sources src/main.cpp
-        src/engine/engine.cpp
+set(JoshEngine_sources
+        src/engine/gfx/renderable.cpp
         src/engine/sound/audioutil.cpp
         src/engine/gfx/modelutil.cpp
         src/engine/gfx/imgui/imgui.cpp
@@ -24,8 +24,9 @@ set(JoshEngine_sources src/main.cpp
         src/engine/gfx/imgui/imgui_widgets.cpp
         src/engine/gfx/imgui/imgui_impl_glfw.cpp
         src/engine/debug/debugutil.cpp
-        src/engine/gfx/renderable.cpp
         src/engine/jbd/bundleutil.cpp
+        src/engine/engine.cpp
+        src/main.cpp
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

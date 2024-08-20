@@ -9,7 +9,6 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #endif
 #include <glm/glm.hpp>
-#include <map>
 #include <GLFW/glfw3.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include "gfx/renderable.h"

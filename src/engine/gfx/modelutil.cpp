@@ -6,6 +6,7 @@
 #include <iostream>
 #include <utility>
 #include <unordered_map>
+#include "../jbd/bundleutil.h"
 #include "renderable.h"
 #include "modelutil.h"
 
@@ -29,10 +30,6 @@ Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool 
     copy.descriptorIDs = std::move(desc);
     copy.flags = static_cast<char>(quadBase.flags | (manualDepthSort ? 0b10 : 0));
     return copy;
-}
-
-Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc) {
-    return createQuad(shader, std::move(desc), false);
 }
 
 struct repackVertexObject {
@@ -123,32 +120,7 @@ std::vector<std::string> splitStr(const std::string& in, char del) {
 
 std::unordered_map<std::string, std::vector<Renderable>> objMap;
 
-std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort) {
-    if (objMap.contains(path)) {
-        std::vector<Renderable> copied;
-        copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
-        for (auto & i : copied){
-            i.flags |= static_cast<unsigned char>(manualDepthSort ? 0b10 : 0b0);
-        }
-        if (copied[0].shaderProgram != shaderProgram) {
-            for (auto & i : copied){
-                i.shaderProgram = shaderProgram;
-            }
-        }
-        for (auto & i : copied) {
-            i.descriptorIDs = desc;
-        }
-        return copied;
-    }
-    std::ifstream fileStream(path);
-    if (!fileStream.good()) {
-        return {{}};
-    }
-    std::stringstream buffer;
-    buffer << fileStream.rdbuf();
-    std::string fileContents = buffer.str();
-    fileContents.append("\n"); // janky fix for OBJs ending without newline not loading last face
-
+std::vector<Renderable> loadObj(const std::vector<unsigned char>& fileContents, unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort) {
     std::vector<Renderable> renderableList;
 
     std::string currentLine;
@@ -261,7 +233,7 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
                 currentRenderable = {};
             }
             else if (split[0] == "vp" || split[0] == "l") {
-                std::cerr << "OBJ model at " << path << " uses unsupported parameter space vertex or line element! Cancelling load." << std::endl;
+                std::cerr << "OBJ uses unsupported parameter space vertex or line element! Cancelling load." << std::endl;
                 return {};
             } else {
                 std::cerr << "Unrecognized token \"" << split[0] << "\""<< std::endl;
@@ -270,10 +242,64 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
     }
     Model repacked = repackModel(currentRenderable);
     renderableList.emplace_back(repacked.vertices, repacked.uvs, repacked.normals, repacked.indices, shaderProgram, desc, manualDepthSort);
+    return renderableList;
+}
+
+std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort) {
+    if (objMap.contains(path)) {
+        std::vector<Renderable> copied;
+        copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
+        for (auto & i : copied){
+            i.flags |= static_cast<unsigned char>(manualDepthSort ? 0b10 : 0b0);
+        }
+        if (copied[0].shaderProgram != shaderProgram) {
+            for (auto & i : copied){
+                i.shaderProgram = shaderProgram;
+            }
+        }
+        for (auto & i : copied) {
+            i.descriptorIDs = desc;
+        }
+        return copied;
+    }
+    std::ifstream fileStream(path);
+    if (!fileStream.good()) {
+        return {{}};
+    }
+    std::vector<unsigned char> fileContents{};
+    while (!fileStream.eof()) {
+        char c{};
+        fileStream.get(c);
+        fileContents.push_back(c);
+    }
+    // Kill two birds with one stone (terminating 0 before EOF, always need an extra \n)
+    fileContents[fileContents.size()-1] = '\n';
+
+    std::vector<Renderable> renderableList = loadObj(fileContents, shaderProgram, desc, manualDepthSort);
     objMap.insert({path, renderableList});
     return renderableList;
 }
 
-std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, const std::vector<unsigned int>& desc) {
-    return loadObj(path, shaderProgram, desc, false);
+std::vector<Renderable> loadBundledObj(const std::string& path, const std::string& bundleFileName,  unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort) {
+    if (objMap.contains(path)) {
+        std::vector<Renderable> copied;
+        copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
+        for (auto & i : copied){
+            i.flags |= static_cast<unsigned char>(manualDepthSort ? 0b10 : 0b0);
+        }
+        if (copied[0].shaderProgram != shaderProgram) {
+            for (auto & i : copied){
+                i.shaderProgram = shaderProgram;
+            }
+        }
+        for (auto & i : copied) {
+            i.descriptorIDs = desc;
+        }
+        return copied;
+    }
+
+    std::vector<unsigned char> fileContents = getFileCharVec(path, bundleFileName);
+    std::vector<Renderable> renderableList = loadObj(fileContents, shaderProgram, desc, manualDepthSort);
+    objMap.insert({path, renderableList});
+    return renderableList;
 }
