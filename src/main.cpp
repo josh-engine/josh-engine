@@ -1,5 +1,5 @@
 #include "engine/engine.h"
-#include "game.h"
+#include "test.h"
 
 int main() {
     JEGraphicsSettings graphicsSettings{};
@@ -11,7 +11,7 @@ int main() {
     graphicsSettings.msaaSamples = 4;
 
     init("JoshEngine Demo", 1280, 720, graphicsSettings);
-    gameSetup();
+    setupTest();
     mainLoop();
     deinit();
     return 0;

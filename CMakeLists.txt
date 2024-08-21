@@ -58,7 +58,8 @@ endif()
 # Please put your game's sources under Game_src to stay organized!
 # You don't have to though, I'm not the police.
 
-set(Game_src )
+set(Game_src
+        src/test.cpp)
 set(JoshEngine_sources ${JoshEngine_sources}
                        ${Game_src}
 )
