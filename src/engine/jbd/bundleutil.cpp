@@ -9,8 +9,8 @@
 
 struct JEBundledFileInfo {
     char path[64];
-    u_int64_t fileStartOffset;
-    u_int64_t fileLength;
+    unsigned long fileStartOffset;
+    unsigned long fileLength;
 };
 
 struct JEFileHeader {
