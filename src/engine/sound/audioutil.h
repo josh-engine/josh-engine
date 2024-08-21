@@ -2,13 +2,13 @@
 // Created by Ember Lee on 3/22/24.
 //
 
-#ifndef JOSHENGINE_ENGINEAUDIO_H
-#define JOSHENGINE_ENGINEAUDIO_H
+#ifndef JOSHENGINE_AUDIOUTIL_H
+#define JOSHENGINE_AUDIOUTIL_H
 #include <glm/glm.hpp>
 #include <string>
 typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
 
-void setVolume(float volume);
+void setMasterVolume(float volume);
 unsigned int oggToBuffer(const std::string& filePath);
 
 class Sound {
@@ -18,6 +18,7 @@ public:
     glm::vec3 position{};
     glm::vec3 velocity{};
     bool isLooping;
+    bool isPaused;
     // If we are not using MSVC
 #ifndef _MSC_VER
     Sound(glm::vec3 pos, glm::vec3 vel, const std::string& filePath, bool loop, float halfVolumeDistance, float min, float max, float gain);
@@ -28,9 +29,16 @@ public:
     void updateSource() const;
     void play();
     void stop() const;
+    void pause();
+    void togglePaused();
+    void deleteSource() const;
+    void setGain(float gain) const;
+
+    [[nodiscard]] bool isPlaying() const;
+
 };
 
 void initAudio();
 void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, glm::vec3 upVec);
 
-#endif //JOSHENGINE_ENGINEAUDIO_H
+#endif //JOSHENGINE_AUDIOUTIL_H

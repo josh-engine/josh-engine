@@ -3,13 +3,22 @@
 //
 #include "engineconfig.h"
 #include "gfx/vk/gfx_vk.h"
-#include "sound/engineaudio.h"
+#include "sound/audioutil.h"
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
 #include <queue>
 #include "gfx/modelutil.h"
-#include "enginedebug.h"
+#include "debug/debugutil.h"
+#include "jbd/bundleutil.h"
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
+
+[[nodiscard]] mat4 Transform::getRotateMatrix() const {
+    vec3 radianRotation = radians(rotation);
+    return glm::eulerAngleXYZ(radianRotation.x, radianRotation.y, radianRotation.z);
+}
 
 GLFWwindow* window;
 
@@ -21,6 +30,7 @@ std::unordered_map<std::string, GameObject> gameObjects = {};
 
 Renderable skybox;
 Transform camera(glm::vec3(0, 0, 5), glm::vec3(180, 0, 0), glm::vec3(1));
+vec2 clippingPlanesPerspective{0.01f, 500.0f};
 
 bool keys[GLFW_KEY_LAST];
 bool mouseButtons[GLFW_MOUSE_BUTTON_8-GLFW_MOUSE_BUTTON_1];
@@ -38,9 +48,22 @@ bool skyboxSupported;
 glm::vec3 sunDirection(0, 1, 0);
 glm::vec3 sunColor(0, 0, 0);
 glm::vec3 ambient(0);
+glm::vec3 clearColor;
+glm::vec2 fogPlanes(0, 200);
 
 unsigned int uboID{};
 unsigned int lboID{};
+
+JETextureFilter currentFilterMode = JE_TEXTURE;
+
+bool runUpdates = true;
+bool runObjectUpdates = true;
+bool forceSkipUpdate = false;
+
+bool* runUpdatesAccess() {return &runUpdates;}
+bool* runObjectUpdatesAccess() {return &runObjectUpdates;}
+bool* forceSkipUpdateAccess() {return &forceSkipUpdate;}
+void  skipUpdate() { forceSkipUpdate = true; }
 
 unsigned int getUBOID() {
     return uboID;
@@ -54,8 +77,6 @@ unsigned int getLBOID() {
 std::unordered_map<std::string, unsigned int> getTexs() {
     return textures;
 }
-#endif
-
 std::string programReverseLookup(unsigned int num){
     for (const auto& i : programs){
         if (i.second == num) return i.first;
@@ -69,14 +90,20 @@ std::string textureReverseLookup(unsigned int num){
     }
     return "";
 }
+#endif
+
+void setClippingPlanes(float near, float far) {
+    clippingPlanesPerspective = {near, far};
+}
+
 
 void setSkyboxEnabled(bool enabled) {
     drawSkybox = enabled && skyboxSupported;
 }
 
 void recopyLightingBuffer() {
-    JELightingBuffer lighting_buffer = {sunDirection, sunColor, ambient};
-    updateUniformBuffer(lboID, &lighting_buffer, sizeof(JELightingBuffer), true);
+    JEGlobalLightingBufferObject lighting_buffer = {sunDirection, sunColor, ambient, clearColor, fogPlanes};
+    updateUniformBuffer(lboID, &lighting_buffer, sizeof(JEGlobalLightingBufferObject), true);
 }
 
 void setAmbient(glm::vec3 rgb) {
@@ -86,6 +113,17 @@ void setAmbient(glm::vec3 rgb) {
 
 void setAmbient(float r, float g, float b){
     setAmbient(glm::vec3(r, g, b));
+}
+
+void setClearColor(float r, float g, float b) {
+    clearColor = vec3(r, g, b);
+    recopyLightingBuffer();
+    vk_setClearColor(r, g, b);
+}
+
+void setFogPlanes(float near, float far) {
+    fogPlanes = {near, far};
+    recopyLightingBuffer();
 }
 
 void setMouseVisible(bool vis) {
@@ -100,38 +138,70 @@ size_t getRenderableCount() {
 int windowWidth, windowHeight;
 
 double frameTime = 0;
+double updateTime = 0;
+int fps = 0;
 
 double getFrameTime() {
     return frameTime;
+}
+
+double getUpdateTime() {
+    return updateTime;
+}
+
+int getFPS() {
+    return fps;
 }
 
 std::unordered_map<std::string, GameObject>* getGameObjects() {
     return &gameObjects;
 }
 
+void clearGameObjects() {
+    gameObjects = {};
+    skipUpdate(); // prevent the gameobject update loop from accessing a null reference
+}
+
 void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
-void registerProgram(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings) {
+void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings) {
     unsigned int vertID = loadShader(vertex, JE_VERTEX_SHADER);
     unsigned int fragID = loadShader(fragment, JE_FRAGMENT_SHADER);
     programs.insert({name, createProgram(vertID, fragID, settings)});
 }
 
-unsigned int getProgram(const std::string& name) {
+unsigned int getShader(const std::string& name) {
     return programs.at(name);
 }
 
-unsigned int createTextureWithName(const std::string& name, const std::string& filePath) {
-    unsigned int id = loadTexture(filePath);
+void setTextureFilterMode(const JETextureFilter filter) {
+    currentFilterMode = filter;
+}
+
+unsigned int createTexture(const std::string& name, const std::string& filePath) {
+    unsigned int id;
+    try {
+        id = loadTexture(filePath, currentFilterMode);
+    } catch (std::runtime_error &e) {
+        id = textures.at("missing");
+        std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
+    }
     textures.insert({name, id});
     return id;
 }
 
-unsigned int createTexture(const std::string& folderPath, const std::string& fileName) {
-    unsigned int id = loadTexture(folderPath + fileName);
-    textures.insert({fileName, id});
+unsigned int createTexture(const std::string& name, const std::string& filePath, const std::string& bundleFilePath) {
+    unsigned int id;
+    try {
+        std::vector<unsigned char> file = getFileCharVec(filePath, bundleFilePath);
+        id = loadBundledTexture(reinterpret_cast<char *>(&file[0]), file.size(), currentFilterMode);
+    } catch (std::runtime_error &e) {
+        id = textures.at("missing");
+        std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
+    }
+    textures.insert({name, id});
     return id;
 }
 
@@ -241,6 +311,10 @@ GameObject& getGameObject(const std::string& name) {
     return gameObjects.at(name);
 }
 
+void deleteGameObject(const std::string& name) {
+    gameObjects.erase(name);
+}
+
 int getCurrentWidth() {
     return windowWidth;
 }
@@ -264,16 +338,17 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
     windowHeight = height;
 
     ambient = {glm::max(graphicsSettings.clearColor[0] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[1] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[2] - 0.5f, 0.1f)};
+    clearColor = vec3(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2]);
 
     initGFX(&window, windowName, width, height, graphicsSettings);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     uboID = createUniformBuffer(sizeof(JEUniformBufferObject));
-    lboID = createUniformBuffer(sizeof(JELightingBuffer));
+    lboID = createUniformBuffer(sizeof(JEGlobalLightingBufferObject));
 
     // Missing texture init
-    createTextureWithName("missing", "./textures/missing_tex.png");
+    createTexture("missing", "./textures/missing_tex.png");
     if (!textures.count("missing")) {
         std::cerr << "Essential engine file missing." << std::endl;
         exit(1);
@@ -284,12 +359,12 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
 
     if (graphicsSettings.skybox) {
         // Skybox init
-        registerProgram("skybox",
-                        "./shaders/skybox_vertex.glsl",
-                        "./shaders/skybox_fragment.glsl",
+        createShader("skybox",
+                     "./shaders/skybox_vertex.glsl",
+                     "./shaders/skybox_fragment.glsl",
                 // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
-                        {false, true, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
-        skybox = loadObj("./models/skybox.obj", getProgram("skybox"), {uboID, loadCubemap({
+                     {false, true, false, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
+        skybox = loadObj("./models/skybox.obj", getShader("skybox"), {uboID, loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
                                              "./skybox/py_up.jpg",
@@ -321,6 +396,9 @@ float fov = 78.0f;
 void setFOV(float n) {
     fov = n;
 }
+float getFOV() {
+    return fov;
+}
 
 Transform* cameraAccess() {
     return &camera;
@@ -331,12 +409,27 @@ auto compareLambda = [](std::pair<double, Renderable *>& left, const std::pair<d
 void mainLoop() {
     double currentTime = glfwGetTime();
     double lastTime = currentTime;
-    double lastFrameCheck = glfwGetTime();
-    double frameDrawStart;
+    double lastTimesCheck = currentTime;
+    double frameDrawStart = currentTime;
+    double updateStart;
+    double lastFPSUpdateTime = currentTime;
+    int currentFPSCtr = 0;
     while (glfwWindowShouldClose(window) == 0) {
         currentTime = glfwGetTime();
         double deltaTime = currentTime - lastTime;
         lastTime = currentTime;
+
+        if (currentTime - lastFPSUpdateTime > 1){
+            lastFPSUpdateTime = currentTime;
+            fps = currentFPSCtr;
+            currentFPSCtr = 0;
+        }
+
+        bool doTimesCheck = currentTime - lastTimesCheck > 0.1;
+        if (doTimesCheck) {
+            lastTimesCheck = glfwGetTime();
+            updateStart = glfwGetTime()*1000;
+        }
 
         for (int keyActionIter = 0; keyActionIter < GLFW_KEY_LAST; keyActionIter++) {
             bool current = glfwGetKey(window, keyActionIter) == GLFW_PRESS;
@@ -358,15 +451,24 @@ void mainLoop() {
             }
         }
 
-        for (auto & onUpdateFunction : onUpdate) {
-            onUpdateFunction(deltaTime);
-        }
-
-        for (auto & g : gameObjects) {
-            for (auto & gameObjectFunction : g.second.onUpdate) {
-                gameObjectFunction(deltaTime, &g.second);
+        if (runUpdates && !forceSkipUpdate) {
+            for (auto &onUpdateFunction: onUpdate) {
+                onUpdateFunction(deltaTime);
+                if (forceSkipUpdate) break;
             }
         }
+
+        if (runObjectUpdates && !forceSkipUpdate) {
+            for (auto &g: gameObjects) {
+                for (auto &gameObjectFunction: g.second.onUpdate) {
+                    gameObjectFunction(deltaTime, &g.second);
+                    if (forceSkipUpdate) break;
+                }
+                if (forceSkipUpdate) break;
+            }
+        }
+
+        forceSkipUpdate = false;
 
         // Right vector
         glm::vec3 right = glm::vec3(
@@ -385,9 +487,8 @@ void mainLoop() {
 
         updateListener(camera.position, glm::vec3(0), camera.direction(), up);
 
-        bool doFrameTimeCheck = currentTime - lastFrameCheck > 0.1;
-        if (doFrameTimeCheck) {
-            lastFrameCheck = glfwGetTime();
+        if (doTimesCheck) {
+            updateTime = glfwGetTime()*1000 - updateStart;
             frameDrawStart = glfwGetTime()*1000;
         }
 
@@ -401,6 +502,7 @@ void mainLoop() {
         if (drawSkybox) {
             skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
             renderables.push_back(&skybox);
+            renderableCount++;
         }
 
         for (auto& item : gameObjects) {
@@ -431,7 +533,7 @@ void mainLoop() {
         JEUniformBufferObject ubo = {
             cameraMatrix,
             glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
-            glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, 0.01f, 500.0f),
+            glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, clippingPlanesPerspective.x, clippingPlanesPerspective.y),
             camera.position,
             camera.direction(),
             {windowWidth, windowHeight}
@@ -440,8 +542,9 @@ void mainLoop() {
         updateUniformBuffer(uboID, &ubo, sizeof(JEUniformBufferObject), false);
 
         renderFrame(renderables, imGuiCalls);
+        ++currentFPSCtr;
 
-        if (doFrameTimeCheck)
+        if (doTimesCheck)
             frameTime = glfwGetTime()*1000 - frameDrawStart;
 
         glfwPollEvents();

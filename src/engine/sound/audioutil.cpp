@@ -2,7 +2,7 @@
 // Created by Ember Lee on 3/22/24.
 //
 
-#include "engineaudio.h"
+#include "audioutil.h"
 #include <iostream>
 #include <al.h>
 #include <alc.h>
@@ -13,7 +13,7 @@ ALCdevice* alDevice;
 ALCcontext* context;
 glm::vec3 lpos;
 
-void setVolume(float volume) {
+void setMasterVolume(float volume) {
     alListenerf(AL_GAIN, volume);
 }
 
@@ -53,44 +53,37 @@ std::unordered_map<std::string, unsigned int> audioMap;
 
 unsigned int oggToBuffer(const std::string& filePath) {
     if (audioMap.contains(filePath)) return audioMap.at(filePath);
+
     int channels, sampleRate, samples;
     short* data;
     int error;
+
     stb_vorbis *v = stb_vorbis_open_filename(filePath.c_str(), &error, nullptr);
     stb_vorbis_info info = stb_vorbis_get_info(v);
+
     samples = stb_vorbis_decode_filename(filePath.c_str(), &channels, &sampleRate, &data);
+
     ALuint buffer;
     alGenBuffers(1, &buffer);                 //      needless cast so the compiler will stop yelling at me
+
     if (info.channels > 1) alBufferData(buffer, AL_FORMAT_STEREO16, data, samples*2*static_cast<int>(sizeof(short)), sampleRate);
     else alBufferData(buffer, AL_FORMAT_MONO16, data, samples*static_cast<int>(sizeof(short)), sampleRate);
+
     audioMap.insert({filePath, buffer});
+
     return buffer;
 }
 // If are not using MSVC
 #ifndef _MSC_VER
 Sound::Sound(glm::vec3 pos, glm::vec3 vel, const std::string &filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
-    isLooping = loop;
-    position = pos;
-    velocity = vel;
-
-    // Create audio source
-    alGenSources((ALuint)1, &sourceID);
-    alSourcef(sourceID, AL_PITCH, 1);
-    alSourcef(sourceID, AL_GAIN, gain);
-    alSourcef(sourceID, AL_MAX_GAIN, max);
-    alSourcef(sourceID, AL_MIN_GAIN, min);
-    alSourcef(sourceID, AL_REFERENCE_DISTANCE, halfVolumeDistance);
-    updateSource();
-
-    // Fill buffer
-    bufferID = oggToBuffer(filePath);
-}
-// If we are using MSVC
+    // If we are using MSVC
 #else
-Sound::Sound(vec3_MSVC pos, vec3_MSVC vel, const std::string &filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
+    Sound::Sound(vec3_MSVC pos, vec3_MSVC vel, const std::string &filePath, bool loop, float halfVolumeDistance, float min, float max, float gain) {
+#endif
     isLooping = loop;
     position = pos;
     velocity = vel;
+    isPaused = false;
 
     // Create audio source
     alGenSources((ALuint)1, &sourceID);
@@ -103,8 +96,8 @@ Sound::Sound(vec3_MSVC pos, vec3_MSVC vel, const std::string &filePath, bool loo
 
     // Fill buffer
     bufferID = oggToBuffer(filePath);
+    alSourceQueueBuffers(sourceID, 1, &bufferID);
 }
-#endif
 
 void Sound::updateSource() const {
     alSource3f(sourceID, AL_POSITION, position.x, position.y, position.z);
@@ -113,10 +106,34 @@ void Sound::updateSource() const {
 }
 
 void Sound::play() {
-    alSourceQueueBuffers(sourceID, 1, &bufferID);
     alSourcePlay(sourceID);
+    isPaused = false;
 }
 
 void Sound::stop() const {
     alSourceStop(sourceID);
+}
+
+void Sound::pause() {
+    alSourcePause(sourceID);
+    isPaused = true;
+}
+
+void Sound::togglePaused() {
+    if (isPaused) play();
+    else pause();
+}
+
+bool Sound::isPlaying() const {
+    int result;
+    alGetSourcei(sourceID, AL_SOURCE_STATE, &result);
+    return result == AL_PLAYING;
+}
+
+void Sound::deleteSource() const {
+    alDeleteSources((ALuint)1, &sourceID);
+}
+
+void Sound::setGain(float gain) const {
+    alSourcef(sourceID, AL_GAIN, gain);
 }

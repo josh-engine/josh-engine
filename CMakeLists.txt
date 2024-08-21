@@ -13,10 +13,9 @@ set(JoshEngine_libraries
         glfw
         OpenAL::OpenAL
 )
-set(JoshEngine_sources src/main.cpp
-        src/test.cpp
-        src/engine/engine.cpp
-        src/engine/sound/engineaudio.cpp
+set(JoshEngine_sources
+        src/engine/gfx/renderable.cpp
+        src/engine/sound/audioutil.cpp
         src/engine/gfx/modelutil.cpp
         src/engine/gfx/imgui/imgui.cpp
         src/engine/gfx/imgui/imgui_demo.cpp
@@ -24,9 +23,15 @@ set(JoshEngine_sources src/main.cpp
         src/engine/gfx/imgui/imgui_tables.cpp
         src/engine/gfx/imgui/imgui_widgets.cpp
         src/engine/gfx/imgui/imgui_impl_glfw.cpp
-        src/engine/enginedebug.cpp
-        src/engine/gfx/renderable.cpp
+        src/engine/debug/debugutil.cpp
+        src/engine/jbd/bundleutil.cpp
+        src/engine/engine.cpp
+        src/main.cpp
 )
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG_ENABLED)
+endif()
 
 option(JE_API_VK "Use Vulkan Graphics API" ON)
 if (APPLE)
@@ -50,6 +55,14 @@ if (JE_API_VK)
             src/engine/gfx/imgui/imgui_impl_vulkan.cpp
     )
 endif()
+# Please put your game's sources under Game_src to stay organized!
+# You don't have to though, I'm not the police.
+
+set(Game_src
+        src/test.cpp)
+set(JoshEngine_sources ${JoshEngine_sources}
+                       ${Game_src}
+)
 
 add_executable(JoshEngine ${JoshEngine_sources})
 target_link_libraries(JoshEngine ${JoshEngine_libraries})

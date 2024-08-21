@@ -5,8 +5,8 @@
 #ifndef JOSHENGINE_ENGINECONFIG_H
 #define JOSHENGINE_ENGINECONFIG_H
 
-#define ENGINE_VERSION_STRING "in-dev 24w24a"
+#define ENGINE_VERSION_STRING "Pre-Alpha 4a"
 
-#define DEBUG_ENABLED
+//#define DEBUG_ENABLED // This is now set by CMake. You CAN define it here but please just switch CMAKE_BUILD_TYPE
 
 #endif //JOSHENGINE_ENGINECONFIG_H

@@ -11,11 +11,8 @@ int main() {
     graphicsSettings.msaaSamples = 4;
 
     init("JoshEngine Demo", 1280, 720, graphicsSettings);
-
     setupTest();
-
     mainLoop();
-
     deinit();
     return 0;
 }

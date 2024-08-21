@@ -579,7 +579,8 @@ int scoreDevice(VkPhysicalDevice device) {
     score += (static_cast<int>(deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU))*1000;
 
     // big textures go brrrr
-    score += static_cast<int>(deviceProperties.limits.maxImageDimension2D/25);
+    // We will likely never hit the texture limit of modern GPUs, this scoring is BS
+    //score += static_cast<int>(deviceProperties.limits.maxImageDimension2D/25);
 
     // higher msaa = bueno
     score += static_cast<int>(getMaxSamples(device)*10);
@@ -1261,11 +1262,11 @@ void createColorResources() {
     colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
-void createTextureSampler(unsigned int id, unsigned int mipLevels) {
+void createTextureSampler(unsigned int id, unsigned int mipLevels, unsigned int samplerFilter) {
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.magFilter = static_cast<VkFilter>(samplerFilter);
+    samplerInfo.minFilter = static_cast<VkFilter>(samplerFilter);
     samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -1293,6 +1294,10 @@ void createTextureSampler(unsigned int id, unsigned int mipLevels) {
 // god im starting to hate this but not really because i love coding (more than schoolwork)
 // renderdoc for mac when
 std::array<VkClearValue, 2> clearValues{};
+
+void vk_setClearColor(float r, float g, float b) {
+    clearValues[0].color = {{r, g, b, 1.0f}};
+}
 
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings) {
     windowPtr = window;
@@ -1473,7 +1478,7 @@ unsigned int loadCubemap(std::vector<std::string> faces) {
         throw std::runtime_error("Vulkan: Failed to create cubemap image view!");
     }
 
-    createTextureSampler(internalID, 1);
+    createTextureSampler(internalID, 1, VK_FILTER_LINEAR);
 
     createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
@@ -1569,8 +1574,7 @@ void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int3
     endSingleTimeCommands(commandBuffer);
 }
 
-unsigned int loadTexture(const std::string& fileName) {
-    int texWidth, texHeight, texChannels;
+unsigned int loadSTBI2DTexture(stbi_uc* pixels, int texWidth, int texHeight, int texChannels, const int& samplerFilter) {
     unsigned int internalID = textureImages.size();
     unsigned int descriptorID = descriptorSets.size();
 
@@ -1581,16 +1585,9 @@ unsigned int loadTexture(const std::string& fileName) {
     descriptorSets.emplace_back();
     textureDescriptorPools.push_back({});
 
-    stbi_set_flip_vertically_on_load(true);
-
-    stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     textureMipLevels.push_back(static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1);
-
-    if (!pixels) {
-        throw std::runtime_error("Vulkan: Failed to load image \"" + fileName + "\"!");
-    }
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -1618,13 +1615,33 @@ unsigned int loadTexture(const std::string& fileName) {
 
     textureImageViews[internalID] = createImageView(textureImages[internalID], VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT, textureMipLevels[internalID]);
 
-    createTextureSampler(internalID, textureMipLevels[internalID]);
+    createTextureSampler(internalID, textureMipLevels[internalID], samplerFilter);
 
     createTextureDescriptorPool(&textureDescriptorPools[internalID], static_cast<VkDescriptorPoolCreateFlagBits>(0));
 
     createTextureDescriptorSet(internalID, &textureImageViews[internalID], descriptorID);
 
     return descriptorID;
+}
+
+unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
+    stbi_set_flip_vertically_on_load(true);
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    if (!pixels) {
+        throw std::runtime_error("Vulkan: Failed to load image \"" + fileName + "\"!");
+    }
+    return loadSTBI2DTexture(pixels, texWidth, texHeight, texChannels, samplerFilter);
+}
+
+unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter) {
+    stbi_set_flip_vertically_on_load(true);
+    int texWidth, texHeight, texChannels;
+    stbi_uc* pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(fileFirstBytePtr), fileLength, &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    if (!pixels) {
+        throw std::runtime_error("Vulkan: Failed to load image from bundle!");
+    }
+    return loadSTBI2DTexture(pixels, texWidth, texHeight, texChannels, samplerFilter);
 }
 
 static std::vector<char> readFile(const std::string& filename) {
@@ -1770,12 +1787,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-
-    if (shaderProgramSettings.doubleSided){
-        rasterizer.cullMode = VK_CULL_MODE_NONE;
-    } else {
-        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    }
+    rasterizer.cullMode = shaderProgramSettings.doubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 
     rasterizer.depthBiasEnable = VK_FALSE;
@@ -1813,12 +1825,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = shaderProgramSettings.testDepth;
-    if (shaderProgramSettings.transparencySupported) {
-        depthStencil.depthWriteEnable = VK_FALSE;
-    } else {
-        depthStencil.depthWriteEnable = VK_TRUE;
-    }
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    depthStencil.depthWriteEnable = shaderProgramSettings.transparencySupported ? VK_FALSE : VK_TRUE;
+    depthStencil.depthCompareOp = shaderProgramSettings.depthAlwaysPass ? VK_COMPARE_OP_ALWAYS : VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.minDepthBounds = 0.0f;
     depthStencil.maxDepthBounds = 1.0f;
@@ -2074,7 +2082,7 @@ void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<
         vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r->vboID], offsets);
         vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r->vboID], 0, VK_INDEX_TYPE_UINT32);
 
-        JEPushConstants_VK constants = {r->objectMatrix, r->rotate};
+        JEPushConstants_VK constants = {r->objectMatrix, r->normal};
         vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
                            VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
 

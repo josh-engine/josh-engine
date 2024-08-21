@@ -59,7 +59,8 @@ struct JEUniformBufferReference_VK {
 void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings);
 void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls);
 void deinitGFX();
-unsigned int loadTexture(const std::string& fileName);
+unsigned int loadTexture(const std::string& fileName, const int& samplerFilter);
+unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter);
 unsigned int loadShader(const std::string& file_path, int target);
 unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings);
 unsigned int loadCubemap(std::vector<std::string> faces);
@@ -69,6 +70,7 @@ unsigned int createVBO(std::vector<JEInterleavedVertex_VK> *interleavedVertices,
 unsigned int createUniformBuffer(size_t bufferSize);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
 */
+void vk_setClearColor(float r, float g, float b);
 #ifdef DEBUG_ENABLED
 std::vector<JEMemoryBlock_VK> getMemory();
 void* getTex(unsigned int i);

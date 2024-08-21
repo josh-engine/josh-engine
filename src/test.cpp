@@ -4,9 +4,9 @@
 
 #include "test.h"
 #include "engine/engine.h"
-#include "engine/sound/engineaudio.h"
+#include "engine/sound/audioutil.h"
 #include "engine/gfx/modelutil.h"
-#include "engine/enginedebug.h"
+#include "engine/debug/debugutil.h"
 
 bool mouseLocked = false;
 bool pressed = false;
@@ -106,47 +106,47 @@ void spin(double deltaTime, GameObject* self) {
 
 void initTriangle(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, -2));
-    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), {getUBOID(), getTexture("uv_tex.png")}, true));
+    selfObject->renderables.push_back(createQuad(getShader("basicTexture"), {getUBOID(), getTexture("uv_tex.png")}, true));
     selfObject->onUpdate.push_back(&move);
 }
 
 void initTriangle2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, 1));
-    selfObject->renderables.push_back(createQuad(getProgram("basicTexture"), {getUBOID(), getTexture("logo.png")}, true));
+    selfObject->renderables.push_back(createQuad(getShader("basicTexture"), {getUBOID(), getTexture("logo.png")}, true));
     selfObject->onUpdate.push_back(&move);
 }
 
 void initBunny(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("toonNorm"), {getUBOID(), getLBOID()});
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getShader("toonNorm"), {getUBOID(), getLBOID()});
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     selfObject->onUpdate.push_back(&spin);
 }
 
 void initBunny2(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-2, 0, 0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"), {getUBOID(), getLBOID()});
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getShader("bnphColor"), {getUBOID(), getLBOID()});
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     selfObject->onUpdate.push_back(&spin);
 }
 
 void initBunny3(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(0, 0, -4));
-    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getProgram("bnphColor"), {getUBOID(), getLBOID()});
+    std::vector<Renderable> modelRenderables = loadObj("./models/bunny.obj", getShader("bnphColor"), {getUBOID(), getLBOID()});
     selfObject->renderables.insert(selfObject->renderables.end(), modelRenderables.begin(), modelRenderables.end());
     selfObject->onUpdate.push_back(&spin);
 }
 
 void initCube(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(3, 1, 0));
-    std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getProgram("bnphTexture"), {getUBOID(), getLBOID(), getTexture("cube_texture")});
+    std::vector<Renderable> modelRenderables = loadObj("./models/cube-tex.obj", getShader("bnphTexture"), {getUBOID(), getLBOID(), getTexture("cube_texture")});
     selfObject->renderables.push_back(modelRenderables[0]);
     selfObject->onUpdate.push_back(&spin);
 }
 
 void initUiItem(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-0.5, -0.25, 0), glm::vec3(0), glm::vec3(0.25));
-    selfObject->renderables.push_back(createQuad(getProgram("ui"), {0, getTexture("missing")}));
+    selfObject->renderables.push_back(createQuad(getShader("ui"), {0, getTexture("missing")}));
 }
 
 void setupTest() {
@@ -175,19 +175,19 @@ void setupTest() {
     a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputUniformBit << 1);
     a.shaderInputCount = 2;
 
-    registerProgram("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", a);
-    registerProgram("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", a);
+    createShader("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", a);
+    createShader("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", a);
 
     //               This means the layout will be {Uniform, Texture}.
     a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputTextureBit << 1);
 
-    registerProgram("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", a);
+    createShader("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", a);
 
     //               This layout is {Uniform, Uniform, Texture}.
     a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputUniformBit << 1) | (JEShaderInputTextureBit << 2);
     a.shaderInputCount = 3;
 
-    registerProgram("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", a);
+    createShader("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", a);
 
     JEShaderProgramSettings b{};
     b.testDepth = true;
@@ -195,11 +195,11 @@ void setupTest() {
     b.doubleSided = true;
     b.shaderInputs = JEShaderInputUniformBit | (JEShaderInputTextureBit << 1);
     b.shaderInputCount = 2;
-    registerProgram("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", b);
+    createShader("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", b);
 
-    createTexture("./textures/", "uv_tex.png");
-    createTexture("./textures/", "logo.png");
-    createTextureWithName("cube_texture", "./textures/cubetex.png");
+    createTexture("uv_tex.png", "./textures/uv_tex.png");
+    createTexture("logo.png", "./textures/logo.png");
+    createTexture("cube_texture", "./textures/cubetex.png");
 
     putGameObject("triangle_test", GameObject(&initTriangle));
     putGameObject("triangle_test_2", GameObject(&initTriangle2));

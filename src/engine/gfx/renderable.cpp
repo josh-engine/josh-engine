@@ -41,6 +41,7 @@ void Renderable::setMatrices(glm::mat4 t, glm::mat4 r, glm::mat4 s) {
     this->transform = t;
     this->rotate = r;
     this->scale = s;
+    if (!useFakedNormalMatrix) this->normal = r;
     this->objectMatrix = (this->transform * this->rotate * this->scale);
 }
 
