@@ -53,7 +53,7 @@ std::vector<unsigned char> getFileCharVec(const std::string& extractFileName, co
     }
     if (correctBfiPtr != nullptr) {
         JEBundledFileInfo correctBfi{};
-        memcpy(&correctBfi.path, &correctBfiPtr->path, 64);
+        memcpy(&correctBfi.path, &correctBfiPtr->path, sizeof(correctBfi.path)); // i know it's 64 bytes but codacy hates me and makes me verify it
         correctBfi.fileLength = correctBfiPtr->fileLength;
         correctBfi.fileStartOffset = correctBfiPtr->fileStartOffset;
         chars.erase(chars.begin(), chars.begin()+correctBfi.fileStartOffset);
