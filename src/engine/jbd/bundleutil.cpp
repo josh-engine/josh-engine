@@ -35,7 +35,7 @@ std::vector<unsigned char> getFileChars(std::string bundleFileName) {
     }
 }
 
-std::vector<unsigned char> getFileCharVec(std::string extractFileName, std::string bundleFileName) {
+std::vector<unsigned char> getFileCharVec(const std::string& extractFileName, const std::string& bundleFileName) {
     std::vector<unsigned char> chars = getFileChars(bundleFileName);
     JEFileHeader head = *reinterpret_cast<JEFileHeader*>(&chars[0]);
     if (head.magicNum != 0x0B1A11A7) {

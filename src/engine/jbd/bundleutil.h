@@ -5,8 +5,9 @@
 #ifndef JOSHENGINE_BUNDLEUTIL_H
 #define JOSHENGINE_BUNDLEUTIL_H
 
+#include <vector>
 #include <string>
 
-std::vector<unsigned char> getFileCharVec(std::string extractFileName, std::string bundleFileName);
+std::vector<unsigned char> getFileCharVec(const std::string& extractFileName, const std::string& bundleFileName);
 
 #endif //JOSHENGINE_BUNDLEUTIL_H
