@@ -4,6 +4,8 @@
 
 #include "bundleutil.h"
 #include <fstream>
+#include <unordered_map>
+#include <cstring>
 
 struct JEBundledFileInfo {
     char path[64];
