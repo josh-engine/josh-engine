@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.27)
 project(JoshEngine)
 
+option(JE_API_VK "Use Vulkan Graphics API" ON)
+option(JE_OPENAL "Compile with audio support" ON)
+
 set(CMAKE_CXX_STANDARD 20)
 
 # Engine Required Includes
@@ -11,7 +14,6 @@ include_directories("${JoshEngine_SOURCE_DIR}/includes/stb")
 set(JoshEngine_libraries
         glm::glm
         glfw
-        OpenAL::OpenAL
 )
 set(JoshEngine_sources
         src/engine/gfx/renderable.cpp
@@ -33,7 +35,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(DEBUG_ENABLED)
 endif()
 
-option(JE_API_VK "Use Vulkan Graphics API" ON)
 if (APPLE)
     add_compile_definitions(PLATFORM_MAC)
 elseif (UNIX)
@@ -55,6 +56,15 @@ if (JE_API_VK)
             src/engine/gfx/imgui/imgui_impl_vulkan.cpp
     )
 endif()
+
+if (JE_OPENAL)
+    set(JoshEngine_libraries ${JoshEngine_libraries}
+            OpenAL::OpenAL
+    )
+else()
+    add_compile_definitions(AUDIO_DISABLE)
+endif()
+
 # Please put your game's sources under Game_src to stay organized!
 # You don't have to though, I'm not the police.
 

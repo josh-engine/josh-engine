@@ -522,7 +522,7 @@ void mainLoop() {
 
         size_t a = individualSortRenderables.size();
         for (int i = 0; i < a; i++){
-            auto [ignored, r] = individualSortRenderables.top();
+            auto [_, r] = individualSortRenderables.top();
             renderables.push_back(r);
             individualSortRenderables.pop();
         }

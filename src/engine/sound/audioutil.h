@@ -6,6 +6,7 @@
 #define JOSHENGINE_AUDIOUTIL_H
 #include <glm/glm.hpp>
 #include <string>
+
 typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
 
 void setMasterVolume(float volume);
