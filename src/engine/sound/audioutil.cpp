@@ -171,3 +171,27 @@ void Sound::setGain(float gain) const {
     alSourcef(sourceID, AL_GAIN, gain);
 #endif
 }
+
+MusicTrack::MusicTrack() {
+    
+}
+
+void MusicTrack::play() {
+
+}
+
+void MusicTrack::queue(uint8_t idx) {
+
+}
+
+void MusicTrack::stop() {
+
+}
+
+void MusicTrack::setVolume(float volume) {
+    alSourcef(sourceID, AL_GAIN, volume);
+}
+
+void MusicTrack::setBuffer(uint8_t idx, unsigned int buf) {
+    this->bufferIDs[idx] = buf;
+}

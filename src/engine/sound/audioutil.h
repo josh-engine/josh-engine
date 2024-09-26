@@ -39,6 +39,22 @@ public:
 
 };
 
+class MusicTrack {
+public:
+    unsigned int sourceID{};
+    unsigned int bufferIDs[256]{};
+    uint8_t bufCount{};
+    bool isPlaying;
+
+    MusicTrack();
+
+    void play();
+    void queue(uint8_t idx);
+    void stop();
+    void setVolume(float volume);
+    void setBuffer(uint8_t idx, unsigned int buf);
+};
+
 void initAudio();
 void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, glm::vec3 upVec);
 
