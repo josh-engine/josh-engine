@@ -3,15 +3,16 @@
 //
 
 #include "audioutil.h"
-#include <iostream>
 #ifndef AUDIO_DISABLE
+#include <iostream>
 #include <al.h>
 #include <alc.h>
 #include <stb_vorbis.h>
-#endif
 #include <unordered_map>
+#endif
 
 #ifndef AUDIO_DISABLE
+std::unordered_map<std::string, unsigned int> audioMap;
 ALCdevice* alDevice;
 ALCcontext* context;
 #endif
@@ -58,8 +59,6 @@ void initAudio() {
     alDistanceModel(AL_INVERSE_DISTANCE);
 #endif
 }
-
-std::unordered_map<std::string, unsigned int> audioMap;
 
 unsigned int oggToBuffer(const std::string& filePath) {
 #ifndef AUDIO_DISABLE
@@ -173,25 +172,51 @@ void Sound::setGain(float gain) const {
 }
 
 MusicTrack::MusicTrack() {
-    
+#ifndef AUDIO_DISABLE
+    this->isPlaying = false;
+    alGenSources((ALuint)1, &sourceID);
+    alSourcef(sourceID, AL_PITCH, 1);
+    alSourcef(sourceID, AL_GAIN, 1.0f);
+    alSourcef(sourceID, AL_MAX_GAIN, 1.0f);
+    alSourcef(sourceID, AL_MIN_GAIN, 0.0f);
+    alSourcei(sourceID, AL_LOOPING, true);
+#endif
 }
 
 void MusicTrack::play() {
-
+#ifndef AUDIO_DISABLE
+    alSourcePlay(sourceID);
+    isPlaying = true;
+#endif
 }
 
 void MusicTrack::queue(uint8_t idx) {
+#ifndef AUDIO_DISABLE
+    alSourceQueueBuffers(sourceID, 1, &bufferIDs[idx]);
+#endif
+}
 
+void MusicTrack::unqueue(uint8_t idx) {
+#ifndef AUDIO_DISABLE
+    alSourceUnqueueBuffers(sourceID, 1, &bufferIDs[idx]);
+#endif
 }
 
 void MusicTrack::stop() {
-
+#ifndef AUDIO_DISABLE
+    alSourceStop(sourceID);
+    isPlaying = false;
+#endif
 }
 
-void MusicTrack::setVolume(float volume) {
+void MusicTrack::setVolume(float volume) const {
+#ifndef AUDIO_DISABLE
     alSourcef(sourceID, AL_GAIN, volume);
+#endif
 }
 
 void MusicTrack::setBuffer(uint8_t idx, unsigned int buf) {
+#ifndef AUDIO_DISABLE
     this->bufferIDs[idx] = buf;
+#endif
 }

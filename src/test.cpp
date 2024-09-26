@@ -156,8 +156,6 @@ void setupTest() {
     setMouseVisible(false); // Mouse starts locked
     mouseLocked = true;
 
-    Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
-
     registerOnUpdate(&cameraFly);
     registerOnKey(&lockUnlock);
     registerOnMouse(&mouseClick);
@@ -209,5 +207,19 @@ void setupTest() {
     putGameObject("cube", GameObject(&initCube));
     putGameObject("ui_item", GameObject(&initUiItem));
 
-    st2.play();
+    //Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
+    //st2.play();
+
+    MusicTrack test{};
+    test.setBuffer(0, oggToBuffer("./sounds/music/hypertensile-startup.ogg"));
+    test.setBuffer(1, oggToBuffer("./sounds/music/hypertensile-menu.ogg"));
+    test.setBuffer(2, oggToBuffer("./sounds/music/hypertensile-connect.ogg"));
+    test.setBuffer(3, oggToBuffer("./sounds/music/hypertensile-system-view.ogg"));
+    test.setBuffer(4, oggToBuffer("./sounds/music/hypertensile-planet-view.ogg"));
+    test.setBuffer(5, oggToBuffer("./sounds/music/hypertensile-loading-loop.ogg"));
+
+    test.queue(0);
+    test.queue(1);
+    test.queue(2);
+    test.play();
 }

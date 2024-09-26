@@ -44,14 +44,15 @@ public:
     unsigned int sourceID{};
     unsigned int bufferIDs[256]{};
     uint8_t bufCount{};
-    bool isPlaying;
+    bool isPlaying{};
 
     MusicTrack();
 
     void play();
     void queue(uint8_t idx);
+    void unqueue(uint8_t idx);
     void stop();
-    void setVolume(float volume);
+    void setVolume(float volume) const;
     void setBuffer(uint8_t idx, unsigned int buf);
 };
 
