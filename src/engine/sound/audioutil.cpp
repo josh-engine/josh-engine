@@ -9,6 +9,8 @@
 #include <alc.h>
 #include <stb_vorbis.h>
 #include <unordered_map>
+#include <thread>
+#include <queue>
 #endif
 
 #ifndef AUDIO_DISABLE
@@ -171,6 +173,8 @@ void Sound::setGain(float gain) const {
 #endif
 }
 
+void threadMan(MusicTrack* musicTrack); // For my own sanity it's below MusicTrack's constructor and destructor
+
 MusicTrack::MusicTrack() {
 #ifndef AUDIO_DISABLE
     this->isPlaying = false;
@@ -180,43 +184,97 @@ MusicTrack::MusicTrack() {
     alSourcef(sourceID, AL_MAX_GAIN, 1.0f);
     alSourcef(sourceID, AL_MIN_GAIN, 0.0f);
     alSourcei(sourceID, AL_LOOPING, true);
+
+    this->commandThread = std::make_unique<std::thread>(threadMan, this);
 #endif
+}
+
+void MusicTrack::sendCommand(MusicTrackCommand command) {
+    this->commandMutex.lock();
+    this->command = command;       //  Set command
+    commandPresent = true;        //   Say "we have a thing"
+    this->commandMutex.unlock();
+}
+
+MusicTrack::~MusicTrack() {
+    sendCommand({CLOSE_SOURCE, 0, static_cast<uint8_t>(0)});
+    this->commandThread->join();
+}
+
+void threadMan(MusicTrack* musicTrack) {
+    std::queue<MusicTrackCommand> commandQueue{};
+    while (true) {
+        if (!commandQueue.empty()) {
+            // Process commands because yes
+            MusicTrackCommand command = commandQueue.front();
+            if (command.executeTime >= UNIX_CURRENT_TIME_MS) {
+                switch (command.t) {
+                    case PLAY:
+                        alSourcePlay(musicTrack->sourceID);
+                        musicTrack->isPlaying = true;
+                        break;
+                    case STOP:
+                        alSourceStop(musicTrack->sourceID);
+                        musicTrack->isPlaying = false;
+                        break;
+                    case QUEUE:
+                        alSourcePause(musicTrack->sourceID);
+                        alSourceQueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[command.idx]);
+                        if (musicTrack->isPlaying) alSourcePlay(musicTrack->sourceID);
+                        break;
+                    case UNQUEUE:
+                        alSourcePause(musicTrack->sourceID);
+                        alSourceUnqueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[command.idx]);
+                        if (musicTrack->isPlaying) alSourcePlay(musicTrack->sourceID);
+                        break;
+                    case SET_VOLUME:
+                        alSourcef(musicTrack->sourceID, AL_GAIN, command.vol);
+                        break;
+                    case SET_BUF:
+                        musicTrack->bufferIDs[command.idx] = command.bufID;
+                        break;
+                    case CLOSE_SOURCE:
+                        std::cout
+                                << "Ember owes Noah 3 dollars. \nPlease create a PR on the JoshEngine GitHub with a screenshot of the log attached."
+                                << std::endl;
+                        break;
+                }
+                commandQueue.pop();
+            }
+        } else if (musicTrack->commandMutex.try_lock() && musicTrack->commandPresent) {
+            // Lock succeeds (we have the mutex!)
+            musicTrack->commandPresent = false;
+            if (musicTrack->command.t != CLOSE_SOURCE) {
+                commandQueue.push(musicTrack->command);
+                musicTrack->commandMutex.unlock();
+            } else {
+                return; // Be free from your enslavement
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 }
 
 void MusicTrack::play() {
-#ifndef AUDIO_DISABLE
-    alSourcePlay(sourceID);
-    isPlaying = true;
-#endif
-}
-
-void MusicTrack::queue(uint8_t idx) {
-#ifndef AUDIO_DISABLE
-    alSourceQueueBuffers(sourceID, 1, &bufferIDs[idx]);
-#endif
-}
-
-void MusicTrack::unqueue(uint8_t idx) {
-#ifndef AUDIO_DISABLE
-    alSourceUnqueueBuffers(sourceID, 1, &bufferIDs[idx]);
-#endif
+    sendCommand(MusicTrackCommand(PLAY, UNIX_CURRENT_TIME_MS, static_cast<uint8_t>(0)));
 }
 
 void MusicTrack::stop() {
-#ifndef AUDIO_DISABLE
-    alSourceStop(sourceID);
-    isPlaying = false;
-#endif
+    sendCommand(MusicTrackCommand(STOP, UNIX_CURRENT_TIME_MS, static_cast<uint8_t>(0)));
 }
 
-void MusicTrack::setVolume(float volume) const {
-#ifndef AUDIO_DISABLE
-    alSourcef(sourceID, AL_GAIN, volume);
-#endif
+void MusicTrack::queue(uint8_t idx) {
+    sendCommand(MusicTrackCommand(QUEUE, UNIX_CURRENT_TIME_MS, idx));
+}
+
+void MusicTrack::unqueue(uint8_t idx){
+    sendCommand(MusicTrackCommand(UNQUEUE, UNIX_CURRENT_TIME_MS, idx));
+}
+
+void MusicTrack::setVolume(float volume) {
+    sendCommand(MusicTrackCommand(SET_VOLUME, UNIX_CURRENT_TIME_MS, volume));
 }
 
 void MusicTrack::setBuffer(uint8_t idx, unsigned int buf) {
-#ifndef AUDIO_DISABLE
-    this->bufferIDs[idx] = buf;
-#endif
+    sendCommand(MusicTrackCommand(SET_BUF, UNIX_CURRENT_TIME_MS, idx, buf));
 }

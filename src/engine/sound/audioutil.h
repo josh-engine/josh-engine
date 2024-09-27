@@ -6,6 +6,9 @@
 #define JOSHENGINE_AUDIOUTIL_H
 #include <glm/glm.hpp>
 #include <string>
+#include <mutex>
+
+#define UNIX_CURRENT_TIME_MS duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()
 
 typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
 
@@ -39,21 +42,71 @@ public:
 
 };
 
+enum MusicTrackCommandType {
+    PLAY,
+    STOP,
+    QUEUE,
+    UNQUEUE,
+    SET_VOLUME,
+    SET_BUF,
+    CLOSE_SOURCE
+};
+
+struct MusicTrackCommand {
+    MusicTrackCommandType t;
+    uint64_t executeTime;
+    uint8_t idx;
+    union {
+        uint32_t bufID;
+        float vol;
+    };
+
+    MusicTrackCommand() {
+
+    }
+
+    MusicTrackCommand(MusicTrackCommandType type, uint64_t time, uint8_t idx) {
+        this->t = type;
+        this->executeTime = time;
+        this->idx = idx;
+    }
+
+    MusicTrackCommand(MusicTrackCommandType type, uint64_t time, uint8_t idx, uint32_t buf) {
+        this->t = type;
+        this->executeTime = time;
+        this->idx = idx;
+        this->bufID = buf;
+    }
+
+    MusicTrackCommand(MusicTrackCommandType type, uint64_t time, float vol) {
+        this->t = type;
+        this->executeTime = time;
+        this->vol = vol;
+    }
+};
+
 class MusicTrack {
 public:
     unsigned int sourceID{};
     unsigned int bufferIDs[256]{};
     uint8_t bufCount{};
     bool isPlaying{};
+    std::mutex commandMutex{};
+    MusicTrackCommand command{};
+    bool commandPresent{};
 
     MusicTrack();
+    ~MusicTrack();
 
     void play();
     void queue(uint8_t idx);
     void unqueue(uint8_t idx);
     void stop();
-    void setVolume(float volume) const;
+    void setVolume(float volume);
     void setBuffer(uint8_t idx, unsigned int buf);
+    void sendCommand(MusicTrackCommand command);
+private:
+    std::unique_ptr<std::thread> commandThread{};
 };
 
 void initAudio();

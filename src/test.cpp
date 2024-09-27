@@ -214,12 +214,12 @@ void setupTest() {
     test.setBuffer(0, oggToBuffer("./sounds/music/hypertensile-startup.ogg"));
     test.setBuffer(1, oggToBuffer("./sounds/music/hypertensile-menu.ogg"));
     test.setBuffer(2, oggToBuffer("./sounds/music/hypertensile-connect.ogg"));
-    test.setBuffer(3, oggToBuffer("./sounds/music/hypertensile-system-view.ogg"));
-    test.setBuffer(4, oggToBuffer("./sounds/music/hypertensile-planet-view.ogg"));
-    test.setBuffer(5, oggToBuffer("./sounds/music/hypertensile-loading-loop.ogg"));
+    test.setBuffer(3, oggToBuffer("./sounds/music/hypertensile-system.ogg"));
+    test.setBuffer(4, oggToBuffer("./sounds/music/hypertensile-planet.ogg"));
+    test.setBuffer(5, oggToBuffer("./sounds/music/hypertensile-load.ogg"));
 
     test.queue(0);
-    test.queue(1);
-    test.queue(2);
     test.play();
+    //test.unqueueLater(0, 1000*4-1); // 4s-1ms
+    //test.queueLater(1, 1000*4); // 4s
 }
