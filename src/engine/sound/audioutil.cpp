@@ -14,9 +14,9 @@
 #endif
 
 #ifndef AUDIO_DISABLE
-std::unordered_map<std::string, unsigned int> audioMap;
 ALCdevice* alDevice;
 ALCcontext* context;
+std::unordered_map<std::string, unsigned int> audioMap;
 #endif
 glm::vec3 lpos;
 
@@ -177,23 +177,14 @@ void threadMan(MusicTrack* musicTrack); // For my own sanity it's below MusicTra
 
 MusicTrack::MusicTrack() {
 #ifndef AUDIO_DISABLE
-    this->isPlaying = false;
-    alGenSources((ALuint)1, &sourceID);
-    alSourcef(sourceID, AL_PITCH, 1);
-    alSourcef(sourceID, AL_GAIN, 1.0f);
-    alSourcef(sourceID, AL_MAX_GAIN, 1.0f);
-    alSourcef(sourceID, AL_MIN_GAIN, 0.0f);
-    alSourcei(sourceID, AL_LOOPING, true);
-
     this->commandThread = std::make_unique<std::thread>(threadMan, this);
 #endif
 }
 
 void MusicTrack::sendCommand(MusicTrackCommand command) {
-    this->commandMutex.lock();
     this->command = command;       //  Set command
     commandPresent = true;        //   Say "we have a thing"
-    this->commandMutex.unlock();
+    while (commandPresent) {}    //    Block until thread ack
 }
 
 MusicTrack::~MusicTrack() {
@@ -202,36 +193,59 @@ MusicTrack::~MusicTrack() {
 }
 
 void threadMan(MusicTrack* musicTrack) {
+    while (context == nullptr) {std::this_thread::sleep_for(std::chrono::milliseconds(1));} // Wait for OpenAL init
+    alcMakeContextCurrent(context);
+    musicTrack->isPlaying = false;
+    alGenSources((ALuint)1, &musicTrack->sourceID);
+    alSourcef(musicTrack->sourceID, AL_PITCH, 1);
+    alSourcef(musicTrack->sourceID, AL_GAIN, 1.0f);
+    alSourcef(musicTrack->sourceID, AL_MAX_GAIN, 1.0f);
+    alSourcef(musicTrack->sourceID, AL_MIN_GAIN, 0.0f);
+    alSourcei(musicTrack->sourceID, AL_LOOPING, true);
+
     std::queue<MusicTrackCommand> commandQueue{};
     while (true) {
-        if (!commandQueue.empty()) {
+        if (musicTrack->commandPresent) {
+            musicTrack->commandPresent = false;
+            if (musicTrack->command.t != CLOSE_SOURCE) {
+                commandQueue.push(musicTrack->command);
+                musicTrack->command.t = NOP; // Sometimes duplicate commands are issued. This prevents that.
+            } else {
+                return; // Be free from your enslavement
+            }
+        } else if (!commandQueue.empty()) {
             // Process commands because yes
             MusicTrackCommand command = commandQueue.front();
-            if (command.executeTime >= UNIX_CURRENT_TIME_MS) {
+            if (command.executeTime <= UNIX_CURRENT_TIME_MS) {
                 switch (command.t) {
                     case PLAY:
+                        std::cout << "alSourcePlay" << std::endl;
                         alSourcePlay(musicTrack->sourceID);
                         musicTrack->isPlaying = true;
                         break;
                     case STOP:
+                        std::cout << "alSourceStop" << std::endl;
                         alSourceStop(musicTrack->sourceID);
                         musicTrack->isPlaying = false;
                         break;
                     case QUEUE:
-                        alSourcePause(musicTrack->sourceID);
+                        std::cout << "alSourceQueueBuffers" << std::endl;
                         alSourceQueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[command.idx]);
-                        if (musicTrack->isPlaying) alSourcePlay(musicTrack->sourceID);
                         break;
                     case UNQUEUE:
-                        alSourcePause(musicTrack->sourceID);
+                        std::cout << "alSourceUnqueueBuffers" << std::endl;
                         alSourceUnqueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[command.idx]);
-                        if (musicTrack->isPlaying) alSourcePlay(musicTrack->sourceID);
                         break;
                     case SET_VOLUME:
+                        std::cout << "alSourcef AL_GAIN" << std::endl;
                         alSourcef(musicTrack->sourceID, AL_GAIN, command.vol);
                         break;
                     case SET_BUF:
+                        std::cout << "musicTrack->bufferIDs" << std::endl;
                         musicTrack->bufferIDs[command.idx] = command.bufID;
+                        break;
+                    case NOP: // Just in case
+                        std::cout << "NOP" << std::endl;
                         break;
                     case CLOSE_SOURCE:
                         std::cout
@@ -239,19 +253,11 @@ void threadMan(MusicTrack* musicTrack) {
                                 << std::endl;
                         break;
                 }
+                std::cout << alGetError() << std::endl;
                 commandQueue.pop();
             }
-        } else if (musicTrack->commandMutex.try_lock() && musicTrack->commandPresent) {
-            // Lock succeeds (we have the mutex!)
-            musicTrack->commandPresent = false;
-            if (musicTrack->command.t != CLOSE_SOURCE) {
-                commandQueue.push(musicTrack->command);
-                musicTrack->commandMutex.unlock();
-            } else {
-                return; // Be free from your enslavement
-            }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 

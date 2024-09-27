@@ -49,7 +49,8 @@ enum MusicTrackCommandType {
     UNQUEUE,
     SET_VOLUME,
     SET_BUF,
-    CLOSE_SOURCE
+    CLOSE_SOURCE,
+    NOP // Just in case
 };
 
 struct MusicTrackCommand {
@@ -62,7 +63,7 @@ struct MusicTrackCommand {
     };
 
     MusicTrackCommand() {
-
+        this->t = NOP;
     }
 
     MusicTrackCommand(MusicTrackCommandType type, uint64_t time, uint8_t idx) {
@@ -91,9 +92,8 @@ public:
     unsigned int bufferIDs[256]{};
     uint8_t bufCount{};
     bool isPlaying{};
-    std::mutex commandMutex{};
     MusicTrackCommand command{};
-    bool commandPresent{};
+    std::atomic<bool> commandPresent{};
 
     MusicTrack();
     ~MusicTrack();

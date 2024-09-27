@@ -149,6 +149,8 @@ void initUiItem(GameObject* selfObject) {
     selfObject->renderables.push_back(createQuad(getShader("ui"), {0, getTexture("missing")}));
 }
 
+MusicTrack test{};
+
 void setupTest() {
     //     sun-ish direction from skybox, slightly warm white
     setSunProperties(glm::vec3(-1, 1, -1), glm::vec3(1, 1, 0.85));
@@ -210,7 +212,6 @@ void setupTest() {
     //Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
     //st2.play();
 
-    MusicTrack test{};
     test.setBuffer(0, oggToBuffer("./sounds/music/hypertensile-startup.ogg"));
     test.setBuffer(1, oggToBuffer("./sounds/music/hypertensile-menu.ogg"));
     test.setBuffer(2, oggToBuffer("./sounds/music/hypertensile-connect.ogg"));
