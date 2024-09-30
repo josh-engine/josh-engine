@@ -201,10 +201,20 @@ void threadMan(MusicTrack* musicTrack) {
     alSourcef(musicTrack->sourceID, AL_GAIN, 1.0f);
     alSourcef(musicTrack->sourceID, AL_MAX_GAIN, 1.0f);
     alSourcef(musicTrack->sourceID, AL_MIN_GAIN, 0.0f);
-    alSourcei(musicTrack->sourceID, AL_LOOPING, true);
+    alSourcei(musicTrack->sourceID, AL_LOOPING, false); // Unfortunately to unqueue this is a necessary evil
 
     std::queue<MusicTrackCommand> commandQueue{};
+    std::queue<uint8_t> unqueueQueue{};
     while (true) {
+        ALenum res;
+        alGetSourcei(musicTrack->sourceID, AL_SOURCE_STATE, &res);
+        if (res != AL_PLAYING && musicTrack->isPlaying) {
+            while (!unqueueQueue.empty()) {
+                alSourceUnqueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[unqueueQueue.front()]);
+                unqueueQueue.pop();
+            }
+            alSourcePlay(musicTrack->sourceID);
+        }
         if (musicTrack->commandPresent) {
             musicTrack->commandPresent = false;
             if (musicTrack->command.t != CLOSE_SOURCE) {
@@ -216,36 +226,37 @@ void threadMan(MusicTrack* musicTrack) {
         } else if (!commandQueue.empty()) {
             // Process commands because yes
             MusicTrackCommand command = commandQueue.front();
+            bool skipPop = false;
+            alGetError(); // Clear error
             if (command.executeTime <= UNIX_CURRENT_TIME_MS) {
                 switch (command.t) {
                     case PLAY:
-                        std::cout << "alSourcePlay" << std::endl;
-                        alSourcePlay(musicTrack->sourceID);
+                        std::cout << "play" << std::endl;
                         musicTrack->isPlaying = true;
                         break;
                     case STOP:
-                        std::cout << "alSourceStop" << std::endl;
+                        std::cout << "stop" << std::endl;
                         alSourceStop(musicTrack->sourceID);
                         musicTrack->isPlaying = false;
                         break;
                     case QUEUE:
-                        std::cout << "alSourceQueueBuffers" << std::endl;
+                        std::cout << "queue" << std::endl;
                         alSourceQueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[command.idx]);
                         break;
                     case UNQUEUE:
-                        std::cout << "alSourceUnqueueBuffers" << std::endl;
-                        alSourceUnqueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[command.idx]);
+                        std::cout << "unqueue" << std::endl;
+                        unqueueQueue.push(command.idx);
                         break;
                     case SET_VOLUME:
-                        std::cout << "alSourcef AL_GAIN" << std::endl;
+                        std::cout << "setvol" << std::endl;
                         alSourcef(musicTrack->sourceID, AL_GAIN, command.vol);
                         break;
                     case SET_BUF:
-                        std::cout << "musicTrack->bufferIDs" << std::endl;
+                        std::cout << "setbuf" << std::endl;
                         musicTrack->bufferIDs[command.idx] = command.bufID;
                         break;
                     case NOP: // Just in case
-                        std::cout << "NOP" << std::endl;
+                        std::cout << "nop" << std::endl;
                         break;
                     case CLOSE_SOURCE:
                         std::cout
@@ -253,11 +264,14 @@ void threadMan(MusicTrack* musicTrack) {
                                 << std::endl;
                         break;
                 }
-                std::cout << alGetError() << std::endl;
-                commandQueue.pop();
+                ALint err = alGetError();
+                if (err == 0 && !skipPop) {
+                    commandQueue.pop();
+                } else {
+                    std::cerr << "COMMAND: " << command.t << " ERR: " << err << std::endl;
+                }
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 

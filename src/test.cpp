@@ -221,6 +221,8 @@ void setupTest() {
 
     test.queue(0);
     test.play();
+    test.sendCommand({QUEUE, static_cast<uint64_t>(UNIX_CURRENT_TIME_MS+5000), static_cast<uint8_t>(1)});
+    test.sendCommand({UNQUEUE, static_cast<uint64_t>(UNIX_CURRENT_TIME_MS+5000), static_cast<uint8_t>(0)});
     //test.unqueueLater(0, 1000*4-1); // 4s-1ms
     //test.queueLater(1, 1000*4); // 4s
 }
