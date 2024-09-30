@@ -201,18 +201,21 @@ void threadMan(MusicTrack* musicTrack) {
     alSourcef(musicTrack->sourceID, AL_GAIN, 1.0f);
     alSourcef(musicTrack->sourceID, AL_MAX_GAIN, 1.0f);
     alSourcef(musicTrack->sourceID, AL_MIN_GAIN, 0.0f);
-    alSourcei(musicTrack->sourceID, AL_LOOPING, false); // Unfortunately to unqueue this is a necessary evil
+    alSourcei(musicTrack->sourceID, AL_LOOPING, false);
 
     std::queue<MusicTrackCommand> commandQueue{};
     std::queue<uint8_t> unqueueQueue{};
+    bool unqueueRequest = false;
     while (true) {
         ALenum res;
         alGetSourcei(musicTrack->sourceID, AL_SOURCE_STATE, &res);
-        if (res != AL_PLAYING && musicTrack->isPlaying) {
+        if (unqueueRequest && res != AL_PLAYING && musicTrack->isPlaying) {
             while (!unqueueQueue.empty()) {
                 alSourceUnqueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[unqueueQueue.front()]);
                 unqueueQueue.pop();
             }
+            unqueueRequest = false;
+            alSourcei(musicTrack->sourceID, AL_LOOPING, true);
             alSourcePlay(musicTrack->sourceID);
         }
         if (musicTrack->commandPresent) {
@@ -232,6 +235,7 @@ void threadMan(MusicTrack* musicTrack) {
                 switch (command.t) {
                     case PLAY:
                         std::cout << "play" << std::endl;
+                        alSourcePlay(musicTrack->sourceID);
                         musicTrack->isPlaying = true;
                         break;
                     case STOP:
@@ -245,6 +249,8 @@ void threadMan(MusicTrack* musicTrack) {
                         break;
                     case UNQUEUE:
                         std::cout << "unqueue" << std::endl;
+                        if (!unqueueRequest) alSourcei(musicTrack->sourceID, AL_LOOPING, false);
+                        unqueueRequest = true;
                         unqueueQueue.push(command.idx);
                         break;
                     case SET_VOLUME:
