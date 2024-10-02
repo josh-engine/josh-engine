@@ -6,9 +6,8 @@
 #define JOSHENGINE_AUDIOUTIL_H
 #include <glm/glm.hpp>
 #include <string>
-#include <mutex>
 
-#define UNIX_CURRENT_TIME_MS duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count()
+#define UNIX_CURRENT_TIME_MS static_cast<uint64_t>(duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count())
 
 typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
 
@@ -66,6 +65,11 @@ struct MusicTrackCommand {
         this->t = NOP;
     }
 
+    MusicTrackCommand(uint64_t time) {
+        this->t = NOP;
+        this->executeTime = time;
+    }
+
     MusicTrackCommand(MusicTrackCommandType type, uint64_t time, uint8_t idx) {
         this->t = type;
         this->executeTime = time;
@@ -101,12 +105,18 @@ public:
     void play();
     void queue(uint8_t idx);
     void unqueue(uint8_t idx);
+    void queue(uint8_t idx, uint64_t msOff);
+    void unqueue(uint8_t idx, uint64_t msOff);
+    void waitMS(uint64_t msOff);
     void stop();
     void setVolume(float volume);
     void setBuffer(uint8_t idx, unsigned int buf);
     void sendCommand(MusicTrackCommand command);
+
+#ifndef AUDIO_DISABLE
 private:
     std::unique_ptr<std::thread> commandThread{};
+#endif
 };
 
 void initAudio();

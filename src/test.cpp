@@ -219,10 +219,21 @@ void setupTest() {
     test.setBuffer(4, oggToBuffer("./sounds/music/hypertensile-planet.ogg"));
     test.setBuffer(5, oggToBuffer("./sounds/music/hypertensile-load.ogg"));
 
+    // Queue intro
     test.queue(0);
+    test.queue(1);
     test.play();
-    test.sendCommand({QUEUE, static_cast<uint64_t>(UNIX_CURRENT_TIME_MS+5000), static_cast<uint8_t>(1)});
-    test.sendCommand({UNQUEUE, static_cast<uint64_t>(UNIX_CURRENT_TIME_MS+5000), static_cast<uint8_t>(0)});
-    //test.unqueueLater(0, 1000*4-1); // 4s-1ms
-    //test.queueLater(1, 1000*4); // 4s
+    // Unqueue intro (menu loop plays three times, loops clean once)
+    test.waitMS(5*1000);
+    test.unqueue(0);
+
+    // Queue online connection and system view select, unqueue
+    test.waitMS(40*1000);
+    test.queue(2);
+    test.unqueue(1);
+    test.queue(3);
+
+    // Unqueue online connection
+    test.waitMS(55*1000);
+    test.unqueue(2);
 }

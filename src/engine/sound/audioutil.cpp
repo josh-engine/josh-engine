@@ -181,18 +181,25 @@ MusicTrack::MusicTrack() {
 #endif
 }
 
-void MusicTrack::sendCommand(MusicTrackCommand command) {
-    this->command = command;       //  Set command
-    commandPresent = true;        //   Say "we have a thing"
-    while (commandPresent) {}    //    Block until thread ack
+void MusicTrack::sendCommand(MusicTrackCommand c) {
+#ifndef AUDIO_DISABLE
+    this->command = c;            //  Set command
+    commandPresent = true;        //  Say "we have a thing"
+    if (c.t != CLOSE_SOURCE) {    //  If it's not a close source,
+        while (commandPresent) {} //  Block until thread ack
+    }
+#endif
 }
 
 MusicTrack::~MusicTrack() {
+#ifndef AUDIO_DISABLE
     sendCommand({CLOSE_SOURCE, 0, static_cast<uint8_t>(0)});
     this->commandThread->join();
+#endif
 }
 
 void threadMan(MusicTrack* musicTrack) {
+#ifndef AUDIO_DISABLE
     while (context == nullptr) {std::this_thread::sleep_for(std::chrono::milliseconds(1));} // Wait for OpenAL init
     alcMakeContextCurrent(context);
     musicTrack->isPlaying = false;
@@ -207,62 +214,55 @@ void threadMan(MusicTrack* musicTrack) {
     std::queue<uint8_t> unqueueQueue{};
     bool unqueueRequest = false;
     while (true) {
-        ALenum res;
-        alGetSourcei(musicTrack->sourceID, AL_SOURCE_STATE, &res);
-        if (unqueueRequest && res != AL_PLAYING && musicTrack->isPlaying) {
-            while (!unqueueQueue.empty()) {
-                alSourceUnqueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[unqueueQueue.front()]);
-                unqueueQueue.pop();
+        if (unqueueRequest && musicTrack->isPlaying) {
+            ALenum res;
+            alGetSourcei(musicTrack->sourceID, AL_SOURCE_STATE, &res);
+            if (res != AL_PLAYING) {
+                while (!unqueueQueue.empty()) {
+                    alSourceUnqueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[unqueueQueue.front()]);
+                    unqueueQueue.pop();
+                }
+                unqueueRequest = false;
+                alSourcei(musicTrack->sourceID, AL_LOOPING, true);
+                alSourcePlay(musicTrack->sourceID);
             }
-            unqueueRequest = false;
-            alSourcei(musicTrack->sourceID, AL_LOOPING, true);
-            alSourcePlay(musicTrack->sourceID);
         }
         if (musicTrack->commandPresent) {
-            musicTrack->commandPresent = false;
             if (musicTrack->command.t != CLOSE_SOURCE) {
                 commandQueue.push(musicTrack->command);
                 musicTrack->command.t = NOP; // Sometimes duplicate commands are issued. This prevents that.
             } else {
                 return; // Be free from your enslavement
             }
+            musicTrack->commandPresent = false;
         } else if (!commandQueue.empty()) {
             // Process commands because yes
             MusicTrackCommand command = commandQueue.front();
-            bool skipPop = false;
-            alGetError(); // Clear error
             if (command.executeTime <= UNIX_CURRENT_TIME_MS) {
                 switch (command.t) {
                     case PLAY:
-                        std::cout << "play" << std::endl;
                         alSourcePlay(musicTrack->sourceID);
                         musicTrack->isPlaying = true;
                         break;
                     case STOP:
-                        std::cout << "stop" << std::endl;
                         alSourceStop(musicTrack->sourceID);
                         musicTrack->isPlaying = false;
                         break;
                     case QUEUE:
-                        std::cout << "queue" << std::endl;
                         alSourceQueueBuffers(musicTrack->sourceID, 1, &musicTrack->bufferIDs[command.idx]);
                         break;
                     case UNQUEUE:
-                        std::cout << "unqueue" << std::endl;
                         if (!unqueueRequest) alSourcei(musicTrack->sourceID, AL_LOOPING, false);
                         unqueueRequest = true;
                         unqueueQueue.push(command.idx);
                         break;
                     case SET_VOLUME:
-                        std::cout << "setvol" << std::endl;
                         alSourcef(musicTrack->sourceID, AL_GAIN, command.vol);
                         break;
                     case SET_BUF:
-                        std::cout << "setbuf" << std::endl;
                         musicTrack->bufferIDs[command.idx] = command.bufID;
                         break;
-                    case NOP: // Just in case
-                        std::cout << "nop" << std::endl;
+                    case NOP: // Pretty much a queue wait barrier
                         break;
                     case CLOSE_SOURCE:
                         std::cout
@@ -271,14 +271,13 @@ void threadMan(MusicTrack* musicTrack) {
                         break;
                 }
                 ALint err = alGetError();
-                if (err == 0 && !skipPop) {
+                if (err == 0) { // In case an AL operation fails, just try until it works.
                     commandQueue.pop();
-                } else {
-                    std::cerr << "COMMAND: " << command.t << " ERR: " << err << std::endl;
                 }
             }
         }
     }
+#endif
 }
 
 void MusicTrack::play() {
@@ -295,6 +294,18 @@ void MusicTrack::queue(uint8_t idx) {
 
 void MusicTrack::unqueue(uint8_t idx){
     sendCommand(MusicTrackCommand(UNQUEUE, UNIX_CURRENT_TIME_MS, idx));
+}
+
+void MusicTrack::queue(uint8_t idx, uint64_t msOff) {
+    sendCommand(MusicTrackCommand(QUEUE, UNIX_CURRENT_TIME_MS+msOff, idx));
+}
+
+void MusicTrack::unqueue(uint8_t idx, uint64_t msOff) {
+    sendCommand(MusicTrackCommand(UNQUEUE, UNIX_CURRENT_TIME_MS+msOff, idx));
+}
+
+void MusicTrack::waitMS(uint64_t msOff) {
+    sendCommand(MusicTrackCommand(UNIX_CURRENT_TIME_MS+msOff));
 }
 
 void MusicTrack::setVolume(float volume) {
