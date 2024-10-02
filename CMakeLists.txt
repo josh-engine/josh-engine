@@ -69,7 +69,9 @@ endif()
 # You don't have to though, I'm not the police.
 
 set(Game_src
-        src/test.cpp)
+        src/test.cpp
+        src/gameuiutil.cpp
+        src/gamephysicslib.cpp)
 set(JoshEngine_sources ${JoshEngine_sources}
                        ${Game_src}
 )
