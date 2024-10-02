@@ -6,7 +6,7 @@
 #ifdef DEBUG_ENABLED
 #include "debugutil.h"
 #include "../engine.h"
-#include "../gfx/imgui/imgui.h"
+#include "../ui/imgui/imgui.h"
 #include <cstdio>
 #include <unordered_map>
 

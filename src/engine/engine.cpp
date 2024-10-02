@@ -11,6 +11,7 @@
 #include "gfx/modelutil.h"
 #include "debug/debugutil.h"
 #include "jbd/bundleutil.h"
+#include "ui/je/uiutil.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
@@ -380,6 +381,8 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
     std::cout << "Graphics init successful!" << std::endl;
 
     initAudio();
+    std::cout << "Audio init successful!" << std::endl;
+    initUI();
     std::cout << "Audio init successful!" << std::endl;
 #ifdef DEBUG_ENABLED
     initDebugTools();

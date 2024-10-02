@@ -2,9 +2,9 @@
 // Created by Ethan Lee on 7/15/24.
 //
 
-#include "gameuiutil.h"
-#include "engine/gfx/modelutil.h"
-#include "engine/engine.h"
+#include "uiutil.h"
+#include "../../gfx/modelutil.h"
+#include "../../engine.h"
 #include <vector>
 
 vec2 temp_pos;
@@ -17,7 +17,7 @@ bool temp_disable;
 
 unsigned int itemUUID = 0;
 
-void uiInit() {
+void initUI() {
     JEShaderProgramSettings fontProgramSettings{};
     fontProgramSettings.transparencySupported = false; // Just discard; empty pixels because pixel font
     fontProgramSettings.doubleSided = true;
@@ -33,7 +33,7 @@ void uiInit() {
     buttonProgramSettings.shaderInputCount = 1;
     buttonProgramSettings.shaderInputs = JEShaderInputUniformBit;
 
-    createTexture("fontTexture", "./textures/game_font.bmp", "./tex_bundle.jbd");
+    createTexture("fontTexture", "./textures/game_font.bmp");
 
     createShader("textShader", "./shaders/vertex2d_font.glsl", "./shaders/font_texture.glsl", fontProgramSettings);
     createShader("buttonShader", "./shaders/vertex2d.glsl", "./shaders/frag_button.glsl", buttonProgramSettings);

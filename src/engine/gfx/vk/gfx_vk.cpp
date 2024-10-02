@@ -23,8 +23,8 @@
 #include <queue>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "../imgui/imgui_impl_glfw.h"
-#include "../imgui/imgui_impl_vulkan.h"
+#include "../../ui/imgui/imgui_impl_glfw.h"
+#include "../../ui/imgui/imgui_impl_vulkan.h"
 #include <optional>
 
 GLFWwindow** windowPtr;

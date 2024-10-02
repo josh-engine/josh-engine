@@ -19,12 +19,13 @@ set(JoshEngine_sources
         src/engine/gfx/renderable.cpp
         src/engine/sound/audioutil.cpp
         src/engine/gfx/modelutil.cpp
-        src/engine/gfx/imgui/imgui.cpp
-        src/engine/gfx/imgui/imgui_demo.cpp
-        src/engine/gfx/imgui/imgui_draw.cpp
-        src/engine/gfx/imgui/imgui_tables.cpp
-        src/engine/gfx/imgui/imgui_widgets.cpp
-        src/engine/gfx/imgui/imgui_impl_glfw.cpp
+        src/engine/ui/imgui/imgui.cpp
+        src/engine/ui/imgui/imgui_demo.cpp
+        src/engine/ui/imgui/imgui_draw.cpp
+        src/engine/ui/imgui/imgui_tables.cpp
+        src/engine/ui/imgui/imgui_widgets.cpp
+        src/engine/ui/imgui/imgui_impl_glfw.cpp
+        src/engine/ui/je/uiutil.cpp
         src/engine/debug/debugutil.cpp
         src/engine/jbd/bundleutil.cpp
         src/engine/engine.cpp
@@ -53,7 +54,7 @@ if (JE_API_VK)
     )
     set(JoshEngine_sources ${JoshEngine_sources}
             src/engine/gfx/vk/gfx_vk.cpp
-            src/engine/gfx/imgui/imgui_impl_vulkan.cpp
+            src/engine/ui/imgui/imgui_impl_vulkan.cpp
     )
 endif()
 
@@ -70,7 +71,6 @@ endif()
 
 set(Game_src
         src/test.cpp
-        src/gameuiutil.cpp
         src/gamephysicslib.cpp)
 set(JoshEngine_sources ${JoshEngine_sources}
                        ${Game_src}
