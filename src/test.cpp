@@ -4,6 +4,7 @@
 
 #include "test.h"
 #include "engine/engine.h"
+#include "engine/ui/je/uiutil.h"
 #include "engine/sound/audioutil.h"
 #include "engine/gfx/modelutil.h"
 #include "engine/debug/debugutil.h"
@@ -151,6 +152,10 @@ void initUiItem(GameObject* selfObject) {
 
 MusicTrack test{};
 
+void btnTest() {
+
+}
+
 void setupTest() {
     //     sun-ish direction from skybox, slightly warm white
     setSunProperties(glm::vec3(-1, 1, -1), glm::vec3(1, 1, 0.85));
@@ -197,6 +202,8 @@ void setupTest() {
     b.shaderInputCount = 2;
     createShader("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", b);
 
+    createTexture("manifold", "./textures/rebuildFont.bmp");
+
     createTexture("uv_tex.png", "./textures/uv_tex.png");
     createTexture("logo.png", "./textures/logo.png");
     createTexture("cube_texture", "./textures/cubetex.png");
@@ -236,4 +243,6 @@ void setupTest() {
     // Unqueue online connection
     test.waitMS(55*1000);
     test.unqueue(2);
+
+    uiStaticButton({0.5, -0.2}, "test", "manifold", &btnTest);
 }

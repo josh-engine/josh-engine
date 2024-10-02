@@ -383,7 +383,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
     initAudio();
     std::cout << "Audio init successful!" << std::endl;
     initUI();
-    std::cout << "Audio init successful!" << std::endl;
+    std::cout << "UI init successful!" << std::endl;
 #ifdef DEBUG_ENABLED
     initDebugTools();
     std::cout << "Debug init successful!" << std::endl;

@@ -12,6 +12,7 @@ vec2 temp_size;
 vec3 temp_col;
 float temp_t_size;
 std::string temp_str;
+std::string temp_fnt;
 void (*temp_fp)();
 bool temp_disable;
 
@@ -33,19 +34,17 @@ void initUI() {
     buttonProgramSettings.shaderInputCount = 1;
     buttonProgramSettings.shaderInputs = JEShaderInputUniformBit;
 
-    createTexture("fontTexture", "./textures/game_font.bmp");
-
     createShader("textShader", "./shaders/vertex2d_font.glsl", "./shaders/font_texture.glsl", fontProgramSettings);
     createShader("buttonShader", "./shaders/vertex2d.glsl", "./shaders/frag_button.glsl", buttonProgramSettings);
 }
 
-std::vector<Renderable> stringToRenderables(std::string str, vec3 color){
+std::vector<Renderable> stringToRenderables(std::string str, vec3 color, std::string font){
     std::vector<Renderable> temp{};
     int newlineCounter = 0;
     int charLineCounter = 0;
     for (int i = 0; i < str.length(); i++) {
         if (str[i] != '\n') {
-            temp.push_back(createQuad(getShader("textShader"), {getUBOID(), getTexture("fontTexture")}, true));
+            temp.push_back(createQuad(getShader("textShader"), {getUBOID(), getTexture(font)}, true));
             temp[temp.size() - 1].useFakedNormalMatrix = true;
             temp[temp.size() - 1].normal[0][0] = static_cast<float>(charLineCounter * 2);
             temp[temp.size() - 1].normal[0][1] = static_cast<float>(newlineCounter * -2);
@@ -66,7 +65,7 @@ std::vector<Renderable> stringToRenderables(std::string str, vec3 color){
 void staticText(GameObject* self) {
     self->transform.position = vec3(temp_pos.x-(((temp_str.length()-1)/2.0f)*temp_t_size*2), temp_pos.y, 0);
     self->transform.scale = vec3(temp_t_size);
-    self->renderables = stringToRenderables(temp_str, temp_col);
+    self->renderables = stringToRenderables(temp_str, temp_col, temp_fnt);
 }
 
 bool lastButtonDown = false;
@@ -100,16 +99,17 @@ void clickableButton(GameObject* self) {
     if (!temp_disable) self->onUpdate.push_back(&buttonUpdate);
 }
 
-void uiStaticText(const glm::vec2& pos, const std::string& text, const float& textSize, const glm::vec3& color) {
+void uiStaticText(const glm::vec2& pos, const std::string& text, const std::string& font, const float& textSize, const glm::vec3& color) {
     temp_pos = pos;
     temp_str = text;
     temp_col = color;
     temp_t_size = textSize;
+    temp_fnt = font;
     putGameObject("uiTextObj_"+text+"_"+std::to_string(itemUUID++), GameObject(&staticText));
 }
 
-void uiButton(const glm::vec2& pos, const std::string& text, void (*click_function)(), const glm::vec2& padding, const float& textSize, const glm::vec3& color, bool disabled) {
-    uiStaticText(pos, text, textSize, color * (disabled ? vec3(0.3) : vec3(1)));
+void uiStaticButton(const glm::vec2& pos, const std::string& text, const std::string& font, void (*click_function)(), const glm::vec2& padding, const float& textSize, const glm::vec3& color, bool disabled) {
+    uiStaticText(pos, text, font, textSize, color * (disabled ? vec3(0.3) : vec3(1)));
     temp_size = {textSize*text.length()+padding.x, textSize+padding.y};
     temp_fp = click_function;
     temp_disable = disabled;
