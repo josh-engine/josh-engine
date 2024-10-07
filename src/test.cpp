@@ -62,7 +62,7 @@ void cameraFly(double dt) {
     }
 }
 
-void lockUnlock(int key, bool wasKeyPressed, double dt) {
+void lockUnlock(int key, bool wasKeyPressed, double _) {
     if (key == GLFW_KEY_ESCAPE) {
         if (wasKeyPressed && !pressed) {
             mouseLocked = !mouseLocked;
@@ -75,7 +75,7 @@ void lockUnlock(int key, bool wasKeyPressed, double dt) {
     }
 }
 
-void mouseClick(int button, bool wasButtonPressed, double dt) {
+void mouseClick(int button, bool wasButtonPressed, double _) {
     glm::vec2 cursorPos = getCursorPos();
     GameObject& ref = getGameObject("ui_item");
 
@@ -147,7 +147,7 @@ void initCube(GameObject* selfObject) {
 
 void initUiItem(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-5, -2.5, 0), glm::vec3(0), glm::vec3(2.5));
-    selfObject->renderables.push_back(createQuad(getShader("ui"), {0, getTexture("missing")}));
+    selfObject->renderables.push_back(createQuad(getShader("ui"), {0, getTexture("missing")}, false, true));
 }
 
 MusicTrack test{};

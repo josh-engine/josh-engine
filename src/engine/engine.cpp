@@ -500,7 +500,8 @@ void mainLoop() {
         std::vector<Renderable*> renderables;
         // We're going to guess that we have around the same amount of renderables for this frame.
         renderables.reserve(renderableCount);
-        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> individualSortRenderables;
+        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> transparentWorldRenderables;
+        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> uiRenderables;
 
         renderableCount = 0;
 
@@ -515,8 +516,10 @@ void mainLoop() {
                 if (r.enabled()) {
                     renderableCount++;
                     r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
-                    if (r.manualDepthSort()) {
-                        individualSortRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
+                    if (r.checkUIBit()) {
+                        uiRenderables.emplace(-item.second.transform.position.z, &r); // I don't want to write a second lambda
+                    } else if (r.manualDepthSort()) {
+                        transparentWorldRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
                     }
                     else {
                         renderables.push_back(&r);
@@ -525,11 +528,18 @@ void mainLoop() {
             }
         }
 
-        size_t a = individualSortRenderables.size();
+        size_t a = transparentWorldRenderables.size();
         for (int i = 0; i < a; i++){
-            auto [_, r] = individualSortRenderables.top();
+            auto [_, r] = transparentWorldRenderables.top();
             renderables.push_back(r);
-            individualSortRenderables.pop();
+            transparentWorldRenderables.pop();
+        }
+
+        a = uiRenderables.size();
+        for (int i = 0; i < a; i++){
+            auto [_, r] = uiRenderables.top();
+            renderables.push_back(r);
+            uiRenderables.pop();
         }
 
         float scaledHeight = static_cast<float>(windowHeight) * (1.0f / static_cast<float>(windowWidth));

@@ -12,7 +12,7 @@
 
 Renderable quadBase;
 
-Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool manualDepthSort) {
+Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool manualDepthSort, bool ui) {
     if (!quadBase.enabled()) {
         // Init quad once (we only need one VBO across the lifetime of the engine for a quad)
         quadBase = Renderable(
@@ -28,7 +28,7 @@ Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool 
     Renderable copy = quadBase;
     copy.shaderProgram = shader;
     copy.descriptorIDs = std::move(desc);
-    copy.flags = static_cast<char>(quadBase.flags | (manualDepthSort ? 0b10 : 0));
+    copy.flags = static_cast<char>(quadBase.flags | (manualDepthSort ? 0b10 : 0) | (ui ? 0b100 : 0));
     return copy;
 }
 
@@ -131,8 +131,8 @@ std::vector<Renderable> loadObj(const std::vector<unsigned char>& fileContents, 
     std::vector<glm::vec2> modelUVs = {{0, 0}};
     std::vector<glm::vec3> modelNormals = {{0, 1, 0}};
 
-    for (char currentChar : fileContents) {
-        if (currentChar != '\n') currentLine += currentChar;
+    for (unsigned char currentChar : fileContents) {
+        if (currentChar != '\n') currentLine += static_cast<char>(currentChar);
         else {
             std::vector<std::string> split = splitStr(currentLine, ' ');
             currentLine = "";

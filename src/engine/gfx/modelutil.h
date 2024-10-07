@@ -12,8 +12,8 @@ struct Model {
     std::vector<unsigned int> indices{};
 };
 
-Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool manualDepthSort = false);
+Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool manualDepthSort = false, bool ui = false);
 std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProgram, const std::vector<unsigned int>& desc, bool manualDepthSort = false);
-std::vector<Renderable> loadBundledObj(const std::string& path, const std::string& bundleFileName,  unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort = false);
+std::vector<Renderable> loadBundledObj(const std::string& path, const std::string& bundleFileName,  unsigned int shaderProgram, const std::vector<unsigned int>& desc, bool manualDepthSort = false);
 
 #endif //JOSHENGINE_MODELUTIL

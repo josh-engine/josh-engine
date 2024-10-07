@@ -7,16 +7,11 @@
 
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
-
-unsigned int createVBOFunctionMirror(void* r, void* v, void* i) {
-    return createVBO(reinterpret_cast<std::vector<JEInterleavedVertex_VK> *>(v),
-                     reinterpret_cast<std::vector<unsigned int> *>(i));
-}
 #endif
 
 Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
     flags = static_cast<unsigned char>(0b1 | (manualDepthSort ? 0b10 : 0));
-    descriptorIDs= std::move(descs);
+    descriptorIDs = std::move(descs);
     this->shaderProgram = shid;
 
     std::vector<JEInterleavedVertex_VK> interleavedVertices{};
@@ -29,7 +24,7 @@ Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std:
         });
     }
 
-    vboID = createVBOFunctionMirror(this, &interleavedVertices, &indices);
+    vboID = createVBO(&interleavedVertices, &indices);
     indicesSize = indices.size();
 }
 
@@ -51,4 +46,8 @@ bool Renderable::enabled() const {
 
 bool Renderable::manualDepthSort() const {
     return (this->flags & 0b10) == 0b10;
+}
+
+bool Renderable::checkUIBit() const {
+    return (this->flags & 0b100) == 0b100;
 }

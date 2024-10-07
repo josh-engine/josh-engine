@@ -52,10 +52,10 @@ std::vector<Renderable> stringToRenderables(std::string str, vec3 color, const s
     glm::vec2 offset = fontOffsets.at(font);
     for (int i = 0; i < str.length(); i++) {
         if (str[i] != '\n') {
-            temp.push_back(createQuad(getShader("textShader"), {getUBOID(), getTexture(font)}, true));
+            temp.push_back(createQuad(getShader("textShader"), {getUBOID(), getTexture(font)}, false, true));
             temp[temp.size() - 1].useFakedNormalMatrix = true;
-            temp[temp.size() - 1].normal[0][0] = static_cast<double>(charLineCounter) * offset.x * 2;
-            temp[temp.size() - 1].normal[0][1] = static_cast<double>(newlineCounter) * -offset.y * 2;
+            temp[temp.size() - 1].normal[0][0] = static_cast<float>(charLineCounter) * offset.x * 2;
+            temp[temp.size() - 1].normal[0][1] = static_cast<float>(newlineCounter) * -offset.y * 2;
             temp[temp.size() - 1].normal[0][2] = std::bit_cast<float>(static_cast<unsigned int>(str[i]-32));
             temp[temp.size() - 1].normal[1][0] = color.r;
             temp[temp.size() - 1].normal[1][1] = color.g;
@@ -76,12 +76,12 @@ double getTextWidth(const std::string& text, const std::string& font, double siz
 
 void staticText(GameObject* self) {
     self->transform.position = vec3(temp_pos.x + ((fontOffsets.at(temp_fnt).x)*temp_t_size*(-static_cast<double>(temp_str.length()) + 2))+(fontOffsets.at(temp_fnt).z*temp_t_size/2.0), temp_pos.y, 0);
-    self->transform.scale = vec3(temp_t_size);
+    self->transform.scale = vec3(static_cast<float>(temp_t_size));
     self->renderables = stringToRenderables(temp_str, temp_col, temp_fnt);
 }
 
 bool lastButtonDown = false;
-void buttonUpdate(double dt, GameObject* self) {
+void buttonUpdate(double _, GameObject* self) {
     vec2 mouse = getCursorPos();
     if (mouse.x > self->transform.position.x-self->transform.scale.x
      && mouse.x < self->transform.position.x+self->transform.scale.x
@@ -101,7 +101,7 @@ void buttonUpdate(double dt, GameObject* self) {
 void clickableButton(GameObject* self) {
     self->transform.position = vec3(temp_pos, -1);
     self->transform.scale = vec3(temp_size, 1);
-    self->renderables.push_back(createQuad(getShader("buttonShader"), {getUBOID()}, true));
+    self->renderables.push_back(createQuad(getShader("buttonShader"), {getUBOID()}, false, true));
     self->renderables[0].useFakedNormalMatrix = true;
     self->renderables[0].normal[0][0] = 0.0f;
     self->renderables[0].normal[0][1] = 0.0f;

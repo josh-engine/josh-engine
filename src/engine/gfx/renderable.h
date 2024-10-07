@@ -77,6 +77,7 @@ public:
 
     [[nodiscard]] bool enabled() const;
     [[nodiscard]] bool manualDepthSort() const;
+    [[nodiscard]] bool checkUIBit() const;
 };
 
 #endif //JOSHENGINE_RENDERABLE_H
