@@ -225,8 +225,9 @@ void threadMan(MusicTrack* musicTrack) {
                 unqueueRequest = false;
                 alSourcei(musicTrack->sourceID, AL_LOOPING, true);
                 alSourcePlay(musicTrack->sourceID);
-            }
-        }
+            // Originally a goto to the second else. Eli didn't like it.
+            } else std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } else std::this_thread::sleep_for(std::chrono::milliseconds(1));
         if (musicTrack->commandPresent) {
             if (musicTrack->command.t != CLOSE_SOURCE) {
                 commandQueue.push(musicTrack->command);

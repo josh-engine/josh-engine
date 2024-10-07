@@ -25,5 +25,5 @@ void main() {
     {
         color = vec4(fontcolor, 1);
     }
-    else discard;
+    else discard; //color = vec4(1, 0, 0, 0.25);
 }

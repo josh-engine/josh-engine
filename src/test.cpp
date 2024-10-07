@@ -146,14 +146,21 @@ void initCube(GameObject* selfObject) {
 }
 
 void initUiItem(GameObject* selfObject) {
-    selfObject->transform = Transform(glm::vec3(-0.5, -0.25, 0), glm::vec3(0), glm::vec3(0.25));
+    selfObject->transform = Transform(glm::vec3(-5, -2.5, 0), glm::vec3(0), glm::vec3(2.5));
     selfObject->renderables.push_back(createQuad(getShader("ui"), {0, getTexture("missing")}));
 }
 
 MusicTrack test{};
 
 void btnTest() {
+    // Queue online connection and system view select, unqueue
+    test.queue(2);
+    test.queue(3);
+    test.unqueue(1);
 
+    // Unqueue online connection
+    test.waitMS(30*1000);
+    test.unqueue(2);
 }
 
 void setupTest() {
@@ -202,7 +209,7 @@ void setupTest() {
     b.shaderInputCount = 2;
     createShader("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", b);
 
-    createTexture("manifold", "./textures/rebuildFont.bmp");
+    createFont("manifold", "./textures/manifold.bmp", {0.5, 0.7, (5.0/64.0)});
 
     createTexture("uv_tex.png", "./textures/uv_tex.png");
     createTexture("logo.png", "./textures/logo.png");
@@ -230,19 +237,11 @@ void setupTest() {
     test.queue(0);
     test.queue(1);
     test.play();
-    // Unqueue intro (menu loop plays three times, loops clean once)
+
     test.waitMS(5*1000);
     test.unqueue(0);
 
-    // Queue online connection and system view select, unqueue
-    test.waitMS(40*1000);
-    test.queue(2);
-    test.unqueue(1);
-    test.queue(3);
-
-    // Unqueue online connection
-    test.waitMS(55*1000);
-    test.unqueue(2);
-
-    uiStaticButton({0.5, -0.2}, "test", "manifold", &btnTest);
+    uiStaticButton({0, -0.0}, "Play", "manifold", &btnTest);
+    uiStaticButton({0, -0.5}, "Settings", "manifold", &btnTest);
+    uiStaticButton({0, -1.0}, "Exit", "manifold", &btnTest);
 }

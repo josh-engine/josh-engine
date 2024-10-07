@@ -271,6 +271,7 @@ glm::vec2 getCursorPos() {
 
     // scale Y axis by the current scaled height
     cpos /= glm::vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
+    cpos *= glm::vec2(10.0, 10.0);
     return cpos;
 }
 void setRawCursorPos(glm::vec2 pos) {
@@ -285,6 +286,7 @@ void setSunProperties(glm::vec3 position, glm::vec3 color){
 
 void setCursorPos(glm::vec2 pos) {
     // inverse of getCursorPos's coordinate transformation
+    pos /= glm::vec2(10.0, 10.0);
     pos *= glm::vec2(1, static_cast<float>(getCurrentWidth()) * (1.0f / static_cast<float>(getCurrentHeight())));
     pos /= 2;
     pos -= glm::vec2(-0.5, 0.5);
@@ -535,7 +537,7 @@ void mainLoop() {
 
         JEUniformBufferObject ubo = {
             cameraMatrix,
-            glm::ortho(-scaledWidth,scaledWidth,-scaledHeight,scaledHeight,-1.0f,1.0f),
+            glm::ortho(-scaledWidth*10,scaledWidth*10,-scaledHeight*10,scaledHeight*10,-1.0f,1.0f),
             glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, clippingPlanesPerspective.x, clippingPlanesPerspective.y),
             camera.position,
             camera.direction(),
