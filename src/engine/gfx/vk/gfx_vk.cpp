@@ -2082,7 +2082,7 @@ void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<
         vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r->vboID], offsets);
         vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r->vboID], 0, VK_INDEX_TYPE_UINT32);
 
-        JEPushConstants_VK constants = {r->objectMatrix, r->normal};
+        JEPushConstants_VK constants = {r->objectMatrix, r->data};
         vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
                            VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
 

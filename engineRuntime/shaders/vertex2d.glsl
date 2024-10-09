@@ -7,7 +7,7 @@ layout(location = 2) in vec3 vertexNormal;
 
 layout(push_constant) uniform PushConstants { // JE_TRANSLATE
     mat4 model;
-    mat4 normal;
+    mat4 free_real_estate;
 };
 
 layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE
@@ -26,8 +26,7 @@ layout(location = 2) out vec3 vnorm;
 void main() {
     gl_Position = (_2dProj * model) * vec4(vertexPosition_modelspace,1);
     vec4 pos = (model * vec4(vertexPosition_modelspace,1));
-    vec4 normalv4 = (normal * vec4(vertexNormal,1));
     vpos = pos.xyz;
     uv = vertexUV;
-    vnorm = normalv4.xyz;
+    vnorm = mat3(transpose(inverse(model))) * vnorm;
 }

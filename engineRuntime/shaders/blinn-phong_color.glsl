@@ -27,7 +27,6 @@ void main() {
     vec3 lightDir = normalize(sunDir);
     float distance = length(lightDir);
     distance = distance * distance;
-    lightDir = normalize(lightDir);
 
     float lambertian = max(dot(lightDir, normal), 0.0);
     float specular = 0.0;

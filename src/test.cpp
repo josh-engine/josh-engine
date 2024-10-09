@@ -238,7 +238,6 @@ void setupTest() {
     test.queue(1);
     test.play();
 
-    test.waitMS(5*1000);
     test.unqueue(0);
 
     uiStaticButton({0, -0.0}, "Play", "manifold", &btnTest);

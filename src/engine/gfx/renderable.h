@@ -57,9 +57,9 @@ public:
     glm::mat4 transform{};
     glm::mat4 rotate{};
     glm::mat4 scale{};
-    glm::mat4 normal{};
+    glm::mat4 data{};
     glm::mat4 objectMatrix{};
-    bool useFakedNormalMatrix{};
+    bool useLegacyNormals{};
 
     unsigned char flags;
 

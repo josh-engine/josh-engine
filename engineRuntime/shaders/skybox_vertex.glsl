@@ -7,7 +7,7 @@ layout (location = 0) out vec3 coords;
 
 layout(push_constant) uniform PushConstants { // JE_TRANSLATE
     mat4 model;
-    mat4 normal;
+    mat4 free_real_estate;
 };
 
 layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE

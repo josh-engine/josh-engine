@@ -39,7 +39,7 @@ struct JEAllocation_VK {
 
 struct JEPushConstants_VK {
     glm::mat4 model;
-    glm::mat4 normal;
+    glm::mat4 freeRealEstate;
 };
 
 struct JEDescriptorSet_VK {
