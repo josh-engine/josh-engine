@@ -16,6 +16,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 
+namespace JE {
 [[nodiscard]] mat4 Transform::getRotateMatrix() const {
     vec3 radianRotation = radians(rotation);
     return glm::eulerAngleXYZ(radianRotation.x, radianRotation.y, radianRotation.z);
@@ -55,7 +56,7 @@ glm::vec2 fogPlanes(0, 200);
 unsigned int uboID{};
 unsigned int lboID{};
 
-JETextureFilter currentFilterMode = JE_TEXTURE;
+TextureFilter currentFilterMode = JE_TEXTURE;
 
 bool runUpdates = true;
 bool runObjectUpdates = true;
@@ -103,8 +104,8 @@ void setSkyboxEnabled(bool enabled) {
 }
 
 void recopyLightingBuffer() {
-    JEGlobalLightingBufferObject lighting_buffer = {sunDirection, sunColor, ambient, clearColor, fogPlanes};
-    updateUniformBuffer(lboID, &lighting_buffer, sizeof(JEGlobalLightingBufferObject), true);
+    GlobalLightingBufferObject lighting_buffer = {sunDirection, sunColor, ambient, clearColor, fogPlanes};
+    updateUniformBuffer(lboID, &lighting_buffer, sizeof(GlobalLightingBufferObject), true);
 }
 
 void setAmbient(glm::vec3 rgb) {
@@ -119,7 +120,7 @@ void setAmbient(float r, float g, float b){
 void setClearColor(float r, float g, float b) {
     clearColor = vec3(r, g, b);
     recopyLightingBuffer();
-    vk_setClearColor(r, g, b);
+    VK::setClearColor(r, g, b);
 }
 
 void setFogPlanes(float near, float far) {
@@ -167,24 +168,24 @@ void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
-void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings) {
-    unsigned int vertID = loadShader(vertex, JE_VERTEX_SHADER);
-    unsigned int fragID = loadShader(fragment, JE_FRAGMENT_SHADER);
-    programs.insert({name, createProgram(vertID, fragID, settings)});
+void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const ShaderProgramSettings& settings, const VertexType& vtype) {
+    unsigned int vertID = VK::loadShader(vertex, JE_VERTEX_SHADER);
+    unsigned int fragID = VK::loadShader(fragment, JE_FRAGMENT_SHADER);
+    programs.insert({name, VK::createProgram(vertID, fragID, settings, vtype)});
 }
 
 unsigned int getShader(const std::string& name) {
     return programs.at(name);
 }
 
-void setTextureFilterMode(const JETextureFilter filter) {
+void setTextureFilterMode(const TextureFilter filter) {
     currentFilterMode = filter;
 }
 
 unsigned int createTexture(const std::string& name, const std::string& filePath) {
     unsigned int id;
     try {
-        id = loadTexture(filePath, currentFilterMode);
+        id = VK::loadTexture(filePath, currentFilterMode);
     } catch (std::runtime_error &e) {
         id = textures.at("missing");
         std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
@@ -197,7 +198,7 @@ unsigned int createTexture(const std::string& name, const std::string& filePath,
     unsigned int id;
     try {
         std::vector<unsigned char> file = getFileCharVec(filePath, bundleFilePath);
-        id = loadBundledTexture(reinterpret_cast<char *>(&file[0]), file.size(), currentFilterMode);
+        id = VK::loadBundledTexture(reinterpret_cast<char *>(&file[0]), file.size(), currentFilterMode);
     } catch (std::runtime_error &e) {
         id = textures.at("missing");
         std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
@@ -294,6 +295,14 @@ void setCursorPos(glm::vec2 pos) {
     setRawCursorPos(pos);
 }
 
+unsigned int createUniformBuffer(size_t bufferSize) {
+    return VK::createUniformBuffer(bufferSize);
+}
+
+void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
+    VK::updateUniformBuffer(id, ptr, size, updateAll);
+}
+
 void registerOnUpdate(void (*function)(double dt)) {
     onUpdate.push_back(function);
 }
@@ -330,10 +339,10 @@ void framebuffer_size_callback(GLFWwindow* windowInstance,[[maybe_unused]] int u
     // Because of displays like Apple's Retina having multiple pixel values per pixel (or some bs like that)
     // the framebuffer is not always the window size. We need to make sure the real window size is saved.
     glfwGetWindowSize(windowInstance, &windowWidth, &windowHeight);
-    resizeViewport();
+    VK::resizeViewport();
 }
 
-void init(const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings) {
+void init(const char* windowName, int width, int height, GraphicsSettings graphicsSettings) {
     std::cout << "JoshEngine " << ENGINE_VERSION_STRING << std::endl;
     std::cout << "Starting engine init." << std::endl;
 
@@ -343,12 +352,12 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
     ambient = {glm::max(graphicsSettings.clearColor[0] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[1] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[2] - 0.5f, 0.1f)};
     clearColor = vec3(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2]);
 
-    initGFX(&window, windowName, width, height, graphicsSettings);
+    VK::initGFX(&window, windowName, width, height, graphicsSettings);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    uboID = createUniformBuffer(sizeof(JEUniformBufferObject));
-    lboID = createUniformBuffer(sizeof(JEGlobalLightingBufferObject));
+    uboID = createUniformBuffer(sizeof(UniformBufferObject));
+    lboID = createUniformBuffer(sizeof(GlobalLightingBufferObject));
 
     // Missing texture init
     createTexture("missing", "./textures/missing_tex.png");
@@ -366,8 +375,8 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
                      "./shaders/skybox_vertex.glsl",
                      "./shaders/skybox_fragment.glsl",
                 // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
-                     {false, true, false, false, (JEShaderInputUniformBit | (JEShaderInputTextureBit << 1)), 2});
-        skybox = loadObj("./models/skybox.obj", getShader("skybox"), {uboID, loadCubemap({
+                     {false, true, false, false, (ShaderInputBit::Uniform | (ShaderInputBit::Texture << 1)), 2});
+        skybox = loadObj("./models/skybox.obj", getShader("skybox"), {uboID, VK::loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
                                              "./skybox/py_up.jpg",
@@ -393,7 +402,7 @@ void init(const char* windowName, int width, int height, JEGraphicsSettings grap
 }
 
 void deinit() {
-    deinitGFX();
+    VK::deinitGFX();
 }
 
 float fov = 78.0f;
@@ -545,7 +554,7 @@ void mainLoop() {
         float scaledHeight = static_cast<float>(windowHeight) * (1.0f / static_cast<float>(windowWidth));
         float scaledWidth = 1.0f;
 
-        JEUniformBufferObject ubo = {
+        UniformBufferObject ubo = {
             cameraMatrix,
             glm::ortho(-scaledWidth*10,scaledWidth*10,-scaledHeight*10,scaledHeight*10,-1.0f,1.0f),
             glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, clippingPlanesPerspective.x, clippingPlanesPerspective.y),
@@ -554,9 +563,9 @@ void mainLoop() {
             {windowWidth, windowHeight}
         };
 
-        updateUniformBuffer(uboID, &ubo, sizeof(JEUniformBufferObject), false);
+        updateUniformBuffer(uboID, &ubo, sizeof(UniformBufferObject), false);
 
-        renderFrame(renderables, imGuiCalls);
+        VK::renderFrame(renderables, imGuiCalls);
         ++currentFPSCtr;
 
         if (doTimesCheck)
@@ -564,4 +573,5 @@ void mainLoop() {
 
         glfwPollEvents();
     }
+}
 }

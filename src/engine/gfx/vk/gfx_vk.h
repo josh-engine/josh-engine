@@ -7,11 +7,12 @@
 #ifndef JOSHENGINE_GFX_VK_H
 #define JOSHENGINE_GFX_VK_H
 
-#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include "../renderable.h"
 #include <glm/glm.hpp>
 #include "../../engine.h"
+
+namespace JE::VK {
 
 // VK_SHADER_STAGE_VERTEX_BIT
 #define JE_VERTEX_SHADER 0x00000001
@@ -23,7 +24,7 @@
 
 #define MAX_FRAMES_IN_FLIGHT 2
 
-struct JEMemoryBlock_VK {
+struct MemoryBlock {
     VkDeviceMemory memory;
     uint32_t type;
     VkDeviceSize size;
@@ -31,52 +32,52 @@ struct JEMemoryBlock_VK {
     bool mapped = false;
 };
 
-struct JEAllocation_VK {
+struct Allocation {
     unsigned int memoryRefID;
     VkDeviceSize size;
     VkDeviceSize offset;
 };
 
-struct JEPushConstants_VK {
+struct PushConstants {
     glm::mat4 model;
     glm::mat4 freeRealEstate;
 };
 
-struct JEDescriptorSet_VK {
+struct DescriptorSet {
     VkDescriptorSet sets[MAX_FRAMES_IN_FLIGHT];
     uint32_t idRef;
 };
 
-
-
 #ifdef DEBUG_ENABLED
-struct JEUniformBufferReference_VK {
-    std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>* alloc = nullptr;
+struct UniformBufferReference {
+    std::array<Allocation, MAX_FRAMES_IN_FLIGHT>* alloc = nullptr;
     std::array<void*, MAX_FRAMES_IN_FLIGHT>* map = {nullptr};
 };
 #endif
 
-void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings settings);
+void initGFX(GLFWwindow **window, const char* windowName, int width, int height, GraphicsSettings settings);
 void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls);
 void deinitGFX();
 unsigned int loadTexture(const std::string& fileName, const int& samplerFilter);
 unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter);
 unsigned int loadShader(const std::string& file_path, int target);
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& settings);
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
-unsigned int createVBO(std::vector<JEInterleavedVertex_VK> *interleavedVertices, std::vector<unsigned int> *indices);
+unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices);
 /* We are exposing these to the user through engine.h instead.
 unsigned int createUniformBuffer(size_t bufferSize);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
 */
-void vk_setClearColor(float r, float g, float b);
+void setClearColor(float r, float g, float b);
+unsigned int createUniformBuffer(size_t bufferSize);
+void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
 #ifdef DEBUG_ENABLED
-std::vector<JEMemoryBlock_VK> getMemory();
+std::vector<MemoryBlock> getMemory();
 void* getTex(unsigned int i);
-JEUniformBufferReference_VK getBuf(unsigned int i);
+UniformBufferReference getBuf(unsigned int i);
 unsigned int getBufCount();
 #endif
-
+} // JE::VK
 #endif //JOSHENGINE_GFX_VK_H
 #endif //GFX_API_VK

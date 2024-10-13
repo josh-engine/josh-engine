@@ -27,8 +27,10 @@
 #include "../../ui/imgui/imgui_impl_vulkan.h"
 #include <optional>
 
+
+namespace JE::VK {
 GLFWwindow** windowPtr;
-JEGraphicsSettings settings;
+JE::GraphicsSettings settings;
 
 VkInstance instance;
 
@@ -70,26 +72,26 @@ uint32_t currentFrame = 0;
 
 // Same ID system implementation.
 std::vector<VkBuffer> vertexBuffers;
-std::vector<JEAllocation_VK> vertexBufferMemoryRefs;
+std::vector<Allocation> vertexBufferMemoryRefs;
 std::vector<VkBuffer> indexBuffers;
-std::vector<JEAllocation_VK> indexBufferMemoryRefs;
+std::vector<Allocation> indexBufferMemoryRefs;
 
 VkDescriptorSetLayout uniformDescriptorSetLayout;
 VkDescriptorSetLayout textureDescriptorSetLayout;
 
 std::vector<std::array<VkBuffer, MAX_FRAMES_IN_FLIGHT>> uniformBuffers;
-std::vector<std::array<JEAllocation_VK, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMemory;
+std::vector<std::array<Allocation, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMemory;
 std::vector<std::array<void*, MAX_FRAMES_IN_FLIGHT>> uniformBuffersMapped;
 std::vector<VkDescriptorPool> uniformDescriptorPools;
 
 std::vector<VkImage> textureImages;
 std::vector<unsigned int> textureMipLevels;
-std::vector<JEAllocation_VK> textureMemoryRefs;
+std::vector<Allocation> textureMemoryRefs;
 std::vector<VkImageView> textureImageViews;
 std::vector<VkDescriptorPool> textureDescriptorPools;
 std::vector<VkSampler> textureSamplers;
 
-std::vector<JEDescriptorSet_VK> descriptorSets;
+std::vector<DescriptorSet> descriptorSets;
 
 VkDescriptorPool imGuiDescriptorPool;
 
@@ -103,10 +105,10 @@ VkImage depthImage;
 VkDeviceMemory depthImageMemory;
 VkImageView depthImageView;
 
-std::vector<JEMemoryBlock_VK> memoryBlocks{};
+std::vector<MemoryBlock> memoryBlocks{};
 
 #ifdef DEBUG_ENABLED
-std::vector<JEMemoryBlock_VK> getMemory() {
+std::vector<MemoryBlock> getMemory() {
     return memoryBlocks;
 }
 
@@ -118,7 +120,7 @@ unsigned int getBufCount() {
     return uniformBuffers.size();
 }
 
-JEUniformBufferReference_VK getBuf(unsigned int i) {
+UniformBufferReference getBuf(unsigned int i) {
     return {&(uniformBuffersMemory[i]), &(uniformBuffersMapped[i])};
 }
 #endif
@@ -234,7 +236,7 @@ void allocateDeviceMemory(VkDeviceMemory& memory, VkDeviceSize size, uint32_t me
     }
 }
 
-JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, bool willMap) {
+Allocation vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, bool willMap) {
     unsigned int i = 0;
     for (auto & block : memoryBlocks) {
         // is it the right type?
@@ -262,15 +264,15 @@ JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, 
     return {static_cast<unsigned int>(memoryBlocks.size()-1), size, 0};
 }
 
-JEAllocation_VK vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) {
+Allocation vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) {
     return vkalloc(size, memoryType, align, false);
 }
 
-void vkmmap(JEAllocation_VK* alloc, void** toMap) {
+void vkmmap(Allocation* alloc, void** toMap) {
     vkMapMemory(logicalDevice, memoryBlocks[alloc->memoryRefID].memory, alloc->offset, alloc->size, 0, toMap);
 }
 
-void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, JEAllocation_VK& alloc, bool willMap) {
+void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, Allocation& alloc, bool willMap) {
     VkBufferCreateInfo bufferInfo{};
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
@@ -1101,7 +1103,7 @@ void createTextureDescriptorSet(unsigned int internalID, VkImageView* iv, unsign
     vkUpdateDescriptorSets(logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 }
 
-void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, JEAllocation_VK& alloc, unsigned int mipLevels, VkSampleCountFlagBits samples) {
+void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, Allocation& alloc, unsigned int mipLevels, VkSampleCountFlagBits samples) {
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = imageType;
@@ -1295,11 +1297,11 @@ void createTextureSampler(unsigned int id, unsigned int mipLevels, unsigned int 
 // renderdoc for mac when
 std::array<VkClearValue, 2> clearValues{};
 
-void vk_setClearColor(float r, float g, float b) {
+void setClearColor(float r, float g, float b) {
     clearValues[0].color = {{r, g, b, 1.0f}};
 }
 
-void initGFX(GLFWwindow **window, const char* windowName, int width, int height, JEGraphicsSettings graphicsSettings) {
+void initGFX(GLFWwindow **window, const char* windowName, int width, int height, GraphicsSettings graphicsSettings) {
     windowPtr = window;
     settings = graphicsSettings;
 
@@ -1714,7 +1716,7 @@ unsigned int loadShader(const std::string& file_path, int target) {
     return id;
 }
 
-unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const JEShaderProgramSettings& shaderProgramSettings) {
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype) {
     unsigned int pipelineID = pipelineLayoutVector.size();
     pipelineLayoutVector.push_back({});
     pipelineVector.push_back({});
@@ -1749,8 +1751,8 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    auto bindingDescription = JEInterleavedVertex_VK::getBindingDescription();
-    auto attributeDescriptions = JEInterleavedVertex_VK::getAttributeDescriptions();
+    auto bindingDescription = vtype == VERTEX ? InterleavedVertex::getBindingDescription() : InterleavedAnimatedVertex::getBindingDescription();
+    auto attributeDescriptions = vtype == VERTEX ? InterleavedVertex::getAttributeDescriptions() : InterleavedAnimatedVertex::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = attributeDescriptions.size();
@@ -1819,7 +1821,7 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 
     VkPushConstantRange push_constant;
     push_constant.offset = 0;
-    push_constant.size = sizeof(JEPushConstants_VK);
+    push_constant.size = sizeof(PushConstants);
     push_constant.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
 
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
@@ -1929,14 +1931,14 @@ void recreateSwapchain() {
     createSwapchainFramebuffers();
 }
 
-unsigned int createVBO(std::vector<JEInterleavedVertex_VK> *interleavedVertices, std::vector<unsigned int> *indices) {
+unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices) {
     unsigned int id = vertexBuffers.size();
     vertexBuffers.push_back({});
     vertexBufferMemoryRefs.push_back({});
     indexBuffers.push_back({});
     indexBufferMemoryRefs.push_back({});
 
-    VkDeviceSize bufferSize = sizeof(JEInterleavedVertex_VK) * interleavedVertices->size();
+    VkDeviceSize bufferSize = sizeof(InterleavedVertex) * interleavedVertices->size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     createBuffer(bufferSize,
@@ -2082,9 +2084,9 @@ void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<
         vkCmdBindVertexBuffers(commandBuffers[currentFrame], 0, 1, &vertexBuffers[r->vboID], offsets);
         vkCmdBindIndexBuffer(commandBuffers[currentFrame], indexBuffers[r->vboID], 0, VK_INDEX_TYPE_UINT32);
 
-        JEPushConstants_VK constants = {r->objectMatrix, r->data};
+        PushConstants constants = {r->objectMatrix, r->data};
         vkCmdPushConstants(commandBuffers[currentFrame], pipelineLayoutVector[activeProgram],
-                           VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(JEPushConstants_VK), &constants);
+                           VK_SHADER_STAGE_ALL_GRAPHICS, 0, sizeof(PushConstants), &constants);
 
         vkCmdDrawIndexed(commandBuffers[currentFrame], r->indicesSize, 1, 0, 0, 0);
     }
@@ -2205,4 +2207,5 @@ void deinitGFX() {
     glfwDestroyWindow(*windowPtr);
     glfwTerminate();
 }
+} // JE::VK
 #endif //GFX_API_VK

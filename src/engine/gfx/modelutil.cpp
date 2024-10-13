@@ -10,6 +10,7 @@
 #include "renderable.h"
 #include "modelutil.h"
 
+namespace JE {
 Renderable quadBase;
 
 Renderable createQuad(unsigned int shader, std::vector<unsigned int> desc, bool manualDepthSort, bool ui) {
@@ -280,7 +281,7 @@ std::vector<Renderable> loadObj(const std::string& path, unsigned int shaderProg
     return renderableList;
 }
 
-std::vector<Renderable> loadBundledObj(const std::string& path, const std::string& bundleFileName,  unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort) {
+std::vector<Renderable> loadObj(const std::string& path, const std::string& bundleFileName,  unsigned int shaderProgram, const std::vector<unsigned int>& desc, const bool manualDepthSort) {
     if (objMap.contains(path)) {
         std::vector<Renderable> copied;
         copied.insert(copied.end(), objMap.at(path).begin(), objMap.at(path).end());
@@ -303,3 +304,4 @@ std::vector<Renderable> loadBundledObj(const std::string& path, const std::strin
     objMap.insert({path, renderableList});
     return renderableList;
 }
+} // JE

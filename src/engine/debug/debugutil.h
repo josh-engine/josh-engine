@@ -7,8 +7,9 @@
 
 #include <string>
 
+namespace JE {
 void initDebugTools();
 void setupImGuiWindow();
 void registerFunctionToDebug(const std::string& name, void* function);
-
+}
 #endif //JOSHENGINE_DEBUGUTIL_H

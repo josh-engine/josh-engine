@@ -7,13 +7,15 @@
 #include <unordered_map>
 #include <cstring>
 
-struct JEBundledFileInfo {
+namespace JE {
+
+struct BundledFileInfo {
     char path[64];
     unsigned long fileStartOffset;
     unsigned long fileLength;
 };
 
-struct JEFileHeader {
+struct FileHeader {
     unsigned int magicNum = 0x0B1A11A7;
     unsigned int fileCount = 0;
 };
@@ -39,20 +41,20 @@ std::vector<unsigned char> getFileChars(std::string bundleFileName) {
 
 std::vector<unsigned char> getFileCharVec(const std::string& extractFileName, const std::string& bundleFileName) {
     std::vector<unsigned char> chars = getFileChars(bundleFileName);
-    JEFileHeader head = *reinterpret_cast<JEFileHeader*>(&chars[0]);
+    FileHeader head = *reinterpret_cast<FileHeader*>(&chars[0]);
     if (head.magicNum != 0x0B1A11A7) {
         throw std::runtime_error("Couldn't read bundle file \"" + bundleFileName + "\"!");
     }
-    JEBundledFileInfo* correctBfiPtr = nullptr;
+    BundledFileInfo* correctBfiPtr = nullptr;
     for (int i = 0; i < head.fileCount; ++i) {
-        JEBundledFileInfo* current = reinterpret_cast<JEBundledFileInfo*>(&chars[sizeof(JEFileHeader) + i * sizeof(JEBundledFileInfo)]);
+        BundledFileInfo* current = reinterpret_cast<BundledFileInfo*>(&chars[sizeof(FileHeader) + i * sizeof(BundledFileInfo)]);
         if (extractFileName.starts_with(current->path)) {
             correctBfiPtr = current;
             break;
         }
     }
     if (correctBfiPtr != nullptr) {
-        JEBundledFileInfo correctBfi{};
+        BundledFileInfo correctBfi{};
         memcpy(&correctBfi.path, &correctBfiPtr->path, sizeof(correctBfi.path)); // i know it's 64 bytes but codacy hates me and makes me verify it
         correctBfi.fileLength = correctBfiPtr->fileLength;
         correctBfi.fileStartOffset = correctBfiPtr->fileStartOffset;
@@ -63,4 +65,5 @@ std::vector<unsigned char> getFileCharVec(const std::string& extractFileName, co
     else {
         throw std::runtime_error("Couldn't read file \"" + extractFileName + "\" from bundle \"" + bundleFileName + "\"!");
     }
+}
 }

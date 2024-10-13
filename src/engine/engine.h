@@ -18,22 +18,24 @@ using namespace glm;
 typedef glm::vec<2, float, (qualifier)3> vec2_MSVC;
 typedef glm::vec<3, float, (qualifier)3> vec3_MSVC;
 
-#define JEShaderInputUniformBit 0
-#define JEShaderInputTextureBit 1
-
-enum JETextureFilter {
+namespace JE {
+namespace ShaderInputBit {
+const char Uniform = 0;
+const char Texture = 1;
+}
+enum TextureFilter {
     JE_PIXEL_ART = 0,
     JE_TEXTURE = 1
 };
 
-struct JEGraphicsSettings {
+struct GraphicsSettings {
     bool  vsyncEnabled;
     bool  skybox;
     float clearColor[3];
     int   msaaSamples;
 };
 
-struct JEShaderProgramSettings {
+struct ShaderProgramSettings {
     bool testDepth;
     bool transparencySupported;
     bool doubleSided;
@@ -112,7 +114,7 @@ public:
     }
 };
 
-struct JEUniformBufferObject {
+struct UniformBufferObject {
     alignas(16) mat4 view;
     alignas(16) mat4 _2dProj;
     alignas(16) mat4 _3dProj;
@@ -121,7 +123,7 @@ struct JEUniformBufferObject {
     alignas(8)  vec2 screenSize;
 };
 
-struct JEGlobalLightingBufferObject {
+struct GlobalLightingBufferObject {
     alignas(16) vec3 sunDirection;
     alignas(16) vec3 sunColor;
     alignas(16) vec3 ambient;
@@ -134,9 +136,9 @@ struct JEGlobalLightingBufferObject {
  * @param windowName Name of the desktop window your game will run in
  * @param width Width of the desktop window your game will run in
  * @param height Height of the desktop window your game will run in
- * @param settings Your JEGraphicsSettings struct that describes that graphics capabilities the engine should run with.
+ * @param settings Your GraphicsSettings struct that describes that graphics capabilities the engine should run with.
  */
-void init(const char* windowName, int width, int height, JEGraphicsSettings settings);
+void init(const char* windowName, int width, int height, GraphicsSettings settings);
 /**
  * Run the engine main loop, and don't stop till we quit, baby!!
  */
@@ -272,16 +274,17 @@ bool textureExists(const std::string &name);
  * Due to the syntax, it may seem like this is a "set only once" thing- which normally it is- but it does not have to be.
  * @param filter Texture filter mode
  */
-void setTextureFilterMode(JETextureFilter filter);
+void setTextureFilterMode(TextureFilter filter);
 
 /**
  * Create a shader program on the GPU.
  * @param name Name to refer to the shader program with.
  * @param vertex Vertex shader file name. Vulkan's supported types are GLSL and SPV.
  * @param fragment Fragment shader file name. Vulkan's supported types are GLSL and SPV.
- * @param settings The shader program's settings and parameters
+ * @param settings The shader program's settings and parameters.
+ * @param vtype The type of vertex the Vertex Shader is meant to consume.
  */
-void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const JEShaderProgramSettings& settings);
+void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const ShaderProgramSettings& settings, const VertexType& vtype = VERTEX);
 /**
  * Get a shader program's ID. This should be put in a Renderable's shader program parameter.
  * @param name Name of the shader program to look up.
@@ -334,7 +337,7 @@ void setAmbient(float r, float g, float b);
 void setFogPlanes(float near, float far);
 /**
  * Enable or disable rendering of the skybox.
- * This only matters if your JEGraphicsSettings skybox value is true when passed to the engine's init().
+ * This only matters if your GraphicsSettings skybox value is true when passed to the engine's init().
  * @param enabled Enable or disable rendering the skybox cubemap
  */
 void setSkyboxEnabled(bool enabled);
@@ -402,5 +405,5 @@ std::string textureReverseLookup(unsigned int num);
 std::string programReverseLookup(unsigned int num);
 #endif
 void putImGuiCall(void (*argument)());
-
+} // namespace je
 #endif //JOSHENGINE_ENGINE_H

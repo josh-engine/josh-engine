@@ -2,7 +2,7 @@
 #include "test.h"
 
 int main() {
-    JEGraphicsSettings graphicsSettings{};
+    JE::GraphicsSettings graphicsSettings{};
     graphicsSettings.vsyncEnabled = true;
     graphicsSettings.skybox = true;
     graphicsSettings.clearColor[0] = 0.75f;
@@ -10,9 +10,9 @@ int main() {
     graphicsSettings.clearColor[2] = 0.8f;
     graphicsSettings.msaaSamples = 4;
 
-    init("JoshEngine Demo", 1280, 720, graphicsSettings);
+    JE::init("JoshEngine Demo", 1280, 720, graphicsSettings);
     setupTest();
-    mainLoop();
-    deinit();
+    JE::mainLoop();
+    JE::deinit();
     return 0;
 }

@@ -13,6 +13,7 @@
 #include <queue>
 #endif
 
+namespace JE {
 #ifndef AUDIO_DISABLE
 ALCdevice* alDevice;
 ALCcontext* context;
@@ -315,4 +316,5 @@ void MusicTrack::setVolume(float volume) {
 
 void MusicTrack::setBuffer(uint8_t idx, unsigned int buf) {
     sendCommand(MusicTrackCommand(SET_BUF, UNIX_CURRENT_TIME_MS, idx, buf));
+}
 }

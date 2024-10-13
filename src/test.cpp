@@ -9,6 +9,8 @@
 #include "engine/gfx/modelutil.h"
 #include "engine/debug/debugutil.h"
 
+using namespace JE;
+
 bool mouseLocked = false;
 bool pressed = false;
 
@@ -178,34 +180,34 @@ void setupTest() {
     registerFunctionToDebug("move", reinterpret_cast<void*>(&move));
 
 
-    JEShaderProgramSettings a{};
+    ShaderProgramSettings a{};
     a.testDepth = true;
     a.transparencySupported = false;
     a.doubleSided = false;
     //               This means the layout will be {Uniform, Uniform}.
     //               Everything here is redundant because Uniform Bit is zero. Just is easier to read this way.
-    a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputUniformBit << 1);
+    a.shaderInputs = ShaderInputBit::Uniform | (ShaderInputBit::Uniform << 1);
     a.shaderInputCount = 2;
 
     createShader("toonNorm", "./shaders/vertex3d.glsl", "./shaders/toon_normals.glsl", a);
     createShader("bnphColor", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_color.glsl", a);
 
     //               This means the layout will be {Uniform, Texture}.
-    a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputTextureBit << 1);
+    a.shaderInputs = ShaderInputBit::Uniform | (ShaderInputBit::Texture << 1);
 
     createShader("ui", "./shaders/vertex2d.glsl", "./shaders/frag_tex.glsl", a);
 
     //               This layout is {Uniform, Uniform, Texture}.
-    a.shaderInputs = JEShaderInputUniformBit | (JEShaderInputUniformBit << 1) | (JEShaderInputTextureBit << 2);
+    a.shaderInputs = ShaderInputBit::Uniform | (ShaderInputBit::Uniform << 1) | (ShaderInputBit::Texture << 2);
     a.shaderInputCount = 3;
 
     createShader("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", a);
 
-    JEShaderProgramSettings b{};
+    ShaderProgramSettings b{};
     b.testDepth = true;
     b.transparencySupported = true;
     b.doubleSided = true;
-    b.shaderInputs = JEShaderInputUniformBit | (JEShaderInputTextureBit << 1);
+    b.shaderInputs = ShaderInputBit::Uniform | (ShaderInputBit::Texture << 1);
     b.shaderInputCount = 2;
     createShader("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", b);
 

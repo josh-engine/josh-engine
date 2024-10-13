@@ -4,6 +4,7 @@
 
 #include "gamephysicslib.h"
 
+using namespace JE;
 [[nodiscard]] bool testPoint(glm::vec3 point, const Transform& box){
     point -= box.position;
     point =  vec4(point, 1) * box.getRotateMatrix();

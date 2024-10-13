@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 
+namespace JE {
 std::vector<unsigned char> getFileCharVec(const std::string& extractFileName, const std::string& bundleFileName);
-
+}
 #endif //JOSHENGINE_BUNDLEUTIL_H

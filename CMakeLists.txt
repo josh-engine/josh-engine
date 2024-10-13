@@ -47,6 +47,7 @@ if (JE_API_VK)
     find_package(Vulkan REQUIRED)
     find_package(glslang REQUIRED)
     add_compile_definitions(GFX_API_VK)
+    add_compile_definitions(GLFW_INCLUDE_VULKAN)
     set(JoshEngine_libraries ${JoshEngine_libraries}
             Vulkan::Vulkan
             glslang::glslang

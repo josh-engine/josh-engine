@@ -7,6 +7,7 @@
 #include "../../engine.h"
 #include <vector>
 
+namespace JE {
 vec2 temp_pos;
 vec2 temp_size;
 vec3 temp_col;
@@ -20,21 +21,21 @@ unsigned int itemUUID = 0;
 std::unordered_map<std::string, glm::vec3> fontOffsets{};
 
 void initUI() {
-    JEShaderProgramSettings fontProgramSettings{};
+    ShaderProgramSettings fontProgramSettings{};
     fontProgramSettings.transparencySupported = false;
     fontProgramSettings.doubleSided = true;
     fontProgramSettings.testDepth = true;
     fontProgramSettings.depthAlwaysPass = true;
     fontProgramSettings.shaderInputCount = 2;
-    fontProgramSettings.shaderInputs = JEShaderInputUniformBit | JEShaderInputTextureBit << 1;
+    fontProgramSettings.shaderInputs = ShaderInputBit::Uniform | ShaderInputBit::Texture << 1;
 
-    JEShaderProgramSettings buttonProgramSettings{};
+    ShaderProgramSettings buttonProgramSettings{};
     buttonProgramSettings.transparencySupported = true;
     buttonProgramSettings.doubleSided = true;
     buttonProgramSettings.testDepth = false;
     fontProgramSettings.depthAlwaysPass = false;
     buttonProgramSettings.shaderInputCount = 1;
-    buttonProgramSettings.shaderInputs = JEShaderInputUniformBit;
+    buttonProgramSettings.shaderInputs = ShaderInputBit::Uniform;
 
     createShader("textShader", "./shaders/vertex2d_font.glsl", "./shaders/font_texture.glsl", fontProgramSettings);
     createShader("buttonShader", "./shaders/vertex2d.glsl", "./shaders/frag_button.glsl", buttonProgramSettings);
@@ -124,4 +125,5 @@ void uiStaticButton(const glm::vec2& pos, const std::string& text, const std::st
     temp_fp = click_function;
     temp_disable = disabled;
     putGameObject("uiButtonObj_"+text+"_"+std::to_string(itemUUID++), GameObject(&clickableButton));
+}
 }

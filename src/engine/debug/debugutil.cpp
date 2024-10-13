@@ -12,6 +12,7 @@
 
 #ifdef GFX_API_VK
 #include "../gfx/vk/gfx_vk.h"
+using namespace JE::VK;
 bool vulkanMemoryView;
 #endif
 
@@ -22,7 +23,7 @@ std::string selectedTexture;
 std::unordered_map<void*, std::string> functionNameMap;
 #endif //DEBUG_ENABLED
 
-
+namespace JE {
 void initDebugTools() {
 #ifdef DEBUG_ENABLED
     putImGuiCall(&setupImGuiWindow);
@@ -256,9 +257,9 @@ void setupImGuiWindow() {
         for (size_t i = 0; i < getBufCount(); i++) {
             ImGui::Text("Buffer %zu", i);
             ImGui::Indent();
-            JEUniformBufferReference_VK ref = getBuf(i);
+            UniformBufferReference ref = getBuf(i);
             for (int j = 0; j < MAX_FRAMES_IN_FLIGHT; j++) {
-                JEAllocation_VK alloc = (*ref.alloc)[j];
+                Allocation alloc = (*ref.alloc)[j];
                 ImGui::Text("Frame %i", j);
                 ImGui::Indent();
                 ImGui::Text("Allocation is %s", sizeFormat(alloc.size).c_str());
@@ -274,7 +275,7 @@ void setupImGuiWindow() {
 #ifdef GFX_API_VK
     if (vulkanMemoryView && graphicsView) {
         ImGui::Begin("vkAlloc Memory Viewer");
-        std::vector<JEMemoryBlock_VK> mem = getMemory();
+        std::vector<MemoryBlock> mem = getMemory();
         ImGui::Text("Minimum alloc: %s", sizeFormat(NEW_BLOCK_MIN_SIZE).c_str());
         int i = 0;
         for (auto const& block : mem) {
@@ -285,7 +286,7 @@ void setupImGuiWindow() {
         }
         ImGui::End();
     }
-#endif //GFX_API_VK
-
-#endif //DEBUG_ENABLED
 }
+#endif //GFX_API_VK
+}
+#endif //DEBUG_ENABLED

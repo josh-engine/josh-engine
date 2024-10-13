@@ -8,13 +8,13 @@
 #ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
 #endif
-
+namespace JE {
 Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
     flags = static_cast<unsigned char>(0b1 | (manualDepthSort ? 0b10 : 0));
     descriptorIDs = std::move(descs);
     this->shaderProgram = shid;
 
-    std::vector<JEInterleavedVertex_VK> interleavedVertices{};
+    std::vector<InterleavedVertex> interleavedVertices{};
     interleavedVertices.reserve(vertices.size()/3);
     for (int i = 0; i < vertices.size()/3; i++) {
         interleavedVertices.push_back({
@@ -24,7 +24,7 @@ Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std:
         });
     }
 
-    vboID = createVBO(&interleavedVertices, &indices);
+    vboID = VK::createVBO(&interleavedVertices, &indices);
     indicesSize = indices.size();
 }
 
@@ -50,4 +50,5 @@ bool Renderable::manualDepthSort() const {
 
 bool Renderable::checkUIBit() const {
     return (this->flags & 0b100) == 0b100;
+}
 }
