@@ -3,6 +3,7 @@
 //
 
 #include "gamephysicslib.h"
+#include <algorithm>
 
 using namespace JE;
 [[nodiscard]] bool testPoint(glm::vec3 point, const Transform& box){
@@ -22,9 +23,9 @@ using namespace JE;
 }
 
 [[nodiscard]] bool pointCollidesWithAnyBoxes(const vec3& point, const std::vector<Transform>& colliders) {
-    return std::ranges::any_of(colliders.cbegin(), colliders.cend(), [&point](const Transform& box) {return testPoint(point, box);});
+    return std::any_of(colliders.cbegin(), colliders.cend(), [&point](const Transform& box) {return testPoint(point, box);});
 }
 
 [[nodiscard]] bool sphereCollidesWithAnySpheres(const Transform& t1, const std::vector<Transform>& colliders) {
-    return std::ranges::any_of(colliders.cbegin(), colliders.cend(), [&t1](const Transform& sphere) {return testSpheres(t1, sphere);});
+    return std::any_of(colliders.cbegin(), colliders.cend(), [&t1](const Transform& sphere) {return testSpheres(t1, sphere);});
 }
