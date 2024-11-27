@@ -22,8 +22,6 @@
 #include "ui/je/uiutil.h"
 
 using namespace glm;
-typedef glm::vec<2, float, (qualifier)3> vec2_MSVC;
-typedef glm::vec<3, float, (qualifier)3> vec3_MSVC;
 
 namespace JE {
 namespace ShaderInputBit {
@@ -227,20 +225,10 @@ bool isMouseButtonDown(int button);
  * @return A pointer to the GLFW window. You shouldn't need this unless writing your own graphics backend.
  */
 GLFWwindow** getWindow();
-#ifdef _MSC_VER
-// If MSVC is our compiler
-// then for some reason the vec2 (vec<2, float, 0>) get turned into vec<2, float, 3>
-// So we need to assign alternate functions to fix this.
-vec2_MSVC getRawCursorPos();
-vec2_MSVC getCursorPos();
-void setRawCursorPos(vec2_MSVC pos);
-void setSunProperties(vec3_MSVC position, vec3_MSVC color);
-#else
 vec2 getRawCursorPos();
 vec2 getCursorPos();
 void setRawCursorPos(vec2 pos);
 void setSunProperties(vec3 position, vec3 color);
-#endif
 void setCursorPos(vec2 pos);
 void setMouseVisible(bool vis);
 

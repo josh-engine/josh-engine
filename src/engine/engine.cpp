@@ -225,33 +225,6 @@ bool isMouseButtonDown(int button) {
     return mouseButtons[button];
 }
 
-// If we are using MSVC as a compiler
-#ifdef _MSC_VER
-vec2_MSVC getRawCursorPos() {
-    double xpos, ypos;
-    glfwGetCursorPos(window, (&xpos), (&ypos));
-    return {xpos, ypos};
-}
-vec2_MSVC getCursorPos() {
-    glm::vec2 cpos = getRawCursorPos();
-    // modify to -1, 1 coordinate space
-    cpos /= glm::vec2(getCurrentWidth(), -getCurrentHeight());
-    cpos += glm::vec2(-0.5, 0.5);
-    cpos *= 2;
-
-    // scale Y axis by the current scaled height
-    cpos /= glm::vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
-    return cpos;
-}
-void setRawCursorPos(vec2_MSVC pos) {
-    glfwSetCursorPos(window, pos.x, pos.y);
-}
-void setSunProperties(vec3_MSVC position, vec3_MSVC color){
-    sunDirection = position;
-    sunColor = color;
-    recopyLightingBuffer();
-}
-#else
 glm::vec2 getRawCursorPos() {
     double xpos, ypos;
     glfwGetCursorPos(window, (&xpos), (&ypos));

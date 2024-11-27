@@ -10,8 +10,6 @@
 
 #define UNIX_CURRENT_TIME_MS static_cast<uint64_t>(duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count())
 
-typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
-
 namespace JE { namespace Audio {
 void setMasterVolume(float volume);
 unsigned int oggToBuffer(const std::string& filePath);
@@ -25,12 +23,7 @@ public:
     bool isLooping;
     bool isPaused;
     // If we are not using MSVC
-#ifndef _MSC_VER
     Sound(glm::vec3 pos, glm::vec3 vel, const std::string& filePath, bool loop, float halfVolumeDistance, float min, float max, float gain);
-    // If we are using MSVC
-#else
-    Sound(vec3_MSVC pos, vec3_MSVC vel, const std::string& filePath, bool loop, float halfVolumeDistance, float min, float max, float gain);
-#endif
     void updateSource() const;
     void play();
     void stop() const;
