@@ -8,11 +8,11 @@
 #include "../../gfx/renderable.h"
 #include <string>
 
-namespace JE {
+namespace JE { namespace UI {
 /**
  * I don't know, what do you think it does? Initialize the audio? /s
  */
-void initUI();
+void init();
 
 /**
  * Create a font atlas texture in memory, with optional (shit will look weird without this) scaling parameters.
@@ -32,8 +32,17 @@ void createFont(const std::string& name, const std::string& atlas, glm::vec3 cha
 std::vector<Renderable> stringToRenderables(std::string str, glm::vec3 color, const std::string& font);
 
 // TODO: add docs
-void uiStaticText(const glm::vec2& pos, const std::string& text, const std::string& fontTex, const double& textSize = 0.25, const glm::vec3& color = {1.0, 1.0, 1.0});
+void staticText(const glm::vec2& pos, const std::string& text, const std::string& fontTex, const double& textSize = 0.25, const glm::vec3& color = {1.0, 1.0, 1.0});
+
 // TODO: add docs
-void uiStaticButton(const glm::vec2& pos, const std::string& text, const std::string& font, void (*click_function)(), const glm::vec2& padding = {0.05, 0.05}, const double& textSize = 0.25, const glm::vec3& color = {1.0, 1.0, 1.0}, bool disabled = false);
-}
+void staticButton(const glm::vec2& pos, const std::string& text, const std::string& font, void (*click_function)(), const glm::vec2& padding = {0.05, 0.05}, const double& textSize = 0.25, const glm::vec3& color = {1.0, 1.0, 1.0}, bool disabled = false);
+
+/**
+ * Returns the screen space text width of a given string, at a given size.
+ * @param text String to get size of
+ * @param font Font texture to use in size calculation
+ * @param size Size of text
+ */
+double getTextWidth(const std::string& text, const std::string& font, double size = 0.25);
+}}
 #endif //JOSHENGINE_UIUTIL_H

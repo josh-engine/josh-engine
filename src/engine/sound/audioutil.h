@@ -12,7 +12,7 @@
 
 typedef glm::vec<3, float, (glm::qualifier)3> vec3_MSVC;
 
-namespace JE {
+namespace JE { namespace Audio {
 void setMasterVolume(float volume);
 unsigned int oggToBuffer(const std::string& filePath);
 
@@ -121,7 +121,7 @@ private:
 #endif
 };
 
-void initAudio();
+void init();
 void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, glm::vec3 upVec);
-}
+}}
 #endif //JOSHENGINE_AUDIOUTIL_H

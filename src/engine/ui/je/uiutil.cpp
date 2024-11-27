@@ -7,7 +7,7 @@
 #include "../../engine.h"
 #include <vector>
 
-namespace JE {
+namespace JE { namespace UI {
 vec2 temp_pos;
 vec2 temp_size;
 vec3 temp_col;
@@ -20,7 +20,7 @@ bool temp_disable;
 unsigned int itemUUID = 0;
 std::unordered_map<std::string, glm::vec3> fontOffsets{};
 
-void initUI() {
+void init() {
     ShaderProgramSettings fontProgramSettings{};
     fontProgramSettings.transparencySupported = false;
     fontProgramSettings.doubleSided = true;
@@ -110,7 +110,7 @@ void clickableButton(GameObject* self) {
     if (!temp_disable) self->onUpdate.push_back(&buttonUpdate);
 }
 
-void uiStaticText(const glm::vec2& pos, const std::string& text, const std::string& font, const double& textSize, const glm::vec3& color) {
+void staticText(const glm::vec2& pos, const std::string& text, const std::string& font, const double& textSize, const glm::vec3& color) {
     temp_pos = pos;
     temp_str = text;
     temp_col = color;
@@ -119,11 +119,11 @@ void uiStaticText(const glm::vec2& pos, const std::string& text, const std::stri
     putGameObject("uiTextObj_"+text+"_"+std::to_string(itemUUID++), GameObject(&staticText));
 }
 
-void uiStaticButton(const glm::vec2& pos, const std::string& text, const std::string& font, void (*click_function)(), const glm::vec2& padding, const double& textSize, const glm::vec3& color, bool disabled) {
-    uiStaticText(pos, text, font, textSize, color * (disabled ? vec3(0.3) : vec3(1)));
+void staticButton(const glm::vec2& pos, const std::string& text, const std::string& font, void (*click_function)(), const glm::vec2& padding, const double& textSize, const glm::vec3& color, bool disabled) {
+    staticText(pos, text, font, textSize, color * (disabled ? vec3(0.3) : vec3(1)));
     temp_size = {getTextWidth(text, font, textSize)+padding.x, fontOffsets.at(font).y*textSize+padding.y};
     temp_fp = click_function;
     temp_disable = disabled;
     putGameObject("uiButtonObj_"+text+"_"+std::to_string(itemUUID++), GameObject(&clickableButton));
 }
-}
+}}

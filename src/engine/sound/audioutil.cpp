@@ -13,7 +13,7 @@
 #include <queue>
 #endif
 
-namespace JE {
+namespace JE { namespace Audio {
 #ifndef AUDIO_DISABLE
 ALCdevice* alDevice;
 ALCcontext* context;
@@ -41,7 +41,7 @@ void updateListener(glm::vec3 position, glm::vec3 velocity, glm::vec3 lookVec, g
 #endif
 }
 
-void initAudio() {
+void init() {
 #ifndef AUDIO_DISABLE
     alDevice = alcOpenDevice(nullptr);
     if (!alDevice) {
@@ -317,4 +317,4 @@ void MusicTrack::setVolume(float volume) {
 void MusicTrack::setBuffer(uint8_t idx, unsigned int buf) {
     sendCommand(MusicTrackCommand(SET_BUF, UNIX_CURRENT_TIME_MS, idx, buf));
 }
-}
+}}

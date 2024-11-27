@@ -391,9 +391,9 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
     }
     std::cout << "Graphics init successful!" << std::endl;
 
-    initAudio();
+    Audio::init();
     std::cout << "Audio init successful!" << std::endl;
-    initUI();
+    UI::init();
     std::cout << "UI init successful!" << std::endl;
 #ifdef DEBUG_ENABLED
     initDebugTools();
@@ -499,7 +499,7 @@ void mainLoop() {
                 up  // up vector
         );
 
-        updateListener(camera.position, glm::vec3(0), camera.direction(), up);
+        Audio::updateListener(camera.position, glm::vec3(0), camera.direction(), up);
 
         if (doTimesCheck) {
             updateTime = glfwGetTime()*1000 - updateStart;
