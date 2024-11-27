@@ -86,9 +86,9 @@ void mouseClick(int button, bool wasButtonPressed, double _) {
         cursorPos.y <= ref.transform.position.y + ref.transform.scale.y &&
         cursorPos.y >= ref.transform.position.y - ref.transform.scale.y) {
         if (button == GLFW_MOUSE_BUTTON_LEFT && wasButtonPressed) {
-            ref.transform.position += vec3(0, 0.1, 0);
+            ref.transform.position += vec3(0, 1, 0);
         } else if (button == GLFW_MOUSE_BUTTON_RIGHT && wasButtonPressed) {
-            ref.transform.position -= vec3(0, 0.1, 0);
+            ref.transform.position -= vec3(0, 1, 0);
         }
     }
 }
@@ -152,19 +152,6 @@ void initUiItem(GameObject* selfObject) {
     selfObject->renderables.push_back(createQuad(getShader("ui"), {0, getTexture("missing")}, false, true));
 }
 
-MusicTrack test{};
-
-void btnTest() {
-    // Queue online connection and system view select, unqueue
-    test.queue(2);
-    test.queue(3);
-    test.unqueue(1);
-
-    // Unqueue online connection
-    test.waitMS(30*1000);
-    test.unqueue(2);
-}
-
 void setupTest() {
     //     sun-ish direction from skybox, slightly warm white
     setSunProperties(glm::vec3(-1, 1, -1), glm::vec3(1, 1, 0.85));
@@ -211,7 +198,7 @@ void setupTest() {
     b.shaderInputCount = 2;
     createShader("basicTexture", "./shaders/vertex3d.glsl", "./shaders/frag_tex_transparent.glsl", b);
 
-    createFont("manifold", "./textures/manifold.bmp", {0.5, 0.7, (5.0/64.0)});
+    UI::createFont("manifold", "./textures/manifold.bmp", {0.5, 0.7, (5.0/64.0)});
 
     createTexture("uv_tex.png", "./textures/uv_tex.png");
     createTexture("logo.png", "./textures/logo.png");
@@ -225,24 +212,10 @@ void setupTest() {
     putGameObject("cube", GameObject(&initCube));
     putGameObject("ui_item", GameObject(&initUiItem));
 
-    //Sound st2 = Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
-    //st2.play();
+    Audio::Sound st2 = Audio::Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
+    st2.play();
 
-    test.setBuffer(0, oggToBuffer("./sounds/music/hypertensile-startup.ogg"));
-    test.setBuffer(1, oggToBuffer("./sounds/music/hypertensile-menu.ogg"));
-    test.setBuffer(2, oggToBuffer("./sounds/music/hypertensile-connect.ogg"));
-    test.setBuffer(3, oggToBuffer("./sounds/music/hypertensile-system.ogg"));
-    test.setBuffer(4, oggToBuffer("./sounds/music/hypertensile-planet.ogg"));
-    test.setBuffer(5, oggToBuffer("./sounds/music/hypertensile-load.ogg"));
-
-    // Queue intro
-    test.queue(0);
-    test.queue(1);
-    test.play();
-
-    test.unqueue(0);
-
-    uiStaticButton({0, -0.0}, "Play", "manifold", &btnTest);
-    uiStaticButton({0, -0.5}, "Settings", "manifold", &btnTest);
-    uiStaticButton({0, -1.0}, "Exit", "manifold", &btnTest);
+    UI::staticText({-10.0+UI::getTextWidth("joshengine demo", "manifold"), -5.25},
+                   "joshengine demo",
+                   "manifold");
 }
