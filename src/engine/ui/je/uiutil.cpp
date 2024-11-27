@@ -6,6 +6,7 @@
 #include "../../gfx/modelutil.h"
 #include "../../engine.h"
 #include <vector>
+#include <bit> // This should fix Ubuntu
 
 namespace JE { namespace UI {
 vec2 temp_pos;
