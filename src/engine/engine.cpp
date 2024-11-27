@@ -250,7 +250,6 @@ void setSunProperties(glm::vec3 position, glm::vec3 color){
     sunColor = color;
     recopyLightingBuffer();
 }
-#endif
 
 void setCursorPos(glm::vec2 pos) {
     // inverse of getCursorPos's coordinate transformation
