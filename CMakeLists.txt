@@ -10,6 +10,12 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenAL REQUIRED)
 find_package(glm REQUIRED)
+
+# Global definitions should probably be defined before compilation
+add_compile_definitions(GLM_FORCE_DEFAULT_ALIGNED_GENTYPES)
+add_compile_definitions(GLM_ENABLE_EXPERIMENTAL)
+add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
+
 include_directories("${JoshEngine_SOURCE_DIR}/includes/stb")
 set(JoshEngine_libraries
         glm::glm

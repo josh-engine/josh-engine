@@ -5,14 +5,21 @@
 #ifndef JOSHENGINE_ENGINE_H
 #define JOSHENGINE_ENGINE_H
 #if defined(GFX_API_VK)
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #endif
-#include <glm/glm.hpp>
-#include <GLFW/glfw3.h>
-#include <glm/gtc/matrix_transform.hpp>
-#include "gfx/renderable.h"
 #include <unordered_map>
+
+#include <GLFW/glfw3.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include "gfx/renderable.h"
+
+#include "sound/audioutil.h"
+#include "gfx/modelutil.h"
+#include "debug/debugutil.h"
+#include "jbd/bundleutil.h"
+#include "ui/je/uiutil.h"
 
 using namespace glm;
 typedef glm::vec<2, float, (qualifier)3> vec2_MSVC;

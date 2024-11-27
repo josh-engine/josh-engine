@@ -13,20 +13,22 @@
 #ifdef GFX_API_VK
 #include "../../engineconfig.h"
 #include "gfx_vk.h"
+
+#include "../../ui/imgui/imgui_impl_glfw.h"
+#include "../../ui/imgui/imgui_impl_vulkan.h"
+
+#include <optional>
 #include <iostream>
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#include <set>
 #include <fstream>
 #include <sstream>
 #include <string>
-#include "../spirv/spirv-helper.h"
 #include <queue>
+#include <set>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "../../ui/imgui/imgui_impl_glfw.h"
-#include "../../ui/imgui/imgui_impl_vulkan.h"
-#include <optional>
 
+#include "../spirv/spirv-helper.h"
 
 namespace JE::VK {
 GLFWwindow** windowPtr;

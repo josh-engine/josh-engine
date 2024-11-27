@@ -3,17 +3,11 @@
 //
 #include "engineconfig.h"
 #include "gfx/vk/gfx_vk.h"
-#include "sound/audioutil.h"
 #include "engine.h"
 #include <iostream>
 #include <unordered_map>
 #include <queue>
-#include "gfx/modelutil.h"
-#include "debug/debugutil.h"
-#include "jbd/bundleutil.h"
-#include "ui/je/uiutil.h"
 
-#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 
 namespace JE {
