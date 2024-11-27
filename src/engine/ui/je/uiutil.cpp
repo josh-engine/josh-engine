@@ -71,7 +71,7 @@ std::vector<Renderable> stringToRenderables(std::string str, vec3 color, const s
 }
 
 double getTextWidth(const std::string& text, const std::string& font, double size) {
-    return static_cast<double>(text.length())*(fontOffsets.at(font).x*size)-(fontOffsets.at(temp_fnt).z*temp_t_size/2.0);
+    return static_cast<double>(text.length())*(fontOffsets.at(font).x*size)-(fontOffsets.at(font).z*temp_t_size/2.0);
 }
 
 void staticText(GameObject* self) {
