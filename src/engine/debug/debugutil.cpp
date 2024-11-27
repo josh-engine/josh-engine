@@ -286,7 +286,6 @@ void setupImGuiWindow() {
         }
         ImGui::End();
     }
-}
 #endif //GFX_API_VK
-}
 #endif //DEBUG_ENABLED
+}}
