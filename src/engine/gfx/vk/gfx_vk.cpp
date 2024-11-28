@@ -30,7 +30,7 @@
 
 #include "../spirv/spirv-helper.h"
 
-namespace JE::VK {
+namespace JE::GFX {
 GLFWwindow** windowPtr;
 JE::GraphicsSettings settings;
 
@@ -1303,7 +1303,7 @@ void setClearColor(float r, float g, float b) {
     clearValues[0].color = {{r, g, b, 1.0f}};
 }
 
-void initGFX(GLFWwindow **window, const char* windowName, int width, int height, GraphicsSettings graphicsSettings) {
+void init(GLFWwindow **window, const char* windowName, int width, int height, GraphicsSettings graphicsSettings) {
     windowPtr = window;
     settings = graphicsSettings;
 
@@ -2136,7 +2136,7 @@ void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<
     currentFrame = (++currentFrame) % MAX_FRAMES_IN_FLIGHT;
 }
 
-void deinitGFX() {
+void deinit() {
     cleanupSwapchain();
 
     ImGui_ImplVulkan_Shutdown();

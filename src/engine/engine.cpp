@@ -2,8 +2,11 @@
 // Created by Ember Lee on 3/9/24.
 //
 #include "engineconfig.h"
-#include "gfx/vk/gfx_vk.h"
 #include "engine.h"
+
+#include "gfx/vk/gfx_vk.h"
+#include "gfx/wgpu/gfx_wgpu.h"
+
 #include <iostream>
 #include <unordered_map>
 #include <queue>
@@ -114,7 +117,7 @@ void setAmbient(float r, float g, float b){
 void setClearColor(float r, float g, float b) {
     clearColor = vec3(r, g, b);
     recopyLightingBuffer();
-    VK::setClearColor(r, g, b);
+    GFX::setClearColor(r, g, b);
 }
 
 void setFogPlanes(float near, float far) {
@@ -163,9 +166,9 @@ void putImGuiCall(void (*argument)()) {
 }
 
 void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const ShaderProgramSettings& settings, const VertexType& vtype) {
-    unsigned int vertID = VK::loadShader(vertex, JE_VERTEX_SHADER);
-    unsigned int fragID = VK::loadShader(fragment, JE_FRAGMENT_SHADER);
-    programs.insert({name, VK::createProgram(vertID, fragID, settings, vtype)});
+    unsigned int vertID = GFX::loadShader(vertex, JE_VERTEX_SHADER);
+    unsigned int fragID = GFX::loadShader(fragment, JE_FRAGMENT_SHADER);
+    programs.insert({name, GFX::createProgram(vertID, fragID, settings, vtype)});
 }
 
 unsigned int getShader(const std::string& name) {
@@ -179,7 +182,7 @@ void setTextureFilterMode(const TextureFilter filter) {
 unsigned int createTexture(const std::string& name, const std::string& filePath) {
     unsigned int id;
     try {
-        id = VK::loadTexture(filePath, currentFilterMode);
+        id = GFX::loadTexture(filePath, currentFilterMode);
     } catch (std::runtime_error &e) {
         id = textures.at("missing");
         std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
@@ -192,7 +195,7 @@ unsigned int createTexture(const std::string& name, const std::string& filePath,
     unsigned int id;
     try {
         std::vector<unsigned char> file = getFileCharVec(filePath, bundleFilePath);
-        id = VK::loadBundledTexture(reinterpret_cast<char *>(&file[0]), file.size(), currentFilterMode);
+        id = GFX::loadBundledTexture(reinterpret_cast<char *>(&file[0]), file.size(), currentFilterMode);
     } catch (std::runtime_error &e) {
         id = textures.at("missing");
         std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
@@ -262,11 +265,11 @@ void setCursorPos(glm::vec2 pos) {
 }
 
 unsigned int createUniformBuffer(size_t bufferSize) {
-    return VK::createUniformBuffer(bufferSize);
+    return GFX::createUniformBuffer(bufferSize);
 }
 
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
-    VK::updateUniformBuffer(id, ptr, size, updateAll);
+    GFX::updateUniformBuffer(id, ptr, size, updateAll);
 }
 
 void registerOnUpdate(void (*function)(double dt)) {
@@ -305,7 +308,7 @@ void framebuffer_size_callback(GLFWwindow* windowInstance,[[maybe_unused]] int u
     // Because of displays like Apple's Retina having multiple pixel values per pixel (or some bs like that)
     // the framebuffer is not always the window size. We need to make sure the real window size is saved.
     glfwGetWindowSize(windowInstance, &windowWidth, &windowHeight);
-    VK::resizeViewport();
+    GFX::resizeViewport();
 }
 
 void init(const char* windowName, int width, int height, GraphicsSettings graphicsSettings) {
@@ -318,7 +321,7 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
     ambient = {glm::max(graphicsSettings.clearColor[0] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[1] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[2] - 0.5f, 0.1f)};
     clearColor = vec3(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2]);
 
-    VK::initGFX(&window, windowName, width, height, graphicsSettings);
+    GFX::init(&window, windowName, width, height, graphicsSettings);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -342,7 +345,7 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
                      "./shaders/skybox_fragment.glsl",
                 // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
                      {false, true, false, false, (ShaderInputBit::Uniform | (ShaderInputBit::Texture << 1)), 2});
-        skybox = loadObj("./models/skybox.obj", getShader("skybox"), {uboID, VK::loadCubemap({
+        skybox = loadObj("./models/skybox.obj", getShader("skybox"), {uboID, GFX::loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
                                              "./skybox/py_up.jpg",
@@ -368,7 +371,7 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
 }
 
 void deinit() {
-    VK::deinitGFX();
+    GFX::deinit();
 }
 
 float fov = 78.0f;
@@ -385,159 +388,168 @@ Transform* cameraAccess() {
 }
 
 auto compareLambda = [](std::pair<double, Renderable *>& left, const std::pair<double, Renderable*>& right){return left.first < right.first;};
+double currentTime, lastTime, lastTimesCheck, frameDrawStart, updateStart, lastFPSUpdateTime;
+int currentFPSCtr;
 
-void mainLoop() {
-    double currentTime = glfwGetTime();
-    double lastTime = currentTime;
-    double lastTimesCheck = currentTime;
-    double frameDrawStart = currentTime;
-    double updateStart;
-    double lastFPSUpdateTime = currentTime;
-    int currentFPSCtr = 0;
-    while (glfwWindowShouldClose(window) == 0) {
-        currentTime = glfwGetTime();
-        double deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
+void tick() {
+    currentTime = glfwGetTime();
+    double deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
 
-        if (currentTime - lastFPSUpdateTime > 1){
-            lastFPSUpdateTime = currentTime;
-            fps = currentFPSCtr;
-            currentFPSCtr = 0;
-        }
+    if (currentTime - lastFPSUpdateTime > 1){
+        lastFPSUpdateTime = currentTime;
+        fps = currentFPSCtr;
+        currentFPSCtr = 0;
+    }
 
-        bool doTimesCheck = currentTime - lastTimesCheck > 0.1;
-        if (doTimesCheck) {
-            lastTimesCheck = glfwGetTime();
-            updateStart = glfwGetTime()*1000;
-        }
+    bool doTimesCheck = currentTime - lastTimesCheck > 0.1;
+    if (doTimesCheck) {
+        lastTimesCheck = glfwGetTime();
+        updateStart = glfwGetTime()*1000;
+    }
 
-        for (int keyActionIter = 0; keyActionIter < GLFW_KEY_LAST; keyActionIter++) {
-            bool current = glfwGetKey(window, keyActionIter) == GLFW_PRESS;
-            if (keys[keyActionIter] != current) {
-                keys[keyActionIter] = current;
-                for (auto & onKeyFunction : onKey) {
-                    onKeyFunction(keyActionIter, current, deltaTime);
-                }
+    for (int keyActionIter = 0; keyActionIter < GLFW_KEY_LAST; keyActionIter++) {
+        bool current = glfwGetKey(window, keyActionIter) == GLFW_PRESS;
+        if (keys[keyActionIter] != current) {
+            keys[keyActionIter] = current;
+            for (auto & onKeyFunction : onKey) {
+                onKeyFunction(keyActionIter, current, deltaTime);
             }
         }
+    }
 
-        for (int mouseActionIter = 0; mouseActionIter < 7; mouseActionIter++){
-            bool current = glfwGetMouseButton(window, mouseActionIter+GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
-            if (mouseButtons[mouseActionIter] != current) {
-                mouseButtons[mouseActionIter] = current;
-                for (auto & onMouseFunction : onMouse) {
-                    onMouseFunction(mouseActionIter+GLFW_MOUSE_BUTTON_1, current, deltaTime);
-                }
+    for (int mouseActionIter = 0; mouseActionIter < 7; mouseActionIter++){
+        bool current = glfwGetMouseButton(window, mouseActionIter+GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
+        if (mouseButtons[mouseActionIter] != current) {
+            mouseButtons[mouseActionIter] = current;
+            for (auto & onMouseFunction : onMouse) {
+                onMouseFunction(mouseActionIter+GLFW_MOUSE_BUTTON_1, current, deltaTime);
             }
         }
+    }
 
-        if (runUpdates && !forceSkipUpdate) {
-            for (auto &onUpdateFunction: onUpdate) {
-                onUpdateFunction(deltaTime);
+    if (runUpdates && !forceSkipUpdate) {
+        for (auto &onUpdateFunction: onUpdate) {
+            onUpdateFunction(deltaTime);
+            if (forceSkipUpdate) break;
+        }
+    }
+
+    if (runObjectUpdates && !forceSkipUpdate) {
+        for (auto &g: gameObjects) {
+            for (auto &gameObjectFunction: g.second.onUpdate) {
+                gameObjectFunction(deltaTime, &g.second);
                 if (forceSkipUpdate) break;
             }
+            if (forceSkipUpdate) break;
         }
+    }
 
-        if (runObjectUpdates && !forceSkipUpdate) {
-            for (auto &g: gameObjects) {
-                for (auto &gameObjectFunction: g.second.onUpdate) {
-                    gameObjectFunction(deltaTime, &g.second);
-                    if (forceSkipUpdate) break;
+    forceSkipUpdate = false;
+
+    // Right vector
+    glm::vec3 right = glm::vec3(
+            sin(glm::radians(camera.rotation.x - 90)),
+            0,
+            cos(glm::radians(camera.rotation.x - 90))
+    );
+    glm::vec3 up = glm::cross( right, camera.direction() );
+
+    // Camera matrix
+    glm::mat4 cameraMatrix = glm::lookAt(
+            camera.position, // camera is at its position
+            camera.position+camera.direction(), // looks in look direction
+            up  // up vector
+    );
+
+    Audio::updateListener(camera.position, glm::vec3(0), camera.direction(), up);
+
+    if (doTimesCheck) {
+        updateTime = glfwGetTime()*1000 - updateStart;
+        frameDrawStart = glfwGetTime()*1000;
+    }
+
+    std::vector<Renderable*> renderables;
+    // We're going to guess that we have around the same amount of renderables for this frame.
+    renderables.reserve(renderableCount);
+    std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> transparentWorldRenderables;
+    std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> uiRenderables;
+
+    renderableCount = 0;
+
+    if (drawSkybox) {
+        skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
+        renderables.push_back(&skybox);
+        renderableCount++;
+    }
+
+    for (auto& item : gameObjects) {
+        for (auto& r : item.second.renderables) {
+            if (r.enabled()) {
+                renderableCount++;
+                r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
+                if (r.checkUIBit()) {
+                    uiRenderables.emplace(-item.second.transform.position.z, &r); // I don't want to write a second lambda
+                } else if (r.manualDepthSort()) {
+                    transparentWorldRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
                 }
-                if (forceSkipUpdate) break;
-            }
-        }
-
-        forceSkipUpdate = false;
-
-        // Right vector
-        glm::vec3 right = glm::vec3(
-                sin(glm::radians(camera.rotation.x - 90)),
-                0,
-                cos(glm::radians(camera.rotation.x - 90))
-        );
-        glm::vec3 up = glm::cross( right, camera.direction() );
-
-        // Camera matrix
-        glm::mat4 cameraMatrix = glm::lookAt(
-                camera.position, // camera is at its position
-                camera.position+camera.direction(), // looks in look direction
-                up  // up vector
-        );
-
-        Audio::updateListener(camera.position, glm::vec3(0), camera.direction(), up);
-
-        if (doTimesCheck) {
-            updateTime = glfwGetTime()*1000 - updateStart;
-            frameDrawStart = glfwGetTime()*1000;
-        }
-
-        std::vector<Renderable*> renderables;
-        // We're going to guess that we have around the same amount of renderables for this frame.
-        renderables.reserve(renderableCount);
-        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> transparentWorldRenderables;
-        std::priority_queue<std::pair<double, Renderable*>, std::deque<std::pair<double, Renderable*>>, decltype(compareLambda)> uiRenderables;
-
-        renderableCount = 0;
-
-        if (drawSkybox) {
-            skybox.setMatrices(camera.getTranslateMatrix(), glm::identity<mat4>(), glm::identity<mat4>());
-            renderables.push_back(&skybox);
-            renderableCount++;
-        }
-
-        for (auto& item : gameObjects) {
-            for (auto& r : item.second.renderables) {
-                if (r.enabled()) {
-                    renderableCount++;
-                    r.setMatrices(item.second.transform.getTranslateMatrix(), item.second.transform.getRotateMatrix(), item.second.transform.getScaleMatrix());
-                    if (r.checkUIBit()) {
-                        uiRenderables.emplace(-item.second.transform.position.z, &r); // I don't want to write a second lambda
-                    } else if (r.manualDepthSort()) {
-                        transparentWorldRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
-                    }
-                    else {
-                        renderables.push_back(&r);
-                    }
+                else {
+                    renderables.push_back(&r);
                 }
             }
         }
+    }
 
-        size_t a = transparentWorldRenderables.size();
-        for (int i = 0; i < a; i++){
-            auto [_, r] = transparentWorldRenderables.top();
-            renderables.push_back(r);
-            transparentWorldRenderables.pop();
-        }
+    size_t a = transparentWorldRenderables.size();
+    for (int i = 0; i < a; i++){
+        auto [_, r] = transparentWorldRenderables.top();
+        renderables.push_back(r);
+        transparentWorldRenderables.pop();
+    }
 
-        a = uiRenderables.size();
-        for (int i = 0; i < a; i++){
-            auto [_, r] = uiRenderables.top();
-            renderables.push_back(r);
-            uiRenderables.pop();
-        }
+    a = uiRenderables.size();
+    for (int i = 0; i < a; i++){
+        auto [_, r] = uiRenderables.top();
+        renderables.push_back(r);
+        uiRenderables.pop();
+    }
 
-        float scaledHeight = static_cast<float>(windowHeight) * (1.0f / static_cast<float>(windowWidth));
-        float scaledWidth = 1.0f;
+    float scaledHeight = static_cast<float>(windowHeight) * (1.0f / static_cast<float>(windowWidth));
+    float scaledWidth = 1.0f;
 
-        UniformBufferObject ubo = {
+    UniformBufferObject ubo = {
             cameraMatrix,
             glm::ortho(-scaledWidth*10,scaledWidth*10,-scaledHeight*10,scaledHeight*10,-1.0f,1.0f),
             glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, clippingPlanesPerspective.x, clippingPlanesPerspective.y),
             camera.position,
             camera.direction(),
             {windowWidth, windowHeight}
-        };
+    };
 
-        updateUniformBuffer(uboID, &ubo, sizeof(UniformBufferObject), false);
+    updateUniformBuffer(uboID, &ubo, sizeof(UniformBufferObject), false);
 
-        VK::renderFrame(renderables, imGuiCalls);
-        ++currentFPSCtr;
+    GFX::renderFrame(renderables, imGuiCalls);
+    ++currentFPSCtr;
 
-        if (doTimesCheck)
-            frameTime = glfwGetTime()*1000 - frameDrawStart;
+    if (doTimesCheck)
+        frameTime = glfwGetTime()*1000 - frameDrawStart;
 
-        glfwPollEvents();
+    glfwPollEvents();
+}
+
+void mainLoop() {
+    currentTime = glfwGetTime();
+    lastTime = currentTime;
+    lastTimesCheck = currentTime;
+    frameDrawStart = currentTime;
+    lastFPSUpdateTime = currentTime;
+    currentFPSCtr = 0;
+#ifndef __EMSCRIPTEN__
+    while (glfwWindowShouldClose(window) == 0) {
+        tick();
     }
+#elif
+    emscripten_set_main_loop_arg([](void *arg) {tick();}, nullptr, 0, true);
+#endif
 }
 }

@@ -5,9 +5,9 @@
 #include <iterator>
 #include "renderable.h"
 
-#ifdef GFX_API_VK
 #include "vk/gfx_vk.h"
-#endif
+#include "wgpu/gfx_wgpu.h"
+
 namespace JE {
 Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std::vector<float> normals, std::vector<unsigned int> indices, unsigned int shid, std::vector<unsigned int> descs, bool manualDepthSort) {
     flags = static_cast<unsigned char>(0b1 | (manualDepthSort ? 0b10 : 0));
@@ -24,7 +24,7 @@ Renderable::Renderable(std::vector<float> vertices, std::vector<float> uvs, std:
         });
     }
 
-    vboID = VK::createVBO(&interleavedVertices, &indices);
+    vboID = GFX::createVBO(&interleavedVertices, &indices);
     indicesSize = indices.size();
 }
 
