@@ -17,16 +17,19 @@
 #  include <emscripten.h>
 #endif // __EMSCRIPTEN__
 
+#include "../../ui/imgui/imgui.h"
+#include "../../ui/imgui/imgui_impl_glfw.h"
+#include "../../ui/imgui/imgui_impl_wgpu.h"
+
 namespace JE::GFX {
+    GraphicsSettings settings;
     GLFWwindow** window;
-    float clear[3];
 
     WGPUInstance instance;
     WGPUAdapter adapter;
     WGPUDevice device;
 
     WGPUQueue queue;
-    WGPUCommandEncoder encoder;
 
     WGPUSurface surface;
 
@@ -36,7 +39,7 @@ namespace JE::GFX {
         }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
         *window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
     }
 
@@ -45,7 +48,7 @@ namespace JE::GFX {
         instance = wgpuCreateInstance(nullptr);
 #else
         // We're doing this Vulkan style
-        WGPUInstanceDescriptor desc = {};
+        WGPUInstanceDescriptor desc{};
         desc.nextInChain = nullptr;
 
         instance = wgpuCreateInstance(&desc);
@@ -57,7 +60,7 @@ namespace JE::GFX {
     }
 
     void createAdapter() {
-        WGPURequestAdapterOptions adapterOpts = {};
+        WGPURequestAdapterOptions adapterOpts{};
         adapterOpts.nextInChain = nullptr;
         adapterOpts.compatibleSurface = surface;
 
@@ -132,12 +135,6 @@ namespace JE::GFX {
     void createCommandObjects() {
         // Weirdly enough, it really is that simple this time. Feels like a crime.
         queue = wgpuDeviceGetQueue(device);
-
-        // I swear the Vulkan PTSD is fully set in
-        WGPUCommandEncoderDescriptor encoderDesc = {};
-        encoderDesc.nextInChain = nullptr;
-        encoderDesc.label = "JE Command Encoder";
-        encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
     }
 
     void createSurface() {
@@ -148,25 +145,140 @@ namespace JE::GFX {
         }
     }
 
-    void init(GLFWwindow **wptr, const char* windowName, int width, int height, GraphicsSettings settings) {
-        window = wptr;
-        memcpy(clear, settings.clearColor, sizeof(float)*3);
+    WGPUPresentMode getBestPresentMode() {
+        if (settings.vsyncEnabled) {
+            WGPUSurfaceCapabilities surfaceCapabilities;
+            wgpuSurfaceGetCapabilities(surface, adapter, &surfaceCapabilities);
 
-        initGLFW(width, height, windowName);
+            for (int i = 0; i < surfaceCapabilities.presentModeCount; ++i) {
+                if (surfaceCapabilities.presentModes[i] == WGPUPresentMode_Mailbox) {
+                    return WGPUPresentMode_Mailbox;
+                }
+            }
+            return WGPUPresentMode_Fifo;
+        } else {
+            // Who gives a crap about tearing
+            return WGPUPresentMode_Immediate;
+        }
+    }
+
+    void configureSurface(int width, int height) {
+        WGPUSurfaceConfiguration config{};
+        config.nextInChain = nullptr;
+
+        config.width = width;
+        config.height = height;
+
+        config.format = wgpuSurfaceGetPreferredFormat(surface, adapter);
+        config.viewFormatCount = 0;
+        config.viewFormats = nullptr;
+
+        config.presentMode = getBestPresentMode();
+        config.alphaMode = WGPUCompositeAlphaMode_Auto;
+
+        config.usage = WGPUTextureUsage_RenderAttachment;
+        config.device = device;
+
+        wgpuSurfaceConfigure(surface, &config);
+    }
+
+    void init(GLFWwindow **p, const char* n, int w, int h, GraphicsSettings s) {
+        window = p;
+        settings = s;
+
+        initGLFW(w, h, n);
         createInstance();
         createSurface();
         createAdapter();
         createDevice();
         createCommandObjects();
+        configureSurface(w, h);
+    }
 
+    WGPUTextureView acquireNext() {
+        WGPUSurfaceTexture surfaceTexture;
+        wgpuSurfaceGetCurrentTexture(surface, &surfaceTexture);
+
+        if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_Success) return nullptr;
+
+        WGPUTextureViewDescriptor viewDescriptor;
+        viewDescriptor.nextInChain = nullptr;
+        viewDescriptor.label = "John Descriptor";
+        viewDescriptor.format = wgpuTextureGetFormat(surfaceTexture.texture);
+        viewDescriptor.dimension = WGPUTextureViewDimension_2D;
+        viewDescriptor.baseMipLevel = 0;
+        viewDescriptor.mipLevelCount = 1;
+        viewDescriptor.baseArrayLayer = 0;
+        viewDescriptor.arrayLayerCount = 1;
+        viewDescriptor.aspect = WGPUTextureAspect_All;
+
+        auto view = wgpuTextureCreateView(surfaceTexture.texture, &viewDescriptor);
+#ifndef WEBGPU_BACKEND_WGPU // If we all just complied to real browser implementation life could be dream
+        wgpuTextureRelease(surfaceTexture.texture);
+#endif // WEBGPU_BACKEND_WGPU
+        return view;
     }
 
     void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls) {
+        WGPUTextureView next = acquireNext();
+        if (!next) return;
+
+        // I swear the Vulkan PTSD is fully set in
+        WGPUCommandEncoderDescriptor encoderDesc{};
+        encoderDesc.nextInChain = nullptr;
+        encoderDesc.label = "Frame Command Encoder";
+        auto encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
+
+
+        WGPURenderPassColorAttachment renderPassColorAttachment{};
+        renderPassColorAttachment.nextInChain = nullptr;
+
+        renderPassColorAttachment.loadOp = WGPULoadOp_Clear;
+        renderPassColorAttachment.storeOp = WGPUStoreOp_Store;
+        renderPassColorAttachment.clearValue = {settings.clearColor[0], settings.clearColor[1], settings.clearColor[2], 1.0f};
+
+        renderPassColorAttachment.view = next;
+        renderPassColorAttachment.resolveTarget = nullptr;
+
+#ifndef WEBGPU_BACKEND_WGPU
+        renderPassColorAttachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
+#endif // NOT WEBGPU_BACKEND_WGPU
+
+
+        WGPURenderPassDescriptor renderPassDescriptor{};
+        renderPassDescriptor.nextInChain = nullptr;
+
+        renderPassDescriptor.colorAttachmentCount = 1;
+        renderPassDescriptor.colorAttachments = &renderPassColorAttachment;
+
+        renderPassDescriptor.depthStencilAttachment = nullptr;
+
+        renderPassDescriptor.timestampWrites = nullptr;
+
+        auto pass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDescriptor);
+        // TODO: Render triangles!
+
+        wgpuRenderPassEncoderEnd(pass);
+        wgpuRenderPassEncoderRelease(pass);
+
+
+        WGPUCommandBufferDescriptor commandBufferDescriptor{};
+        commandBufferDescriptor.nextInChain = nullptr;
+        commandBufferDescriptor.label = "Render Command Buffer";
+        auto command = wgpuCommandEncoderFinish(encoder, &commandBufferDescriptor);
+        wgpuCommandEncoderRelease(encoder);
+
+        wgpuQueueSubmit(queue, 1, &command);
+        wgpuCommandBufferRelease(command);
+
+        wgpuTextureViewRelease(next);
+
+        wgpuSurfacePresent(surface);
         wgpuDevicePoll(device, false, nullptr);
     }
 
     void deinit() {
-        wgpuCommandEncoderRelease(encoder);
+        wgpuSurfaceUnconfigure(surface);
         wgpuQueueRelease(queue);
         wgpuDeviceRelease(device);
         wgpuAdapterRelease(adapter);
@@ -181,7 +293,9 @@ namespace JE::GFX {
     }
 
     void setClearColor(float r, float g, float b) {
-
+        settings.clearColor[0] = r;
+        settings.clearColor[1] = g;
+        settings.clearColor[2] = b;
     }
 
     unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
