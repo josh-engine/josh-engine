@@ -153,6 +153,7 @@ void initUiItem(GameObject* selfObject) {
 }
 
 void setupTest() {
+    /*
     //     sun-ish direction from skybox, slightly warm white
     setSunProperties(glm::vec3(-1, 1, -1), glm::vec3(1, 1, 0.85));
 
@@ -218,4 +219,5 @@ void setupTest() {
     UI::staticText({-10.0+UI::getTextWidth("joshengine demo", "manifold"), -5.25},
                    "joshengine demo",
                    "manifold");
+                   */
 }

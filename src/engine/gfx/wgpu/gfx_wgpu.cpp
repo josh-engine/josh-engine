@@ -6,6 +6,7 @@
 #include <iostream>
 #include <vector>
 #include <cassert>
+#include <fstream>
 
 #include <glfw3webgpu.h>
 #include <webgpu/webgpu.h>
@@ -32,6 +33,13 @@ namespace JE::GFX {
     WGPUQueue queue;
 
     WGPUSurface surface;
+    WGPUTextureFormat surfaceFormat;
+
+    // This follows the same design philosophy to Vulkan,
+    // although I chose to stick with numerical IDs since
+    // you can feasibly translate that to any API.
+    std::vector<WGPUShaderModule> shaderModuleVector{};
+    std::vector<WGPURenderPipeline> pipelineVector{};
 
     void initGLFW(int width, int height, const char* windowName) {
         if (!glfwInit()) {
@@ -96,7 +104,7 @@ namespace JE::GFX {
         deviceDescriptor.requiredLimits = nullptr;
         deviceDescriptor.defaultQueue.nextInChain = nullptr;
         deviceDescriptor.defaultQueue.label = "John Queue"; // what??
-        deviceDescriptor.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void* /* pUserData */) {
+        deviceDescriptor.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void*) {
             std::cout << "WGPU: Device lost,  " << reason;
             if (message) std::cout << " (" << message << ")";
             std::cout << std::endl;
@@ -169,7 +177,8 @@ namespace JE::GFX {
         config.width = width;
         config.height = height;
 
-        config.format = wgpuSurfaceGetPreferredFormat(surface, adapter);
+        surfaceFormat = wgpuSurfaceGetPreferredFormat(surface, adapter);
+        config.format = surfaceFormat;
         config.viewFormatCount = 0;
         config.viewFormats = nullptr;
 
@@ -193,6 +202,14 @@ namespace JE::GFX {
         createDevice();
         createCommandObjects();
         configureSurface(w, h);
+
+        //TODO remove
+        unsigned int testv = loadShader("./shaders/temp_triangle_vert.wgsl", 0);
+        unsigned int testf = loadShader("./shaders/temp_triangle_frag.wgsl", 0);
+        ShaderProgramSettings shaderProgramSettings{};
+        shaderProgramSettings.transparencySupported = false;
+        shaderProgramSettings.doubleSided = true;
+        createProgram(testv, testf, shaderProgramSettings, VERTEX);
     }
 
     WGPUTextureView acquireNext() {
@@ -203,7 +220,7 @@ namespace JE::GFX {
 
         WGPUTextureViewDescriptor viewDescriptor;
         viewDescriptor.nextInChain = nullptr;
-        viewDescriptor.label = "John Descriptor";
+        viewDescriptor.label = "John Descriptor"; // Please stop letting me name things
         viewDescriptor.format = wgpuTextureGetFormat(surfaceTexture.texture);
         viewDescriptor.dimension = WGPUTextureViewDimension_2D;
         viewDescriptor.baseMipLevel = 0;
@@ -245,23 +262,26 @@ namespace JE::GFX {
 #endif // NOT WEBGPU_BACKEND_WGPU
 
 
+        // Create pass descriptor
         WGPURenderPassDescriptor renderPassDescriptor{};
         renderPassDescriptor.nextInChain = nullptr;
-
         renderPassDescriptor.colorAttachmentCount = 1;
         renderPassDescriptor.colorAttachments = &renderPassColorAttachment;
-
         renderPassDescriptor.depthStencilAttachment = nullptr;
-
         renderPassDescriptor.timestampWrites = nullptr;
 
+        // Generate render commands
         auto pass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDescriptor);
         // TODO: Render triangles!
+        // Select which render pipeline to use
+        wgpuRenderPassEncoderSetPipeline(pass, pipelineVector[0]);
+// Draw 1 instance of a 3-vertices shape
+        wgpuRenderPassEncoderDraw(pass, 3, 1, 0, 0);
 
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);
 
-
+        // Submit render commands
         WGPUCommandBufferDescriptor commandBufferDescriptor{};
         commandBufferDescriptor.nextInChain = nullptr;
         commandBufferDescriptor.label = "Render Command Buffer";
@@ -278,6 +298,15 @@ namespace JE::GFX {
     }
 
     void deinit() {
+        for (auto buf : bufferVector) {
+            wgpuBufferRelease(buf);
+        }
+        for (auto shader : shaderModuleVector) {
+            wgpuShaderModuleRelease(shader);
+        }
+        for (auto pipeline : pipelineVector) {
+            wgpuRenderPipelineRelease(pipeline);
+        }
         wgpuSurfaceUnconfigure(surface);
         wgpuQueueRelease(queue);
         wgpuDeviceRelease(device);
@@ -313,14 +342,114 @@ namespace JE::GFX {
         return 0;
     }
 
+    static std::vector<char> readFile(const std::string& filename) {
+        std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+        if (!file.is_open()) {
+            throw std::runtime_error("WGPU: Failed to open file!");
+        }
+
+        size_t fileSize = (size_t) file.tellg();
+        std::vector<char> buffer(fileSize);
+        file.seekg(0);
+        file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
+        file.close();
+
+        return buffer;
+    }
+
+    inline bool ends_with(std::string const& value, std::string const & ending)
+    {
+        if (ending.size() > value.size()) return false;
+        return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+    }
+
     unsigned int loadShader(const std::string& file_path, int target) {
-        // TODO: Implement shaders
-        return 0;
+        WGPUShaderModuleDescriptor shaderDesc{};
+#ifdef WEBGPU_BACKEND_WGPU
+        shaderDesc.hintCount = 0;
+        shaderDesc.hints = nullptr;
+#endif
+        WGPUShaderModuleWGSLDescriptor shaderCodeDesc{};
+        shaderCodeDesc.chain.next = nullptr;
+        shaderCodeDesc.chain.sType = WGPUSType_ShaderModuleWGSLDescriptor;
+        auto code = readFile(file_path);
+        shaderCodeDesc.code = &code[0];
+
+        shaderDesc.nextInChain = &shaderCodeDesc.chain;
+        WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device, &shaderDesc);
+
+        if (shaderModule == nullptr) {
+            throw std::runtime_error("WGPU: Failed to create shader module for \"" + file_path + "\"!");
+        }
+
+        unsigned int id = shaderModuleVector.size();
+        shaderModuleVector.push_back(shaderModule);
+        return id;
     }
 
     unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype) {
-        // TODO: Implement shaders
-        return 0;
+        WGPURenderPipelineDescriptor pipelineDescriptor{};
+        pipelineDescriptor.nextInChain = nullptr;
+
+        pipelineDescriptor.vertex.bufferCount = 0;
+        pipelineDescriptor.vertex.buffers = nullptr;
+
+        pipelineDescriptor.vertex.module = shaderModuleVector[VertexShaderID];
+        pipelineDescriptor.vertex.entryPoint = "main";
+        pipelineDescriptor.vertex.constantCount = 0;
+        pipelineDescriptor.vertex.constants = nullptr;
+
+        pipelineDescriptor.primitive.topology = WGPUPrimitiveTopology_TriangleList;
+        pipelineDescriptor.primitive.stripIndexFormat = WGPUIndexFormat_Undefined;
+        pipelineDescriptor.primitive.frontFace = WGPUFrontFace_CCW;
+        pipelineDescriptor.primitive.cullMode = shaderProgramSettings.doubleSided ? WGPUCullMode_None : WGPUCullMode_Back;
+
+        WGPUBlendState blendState{};
+        if (shaderProgramSettings.transparencySupported) {
+            blendState.color.srcFactor = WGPUBlendFactor_SrcAlpha;
+            blendState.color.dstFactor = WGPUBlendFactor_OneMinusSrcAlpha;
+            blendState.color.operation = WGPUBlendOperation_Add;
+        } else {
+            blendState.color.srcFactor = WGPUBlendFactor_One;
+            blendState.color.dstFactor = WGPUBlendFactor_Zero;
+            blendState.color.operation = WGPUBlendOperation_Add;
+        }
+        blendState.alpha.srcFactor = WGPUBlendFactor_Zero;
+        blendState.alpha.dstFactor = WGPUBlendFactor_One;
+        blendState.alpha.operation = WGPUBlendOperation_Add;
+
+        WGPUColorTargetState colorTarget{};
+        colorTarget.format = surfaceFormat;
+        colorTarget.blend = &blendState;
+        colorTarget.writeMask = WGPUColorWriteMask_All;
+
+        WGPUFragmentState fragmentState{};
+        fragmentState.module = shaderModuleVector[FragmentShaderID];
+        fragmentState.entryPoint = "main";
+        fragmentState.constantCount = 0;
+        fragmentState.constants = nullptr;
+        fragmentState.targetCount = 1;
+        fragmentState.targets = &colorTarget;
+
+        pipelineDescriptor.fragment = &fragmentState;
+
+        pipelineDescriptor.depthStencil = nullptr;
+
+        // TODO MSAA
+        pipelineDescriptor.multisample.count = 1;
+        pipelineDescriptor.multisample.mask = ~0u;
+        pipelineDescriptor.multisample.alphaToCoverageEnabled = false;
+
+        WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDescriptor);
+
+        if (pipeline == nullptr) {
+            throw std::runtime_error("WGPU: Failed to create graphics pipeline!");
+        }
+
+        unsigned int id = pipelineVector.size();
+        pipelineVector.push_back(pipeline);
+        return id;
     }
 
     unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices) {
