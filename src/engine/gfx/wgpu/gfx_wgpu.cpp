@@ -23,6 +23,9 @@
 #include "../../ui/imgui/imgui_impl_wgpu.h"
 
 namespace JE::GFX {
+
+    unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label = "JEbuffer");
+
     GraphicsSettings settings;
     GLFWwindow** window;
 
@@ -40,6 +43,9 @@ namespace JE::GFX {
     // you can feasibly translate that to any API.
     std::vector<WGPUShaderModule> shaderModuleVector{};
     std::vector<WGPURenderPipeline> pipelineVector{};
+
+    std::vector<WGPUBuffer> vertexBuffers{};
+    std::vector<WGPUBuffer> indexBuffers{};
 
     void initGLFW(int width, int height, const char* windowName) {
         if (!glfwInit()) {
@@ -97,11 +103,72 @@ namespace JE::GFX {
         }
     }
 
+    // Boilerplate? I hardly know her!
+    void setDefaultLimits(WGPULimits &limits) {
+        limits.maxTextureDimension1D = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxTextureDimension2D = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxTextureDimension3D = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxTextureArrayLayers = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxBindGroups = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxBindGroupsPlusVertexBuffers = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxBindingsPerBindGroup = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxDynamicUniformBuffersPerPipelineLayout = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxDynamicStorageBuffersPerPipelineLayout = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxSampledTexturesPerShaderStage = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxSamplersPerShaderStage = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxStorageBuffersPerShaderStage = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxStorageTexturesPerShaderStage = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxUniformBuffersPerShaderStage = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxUniformBufferBindingSize = WGPU_LIMIT_U64_UNDEFINED;
+        limits.maxStorageBufferBindingSize = WGPU_LIMIT_U64_UNDEFINED;
+        limits.minUniformBufferOffsetAlignment = WGPU_LIMIT_U32_UNDEFINED;
+        limits.minStorageBufferOffsetAlignment = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxVertexBuffers = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxBufferSize = WGPU_LIMIT_U64_UNDEFINED;
+        limits.maxVertexAttributes = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxVertexBufferArrayStride = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxInterStageShaderComponents = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxInterStageShaderVariables = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxColorAttachments = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxColorAttachmentBytesPerSample = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxComputeWorkgroupStorageSize = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxComputeInvocationsPerWorkgroup = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxComputeWorkgroupSizeX = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxComputeWorkgroupSizeY = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxComputeWorkgroupSizeZ = WGPU_LIMIT_U32_UNDEFINED;
+        limits.maxComputeWorkgroupsPerDimension = WGPU_LIMIT_U32_UNDEFINED;
+    }
+
+    WGPURequiredLimits getRequiredLimits() {
+        WGPUSupportedLimits supportedLimits{};
+        supportedLimits.nextInChain = nullptr;
+        wgpuAdapterGetLimits(adapter, &supportedLimits);
+
+        WGPURequiredLimits requiredLimits{};
+        setDefaultLimits(requiredLimits.limits);
+
+        // We use at most 1 vertex attribute for now
+        requiredLimits.limits.maxVertexAttributes = 1;
+        // We should also tell that we use 1 vertex buffers
+        requiredLimits.limits.maxVertexBuffers = 1;
+        // Maximum size of a buffer is 6 vertices of 2 float each
+        requiredLimits.limits.maxBufferSize = 6 * 2 * sizeof(float);
+        // Maximum stride between 2 consecutive vertices in the vertex buffer
+        requiredLimits.limits.maxVertexBufferArrayStride = 2 * sizeof(float);
+
+        requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
+        requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
+
+        return requiredLimits;
+    }
+
     void createDevice() {
         WGPUDeviceDescriptor deviceDescriptor;
         deviceDescriptor.label = "John Graphics"; // why do these things have names??
         deviceDescriptor.requiredFeatureCount = 0;
-        deviceDescriptor.requiredLimits = nullptr;
+        //WGPURequiredLimits reqs = getRequiredLimits();
+        //deviceDescriptor.requiredLimits = &reqs;
+        deviceDescriptor.requiredLimits = nullptr; // Weirdly enough, the tutorial tells me to do this then doesn't...
         deviceDescriptor.defaultQueue.nextInChain = nullptr;
         deviceDescriptor.defaultQueue.label = "John Queue"; // what??
         deviceDescriptor.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void*) {
@@ -210,6 +277,19 @@ namespace JE::GFX {
         shaderProgramSettings.transparencySupported = false;
         shaderProgramSettings.doubleSided = true;
         createProgram(testv, testf, shaderProgramSettings, VERTEX);
+
+        std::vector<float> vertexData = {
+                // x0, y0
+                -0.5, -0.5,
+
+                // x1, y1
+                +0.5, -0.5,
+
+                // x2, y2
+                +0.0, +0.5
+        };
+
+        createLifetimeBuffer(&vertexData[0], vertexData.size()*sizeof(float), WGPUBufferUsage_Vertex, vertexBuffers);
     }
 
     WGPUTextureView acquireNext() {
@@ -275,6 +355,10 @@ namespace JE::GFX {
         // TODO: Render triangles!
         // Select which render pipeline to use
         wgpuRenderPassEncoderSetPipeline(pass, pipelineVector[0]);
+
+        // Set vertex buffer while encoding the render pass
+        wgpuRenderPassEncoderSetVertexBuffer(pass, 0, vertexBuffers[0], 0, wgpuBufferGetSize(vertexBuffers[0]));
+
 // Draw 1 instance of a 3-vertices shape
         wgpuRenderPassEncoderDraw(pass, 3, 1, 0, 0);
 
@@ -298,7 +382,10 @@ namespace JE::GFX {
     }
 
     void deinit() {
-        for (auto buf : bufferVector) {
+        for (auto buf : vertexBuffers) {
+            wgpuBufferRelease(buf);
+        }
+        for (auto buf : indexBuffers) {
             wgpuBufferRelease(buf);
         }
         for (auto shader : shaderModuleVector) {
@@ -395,10 +482,24 @@ namespace JE::GFX {
         pipelineDescriptor.vertex.bufferCount = 0;
         pipelineDescriptor.vertex.buffers = nullptr;
 
+
+        WGPUVertexAttribute positionAttrib{};
+        positionAttrib.shaderLocation = 0;
+        positionAttrib.format = WGPUVertexFormat_Float32x2;
+        positionAttrib.offset = 0;
+
+        WGPUVertexBufferLayout vertexBufferLayout{};
+        vertexBufferLayout.attributeCount = 1;
+        vertexBufferLayout.attributes = &positionAttrib;
+        vertexBufferLayout.arrayStride = 2 * sizeof(float);
+        vertexBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
+
         pipelineDescriptor.vertex.module = shaderModuleVector[VertexShaderID];
         pipelineDescriptor.vertex.entryPoint = "main";
         pipelineDescriptor.vertex.constantCount = 0;
         pipelineDescriptor.vertex.constants = nullptr;
+        pipelineDescriptor.vertex.bufferCount = 1;
+        pipelineDescriptor.vertex.buffers = &vertexBufferLayout;
 
         pipelineDescriptor.primitive.topology = WGPUPrimitiveTopology_TriangleList;
         pipelineDescriptor.primitive.stripIndexFormat = WGPUIndexFormat_Undefined;
@@ -452,15 +553,59 @@ namespace JE::GFX {
         return id;
     }
 
+    unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label) {
+        WGPUBufferDescriptor bufferDescriptor{};
+        bufferDescriptor.nextInChain = nullptr;
+        bufferDescriptor.label = label;
+        bufferDescriptor.usage = usage;
+        bufferDescriptor.size = size;
+        bufferDescriptor.mappedAtCreation = true;
+
+        WGPUBuffer buffer = wgpuDeviceCreateBuffer(device, &bufferDescriptor);
+        if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create lifetime buffer!");
+
+        void* map = wgpuBufferGetMappedRange(buffer, 0, size);
+        memcpy(map, src, size);
+        wgpuBufferUnmap(buffer);
+
+        unsigned int id = vec.size();
+        vec.push_back(buffer);
+        return id;
+    }
+
     unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices) {
-        // TODO: Implement VBOs
-        return 0;
+        unsigned int idx1 =
+        createLifetimeBuffer(&(*interleavedVertices)[0],
+                             interleavedVertices->size()*sizeof(InterleavedVertex),
+                             WGPUBufferUsage_Vertex,
+                             vertexBuffers);
+        unsigned int idx2 =
+        createLifetimeBuffer(&(*indices)[0],
+                             indices->size()*sizeof(unsigned int),
+                             WGPUBufferUsage_Index,
+                             indexBuffers);
+        if (idx1 != idx2) throw std::runtime_error("WGPU: Index/Vertex buffer count mismatch!");
+        return idx1;
     }
 
     unsigned int createUniformBuffer(size_t bufferSize) {
-        // TODO: Implement uniform buffers
+        /* Not actually sure if this is how I'm supposed to implement it
+        WGPUBufferDescriptor bufferDesc = {};
+        bufferDesc.nextInChain = nullptr;
+        bufferDesc.label = "Uniform Buf";
+        bufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
+        bufferDesc.size = bufferSize;
+        bufferDesc.mappedAtCreation = false;
+        WGPUBuffer buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
+
+        if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create buffer!");
+        unsigned int id = bufferVector.size();
+        bufferVector.push_back(buffer);
+        return id;
+         */
         return 0;
     }
+
     void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
         // TODO: Implement uniform buffers
     }

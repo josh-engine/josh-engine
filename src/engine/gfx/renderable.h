@@ -23,7 +23,6 @@ struct InterleavedVertex {
     glm::vec3 position;
     glm::vec2 uvCoords;
     glm::vec3 normal;
-
 #ifdef GFX_API_VK
         static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
