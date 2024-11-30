@@ -65,7 +65,7 @@ namespace JE::GFX {
         }
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         *window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
     }
 
@@ -353,6 +353,13 @@ namespace JE::GFX {
         createDepthTexture(width, height);
     }
 
+    void destroySwapchain() {
+        wgpuTextureViewRelease(depthTextureView);
+        wgpuTextureDestroy(depthTexture);
+        wgpuTextureRelease(depthTexture);
+        wgpuSurfaceUnconfigure(surface);
+    }
+
     void init(GLFWwindow **p, const char* n, int w, int h, GraphicsSettings s) {
         window = p;
         settings = s;
@@ -559,10 +566,8 @@ namespace JE::GFX {
         for (auto pipeline : pipelineVector) {
             wgpuRenderPipelineRelease(pipeline);
         }
-        wgpuTextureViewRelease(depthTextureView);
-        wgpuTextureDestroy(depthTexture);
-        wgpuTextureRelease(depthTexture);
-        wgpuSurfaceUnconfigure(surface);
+        destroySwapchain();
+        wgpuSurfaceRelease(surface);
         wgpuQueueRelease(queue);
         //wgpuBindGroupLayoutRelease(textureBindGroupLayout);
         wgpuBindGroupLayoutRelease(uniformBindGroupLayout);
@@ -575,7 +580,11 @@ namespace JE::GFX {
     }
 
     void resizeViewport() {
+        int width, height;
+        glfwGetFramebufferSize(*window, &width, &height);
 
+        destroySwapchain();
+        createSwapchain(width, height);
     }
 
     void setClearColor(float r, float g, float b) {
