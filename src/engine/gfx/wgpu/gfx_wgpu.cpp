@@ -14,6 +14,9 @@
 #include <webgpu/wgpu.h>
 #endif
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #ifdef __EMSCRIPTEN__
 #  include <emscripten.h>
 #endif // __EMSCRIPTEN__
@@ -45,6 +48,12 @@ namespace JE::GFX {
     std::vector<WGPURenderPipeline> pipelineVector{};
 
     std::vector<WGPUBuffer> buffers{};
+
+    std::vector<WGPUTexture> textures{};
+    std::vector<WGPUTextureView> textureViews{};
+    // Do I *really* need to create a sampler per texture? Fuck no. Does that make life easier for me? Yeah.
+    // I don't want to have to add another value to the indexPair for pixel art/normal filtering
+    std::vector<WGPUSampler> samplers{};
 
     WGPUBindGroupLayout uniformBindGroupLayout;
     WGPUBindGroupLayout textureBindGroupLayout;
@@ -115,7 +124,7 @@ namespace JE::GFX {
         }
     }
 
-    // Boilerplate? I hardly know her!
+    /* Boilerplate? I hardly know her!
     void setDefaultLimits(WGPULimits &limits) {
         limits.maxTextureDimension1D = WGPU_LIMIT_U32_UNDEFINED;
         limits.maxTextureDimension2D = WGPU_LIMIT_U32_UNDEFINED;
@@ -172,7 +181,7 @@ namespace JE::GFX {
         requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
 
         return requiredLimits;
-    }
+    }*/
 
     void createDevice() {
         WGPUDeviceDescriptor deviceDesc;
@@ -365,6 +374,8 @@ namespace JE::GFX {
         settings = s;
 
         initGLFW(w, h, n);
+        int fbw, fbh;
+        glfwGetFramebufferSize(*window, &fbw, &fbh);
         createInstance();
         createSurface();
         createAdapter();
@@ -374,7 +385,6 @@ namespace JE::GFX {
         createCommandObjects();
         createSwapchain(w, h);
 
-        /*
         ImGui::CreateContext();
         ImGui::GetIO();
 
@@ -386,7 +396,6 @@ namespace JE::GFX {
         initInfo.DepthStencilFormat = depthFormat;
         ImGui_ImplWGPU_Init(&initInfo);
         ImGui_ImplWGPU_CreateDeviceObjects();
-        */
 
         //TODO remove
         unsigned int testv = loadShader("./shaders/temp_triangle_vert.glsl", 0);
@@ -593,13 +602,28 @@ namespace JE::GFX {
         settings.clearColor[2] = b;
     }
 
+    unsigned int loadTextureBytes(void* src, unsigned int width, unsigned int height, const int& sampleFilter) {
+        //TODO: Implement textures
+    }
+
     unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
-        // TODO: Implement textures
+        stbi_set_flip_vertically_on_load(true);
+        int texWidth, texHeight, texChannels;
+        stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        if (!pixels) {
+            throw std::runtime_error("WGPU: Failed to load image \"" + fileName + "\"!");
+        }
         return 0;
     }
 
     unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter) {
-        // TODO: Implement textures
+        stbi_set_flip_vertically_on_load(true);
+        int texWidth, texHeight, texChannels;
+        stbi_uc *pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(fileFirstBytePtr), fileLength,
+                                                &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        if (!pixels) {
+            throw std::runtime_error("WGPU: Failed to load image from bundle!");
+        }
         return 0;
     }
 
