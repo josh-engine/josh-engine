@@ -54,6 +54,11 @@ namespace JE::GFX {
     struct index_pair {unsigned int resource; unsigned int bindGroup;};
     std::vector<index_pair> indexPairs{};
 
+    // TODO: findSupportedFormats like in gfx_vk.cpp
+    WGPUTextureFormat depthFormat = WGPUTextureFormat_Depth24Plus;
+    WGPUTexture depthTexture;
+    WGPUTextureView depthTextureView;
+
     void initGLFW(int width, int height, const char* windowName) {
         if (!glfwInit()) {
             throw std::runtime_error("WGPU: Could not initialize GLFW!");
@@ -170,15 +175,15 @@ namespace JE::GFX {
     }
 
     void createDevice() {
-        WGPUDeviceDescriptor deviceDescriptor;
-        deviceDescriptor.label = "John Graphics"; // why do these things have names??
-        deviceDescriptor.requiredFeatureCount = 0;
+        WGPUDeviceDescriptor deviceDesc;
+        deviceDesc.label = "John Graphics"; // why do these things have names??
+        deviceDesc.requiredFeatureCount = 0;
         //WGPURequiredLimits reqs = getRequiredLimits();
         //deviceDescriptor.requiredLimits = &reqs;
-        deviceDescriptor.requiredLimits = nullptr; // Weirdly enough, the tutorial tells me to do this then doesn't...
-        deviceDescriptor.defaultQueue.nextInChain = nullptr;
-        deviceDescriptor.defaultQueue.label = "John Queue"; // what??
-        deviceDescriptor.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void*) {
+        deviceDesc.requiredLimits = nullptr; // Weirdly enough, the tutorial tells me to do this then doesn't...
+        deviceDesc.defaultQueue.nextInChain = nullptr;
+        deviceDesc.defaultQueue.label = "John Queue"; // what??
+        deviceDesc.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void*) {
             std::cout << "WGPU: Device lost,  " << reason;
             if (message) std::cout << " (" << message << ")";
             std::cout << std::endl;
@@ -186,7 +191,7 @@ namespace JE::GFX {
 
         bool awty = false;
 
-        wgpuAdapterRequestDevice(adapter, &deviceDescriptor, [](WGPURequestDeviceStatus status, WGPUDevice d, char const * message, void * b) {
+        wgpuAdapterRequestDevice(adapter, &deviceDesc, [](WGPURequestDeviceStatus status, WGPUDevice d, char const * message, void * b) {
             if (status == WGPURequestDeviceStatus_Success) {
                 device = d;
             } else {
@@ -244,27 +249,6 @@ namespace JE::GFX {
         }
     }
 
-    void configureSurface(int width, int height) {
-        WGPUSurfaceConfiguration config{};
-        config.nextInChain = nullptr;
-
-        config.width = width;
-        config.height = height;
-
-        surfaceFormat = wgpuSurfaceGetPreferredFormat(surface, adapter);
-        config.format = surfaceFormat;
-        config.viewFormatCount = 0;
-        config.viewFormats = nullptr;
-
-        config.presentMode = getBestPresentMode();
-        config.alphaMode = WGPUCompositeAlphaMode_Auto;
-
-        config.usage = WGPUTextureUsage_RenderAttachment;
-        config.device = device;
-
-        wgpuSurfaceConfigure(surface, &config);
-    }
-
     void setDefaultBinding(WGPUBindGroupLayoutEntry &bindingLayout) {
         bindingLayout.buffer.nextInChain = nullptr;
         bindingLayout.buffer.type = WGPUBufferBindingType_Undefined;
@@ -320,6 +304,55 @@ namespace JE::GFX {
         textureBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &bindGroupLayoutDesc);
     }
 
+    void configureSurface(int width, int height) {
+        WGPUSurfaceConfiguration config{};
+        config.nextInChain = nullptr;
+
+        config.width = width;
+        config.height = height;
+
+        surfaceFormat = wgpuSurfaceGetPreferredFormat(surface, adapter);
+        config.format = surfaceFormat;
+        config.viewFormatCount = 0;
+        config.viewFormats = nullptr;
+
+        config.presentMode = getBestPresentMode();
+        config.alphaMode = WGPUCompositeAlphaMode_Auto;
+
+        config.usage = WGPUTextureUsage_RenderAttachment;
+        config.device = device;
+
+        wgpuSurfaceConfigure(surface, &config);
+    }
+
+    void createDepthTexture(int width, int height) {
+        WGPUTextureDescriptor depthTextureDesc{};
+        depthTextureDesc.dimension = WGPUTextureDimension_2D;
+        depthTextureDesc.format = depthFormat;
+        depthTextureDesc.mipLevelCount = 1;
+        depthTextureDesc.sampleCount = 1;
+        depthTextureDesc.size = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+        depthTextureDesc.usage = WGPUTextureUsage_RenderAttachment;
+        depthTextureDesc.viewFormatCount = 1;
+        depthTextureDesc.viewFormats = &depthFormat;
+        depthTexture = wgpuDeviceCreateTexture(device, &depthTextureDesc);
+
+        WGPUTextureViewDescriptor depthTextureViewDesc{};
+        depthTextureViewDesc.aspect = WGPUTextureAspect_DepthOnly;
+        depthTextureViewDesc.baseArrayLayer = 0;
+        depthTextureViewDesc.arrayLayerCount = 1;
+        depthTextureViewDesc.baseMipLevel = 0;
+        depthTextureViewDesc.mipLevelCount = 1;
+        depthTextureViewDesc.dimension = WGPUTextureViewDimension_2D;
+        depthTextureViewDesc.format = depthFormat;
+        depthTextureView = wgpuTextureCreateView(depthTexture, &depthTextureViewDesc);
+    }
+
+    void createSwapchain(int width, int height) {
+        configureSurface(width, height);
+        createDepthTexture(width, height);
+    }
+
     void init(GLFWwindow **p, const char* n, int w, int h, GraphicsSettings s) {
         window = p;
         settings = s;
@@ -332,7 +365,21 @@ namespace JE::GFX {
         createUniformBindGroupLayout();
         //createTextureBindGroupLayout();
         createCommandObjects();
-        configureSurface(w, h);
+        createSwapchain(w, h);
+
+        /*
+        ImGui::CreateContext();
+        ImGui::GetIO();
+
+        ImGui_ImplGlfw_InitForOther(*window, true);
+        ImGui_ImplWGPU_InitInfo initInfo{};
+        initInfo.Device = device;
+        initInfo.NumFramesInFlight = 1;
+        initInfo.RenderTargetFormat = surfaceFormat;
+        initInfo.DepthStencilFormat = depthFormat;
+        ImGui_ImplWGPU_Init(&initInfo);
+        ImGui_ImplWGPU_CreateDeviceObjects();
+        */
 
         //TODO remove
         unsigned int testv = loadShader("./shaders/temp_triangle_vert.wgsl", 0);
@@ -340,8 +387,8 @@ namespace JE::GFX {
         ShaderProgramSettings shaderProgramSettings{};
         shaderProgramSettings.transparencySupported = false;
         shaderProgramSettings.doubleSided = true;
-        shaderProgramSettings.shaderInputs = 0b0;
-        shaderProgramSettings.shaderInputCount = 1;
+        shaderProgramSettings.shaderInputs = 0b00;
+        shaderProgramSettings.shaderInputCount = 2;
 
         createProgram(testv, testf, shaderProgramSettings, VERTEX);
 
@@ -362,6 +409,10 @@ namespace JE::GFX {
         unsigned int ubufid = JE::GFX::createUniformBuffer(sizeof(float)); // specify JE::GFX not JE
         float f = -0.5f;
         JE::GFX::updateUniformBuffer(ubufid, &f, sizeof(float), false);
+
+        unsigned int ubufid2 = JE::GFX::createUniformBuffer(sizeof(float)); // specify JE::GFX not JE
+        float f2 = -0.5f;
+        JE::GFX::updateUniformBuffer(ubufid2, &f2, sizeof(float), false);
     }
 
     WGPUTextureView acquireNext() {
@@ -370,18 +421,18 @@ namespace JE::GFX {
 
         if (surfaceTexture.status != WGPUSurfaceGetCurrentTextureStatus_Success) return nullptr;
 
-        WGPUTextureViewDescriptor viewDescriptor;
-        viewDescriptor.nextInChain = nullptr;
-        viewDescriptor.label = "John Descriptor"; // Please stop letting me name things
-        viewDescriptor.format = wgpuTextureGetFormat(surfaceTexture.texture);
-        viewDescriptor.dimension = WGPUTextureViewDimension_2D;
-        viewDescriptor.baseMipLevel = 0;
-        viewDescriptor.mipLevelCount = 1;
-        viewDescriptor.baseArrayLayer = 0;
-        viewDescriptor.arrayLayerCount = 1;
-        viewDescriptor.aspect = WGPUTextureAspect_All;
+        WGPUTextureViewDescriptor viewDesc;
+        viewDesc.nextInChain = nullptr;
+        viewDesc.label = "John Descriptor"; // Please stop letting me name things
+        viewDesc.format = wgpuTextureGetFormat(surfaceTexture.texture);
+        viewDesc.dimension = WGPUTextureViewDimension_2D;
+        viewDesc.baseMipLevel = 0;
+        viewDesc.mipLevelCount = 1;
+        viewDesc.baseArrayLayer = 0;
+        viewDesc.arrayLayerCount = 1;
+        viewDesc.aspect = WGPUTextureAspect_All;
 
-        auto view = wgpuTextureCreateView(surfaceTexture.texture, &viewDescriptor);
+        auto view = wgpuTextureCreateView(surfaceTexture.texture, &viewDesc);
 #ifndef WEBGPU_BACKEND_WGPU // If we all just complied to real browser implementation life could be dream
         wgpuTextureRelease(surfaceTexture.texture);
 #endif // WEBGPU_BACKEND_WGPU
@@ -391,6 +442,18 @@ namespace JE::GFX {
     void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls) {
         WGPUTextureView next = acquireNext();
         if (!next) return;
+
+        /*
+        ImGui_ImplGlfw_NewFrame();
+        ImGui_ImplWGPU_NewFrame();
+
+        ImGui::NewFrame();
+        for (auto fn : imGuiCalls) {
+            fn();
+        }
+        ImGui::EndFrame();
+        ImGui::Render();
+         */
 
         // I swear the Vulkan PTSD is fully set in
         WGPUCommandEncoderDescriptor encoderDesc{};
@@ -413,19 +476,31 @@ namespace JE::GFX {
         renderPassColorAttachment.depthSlice = WGPU_DEPTH_SLICE_UNDEFINED;
 #endif // NOT WEBGPU_BACKEND_WGPU
 
+        WGPURenderPassDepthStencilAttachment depthStencilAttachment;
+        depthStencilAttachment.view = depthTextureView;
 
-        // Create pass descriptor
-        WGPURenderPassDescriptor renderPassDescriptor{};
-        renderPassDescriptor.nextInChain = nullptr;
-        renderPassDescriptor.colorAttachmentCount = 1;
-        renderPassDescriptor.colorAttachments = &renderPassColorAttachment;
-        renderPassDescriptor.depthStencilAttachment = nullptr;
-        renderPassDescriptor.timestampWrites = nullptr;
+        // Feels right at home...
+        depthStencilAttachment.depthClearValue = 1.0f;
+        depthStencilAttachment.depthLoadOp = WGPULoadOp_Clear;
+        depthStencilAttachment.depthStoreOp = WGPUStoreOp_Store;
+        depthStencilAttachment.depthReadOnly = false;
+
+        // TODO: At some point in both APIs, maybe add support for this?
+        depthStencilAttachment.stencilClearValue = 0;
+        depthStencilAttachment.stencilLoadOp = WGPULoadOp_Clear; // Where's LOAD_OP_DONT_CARE when you need it?
+        depthStencilAttachment.stencilStoreOp = WGPUStoreOp_Store;
+        depthStencilAttachment.stencilReadOnly = true;
+
+        WGPURenderPassDescriptor passDesc{};
+        passDesc.nextInChain = nullptr;
+        passDesc.colorAttachmentCount = 1;
+        passDesc.colorAttachments = &renderPassColorAttachment;
+        passDesc.depthStencilAttachment =  &depthStencilAttachment;
+        passDesc.timestampWrites = nullptr;
 
         // Generate render commands
-        auto pass = wgpuCommandEncoderBeginRenderPass(encoder, &renderPassDescriptor);
+        auto pass = wgpuCommandEncoderBeginRenderPass(encoder, &passDesc);
         // TODO: Render triangles!
-        // Select which render pipeline to use
         wgpuRenderPassEncoderSetPipeline(pass, pipelineVector[0]);
 
         unsigned int buf = 0;
@@ -435,9 +510,15 @@ namespace JE::GFX {
         wgpuRenderPassEncoderSetIndexBuffer(pass, buffers[buf+1], WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(buffers[buf+1]));
 
         wgpuRenderPassEncoderSetBindGroup(pass, 0, bindGroups[0], 0, nullptr);
+        wgpuRenderPassEncoderSetBindGroup(pass, 1, bindGroups[1], 0, nullptr);
+
+        // For renderables
+        //wgpuRenderPassEncoderSetPushConstants()
 
         // Draw 1 instance of a 3-vertices shape
         wgpuRenderPassEncoderDraw(pass, 3, 1, 0, 0);
+
+        //ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), pass);
 
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);
@@ -446,10 +527,10 @@ namespace JE::GFX {
         updateUniformBuffer(0, &t, sizeof(float), false);
 
         // Submit render commands
-        WGPUCommandBufferDescriptor commandBufferDescriptor{};
-        commandBufferDescriptor.nextInChain = nullptr;
-        commandBufferDescriptor.label = "Render Command Buffer";
-        auto command = wgpuCommandEncoderFinish(encoder, &commandBufferDescriptor);
+        WGPUCommandBufferDescriptor commandBufferDesc{};
+        commandBufferDesc.nextInChain = nullptr;
+        commandBufferDesc.label = "Render Command Buffer";
+        auto command = wgpuCommandEncoderFinish(encoder, &commandBufferDesc);
         wgpuCommandEncoderRelease(encoder);
 
         wgpuQueueSubmit(queue, 1, &command);
@@ -462,10 +543,14 @@ namespace JE::GFX {
     }
 
     void deinit() {
+        //ImGui_ImplGlfw_Shutdown();
+        //ImGui_ImplWGPU_Shutdown();
+
         for (auto bindGroup : bindGroups) {
             wgpuBindGroupRelease(bindGroup);
         }
         for (auto buf : buffers) {
+            wgpuBufferDestroy(buf);
             wgpuBufferRelease(buf);
         }
         for (auto shader : shaderModuleVector) {
@@ -474,6 +559,9 @@ namespace JE::GFX {
         for (auto pipeline : pipelineVector) {
             wgpuRenderPipelineRelease(pipeline);
         }
+        wgpuTextureViewRelease(depthTextureView);
+        wgpuTextureDestroy(depthTexture);
+        wgpuTextureRelease(depthTexture);
         wgpuSurfaceUnconfigure(surface);
         wgpuQueueRelease(queue);
         //wgpuBindGroupLayoutRelease(textureBindGroupLayout);
@@ -557,12 +645,32 @@ namespace JE::GFX {
         return id;
     }
 
-    unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype) {
-        WGPURenderPipelineDescriptor pipelineDescriptor{};
-        pipelineDescriptor.nextInChain = nullptr;
+    void setDefaultStencilFaceState(WGPUStencilFaceState &stencilFaceState) {
+        stencilFaceState.compare = WGPUCompareFunction_Always;
+        stencilFaceState.failOp = WGPUStencilOperation_Keep;
+        stencilFaceState.depthFailOp = WGPUStencilOperation_Keep;
+        stencilFaceState.passOp = WGPUStencilOperation_Keep;
+    }
 
-        pipelineDescriptor.vertex.bufferCount = 0;
-        pipelineDescriptor.vertex.buffers = nullptr;
+    void setDefaultDepthStencilState(WGPUDepthStencilState &depthStencilState) {
+        depthStencilState.format = WGPUTextureFormat_Undefined;
+        depthStencilState.depthWriteEnabled = false;
+        depthStencilState.depthCompare = WGPUCompareFunction_Always;
+        depthStencilState.stencilReadMask = 0xFFFFFFFF;
+        depthStencilState.stencilWriteMask = 0xFFFFFFFF;
+        depthStencilState.depthBias = 0;
+        depthStencilState.depthBiasSlopeScale = 0;
+        depthStencilState.depthBiasClamp = 0;
+        setDefaultStencilFaceState(depthStencilState.stencilFront);
+        setDefaultStencilFaceState(depthStencilState.stencilBack);
+    }
+
+    unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype) {
+        WGPURenderPipelineDescriptor pipelineDesc{};
+        pipelineDesc.nextInChain = nullptr;
+
+        pipelineDesc.vertex.bufferCount = 0;
+        pipelineDesc.vertex.buffers = nullptr;
 
         std::vector<WGPUVertexAttribute> vtxAttrs{};
         vtxAttrs.push_back({});
@@ -593,17 +701,17 @@ namespace JE::GFX {
         vertexBufferLayout.arrayStride = vtype == VERTEX ? sizeof(InterleavedVertex) : sizeof(InterleavedAnimatedVertex);
         vertexBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
 
-        pipelineDescriptor.vertex.module = shaderModuleVector[VertexShaderID];
-        pipelineDescriptor.vertex.entryPoint = "main";
-        pipelineDescriptor.vertex.constantCount = 0;
-        pipelineDescriptor.vertex.constants = nullptr;
-        pipelineDescriptor.vertex.bufferCount = 1;
-        pipelineDescriptor.vertex.buffers = &vertexBufferLayout;
+        pipelineDesc.vertex.module = shaderModuleVector[VertexShaderID];
+        pipelineDesc.vertex.entryPoint = "main";
+        pipelineDesc.vertex.constantCount = 0;
+        pipelineDesc.vertex.constants = nullptr;
+        pipelineDesc.vertex.bufferCount = 1;
+        pipelineDesc.vertex.buffers = &vertexBufferLayout;
 
-        pipelineDescriptor.primitive.topology = WGPUPrimitiveTopology_TriangleList;
-        pipelineDescriptor.primitive.stripIndexFormat = WGPUIndexFormat_Undefined;
-        pipelineDescriptor.primitive.frontFace = WGPUFrontFace_CCW;
-        pipelineDescriptor.primitive.cullMode = shaderProgramSettings.doubleSided ? WGPUCullMode_None : WGPUCullMode_Back;
+        pipelineDesc.primitive.topology = WGPUPrimitiveTopology_TriangleList;
+        pipelineDesc.primitive.stripIndexFormat = WGPUIndexFormat_Undefined;
+        pipelineDesc.primitive.frontFace = WGPUFrontFace_CCW;
+        pipelineDesc.primitive.cullMode = shaderProgramSettings.doubleSided ? WGPUCullMode_None : WGPUCullMode_Back;
 
         WGPUBlendState blendState{};
         if (shaderProgramSettings.transparencySupported) {
@@ -632,14 +740,24 @@ namespace JE::GFX {
         fragmentState.targetCount = 1;
         fragmentState.targets = &colorTarget;
 
-        pipelineDescriptor.fragment = &fragmentState;
+        pipelineDesc.fragment = &fragmentState;
 
-        pipelineDescriptor.depthStencil = nullptr;
+        WGPUDepthStencilState depthStencilState{};
+        setDefaultDepthStencilState(depthStencilState);
+        depthStencilState.nextInChain = nullptr;
+        depthStencilState.format = depthFormat;
+        depthStencilState.depthWriteEnabled = !shaderProgramSettings.transparencySupported;
+        depthStencilState.depthCompare = shaderProgramSettings.depthAlwaysPass ? WGPUCompareFunction_Always
+                                                                               : WGPUCompareFunction_LessEqual;
+        depthStencilState.stencilReadMask = 0;
+        depthStencilState.stencilWriteMask = 0;
+
+        pipelineDesc.depthStencil = &depthStencilState;
 
         // TODO MSAA
-        pipelineDescriptor.multisample.count = 1;
-        pipelineDescriptor.multisample.mask = ~0u;
-        pipelineDescriptor.multisample.alphaToCoverageEnabled = false;
+        pipelineDesc.multisample.count = 1;
+        pipelineDesc.multisample.mask = ~0u;
+        pipelineDesc.multisample.alphaToCoverageEnabled = false;
 
         // Direct translation of "dsls" loop in gfx_vk.cpp
         std::vector<WGPUBindGroupLayout> bgls{};
@@ -661,9 +779,9 @@ namespace JE::GFX {
         layoutDesc.bindGroupLayouts = bgls.data();
         auto layout = wgpuDeviceCreatePipelineLayout(device, &layoutDesc);
 
-        pipelineDescriptor.layout = layout;
+        pipelineDesc.layout = layout;
 
-        auto pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDescriptor);
+        auto pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDesc);
 
         if (pipeline == nullptr) {
             throw std::runtime_error("WGPU: Failed to create graphics pipeline!");
@@ -675,14 +793,14 @@ namespace JE::GFX {
     }
 
     unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label) {
-        WGPUBufferDescriptor bufferDescriptor{};
-        bufferDescriptor.nextInChain = nullptr;
-        bufferDescriptor.label = label;
-        bufferDescriptor.usage = usage;
-        bufferDescriptor.size = size;
-        bufferDescriptor.mappedAtCreation = true;
+        WGPUBufferDescriptor bufferDesc{};
+        bufferDesc.nextInChain = nullptr;
+        bufferDesc.label = label;
+        bufferDesc.usage = usage;
+        bufferDesc.size = size;
+        bufferDesc.mappedAtCreation = true;
 
-        WGPUBuffer buffer = wgpuDeviceCreateBuffer(device, &bufferDescriptor);
+        WGPUBuffer buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
         if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create lifetime buffer!");
 
         void* map = wgpuBufferGetMappedRange(buffer, 0, size);
