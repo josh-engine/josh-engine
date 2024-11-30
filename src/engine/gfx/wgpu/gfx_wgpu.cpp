@@ -382,8 +382,8 @@ namespace JE::GFX {
         */
 
         //TODO remove
-        unsigned int testv = loadShader("./shaders/temp_triangle_vert.wgsl", 0);
-        unsigned int testf = loadShader("./shaders/temp_triangle_frag.wgsl", 0);
+        unsigned int testv = loadShader("./shaders/temp_triangle_vert.glsl", 0);
+        unsigned int testf = loadShader("./shaders/temp_triangle_frag.glsl", 0);
         ShaderProgramSettings shaderProgramSettings{};
         shaderProgramSettings.transparencySupported = false;
         shaderProgramSettings.doubleSided = true;
@@ -622,6 +622,13 @@ namespace JE::GFX {
     }
 
     unsigned int loadShader(const std::string& file_path, int target) {
+        std::string copy = file_path;
+        if (ends_with(file_path, ".glsl")) {
+            unsigned int lastSubdir = file_path.rfind('/');
+            copy = file_path.substr(0, lastSubdir) + "/wgsl_conv/" +
+                   file_path.substr(lastSubdir + 1, file_path.length() - 5 - (lastSubdir + 1)) + ".wgsl";
+        }
+
         WGPUShaderModuleDescriptor shaderDesc{};
 #ifdef WEBGPU_BACKEND_WGPU
         shaderDesc.hintCount = 0;
@@ -630,14 +637,14 @@ namespace JE::GFX {
         WGPUShaderModuleWGSLDescriptor shaderCodeDesc{};
         shaderCodeDesc.chain.next = nullptr;
         shaderCodeDesc.chain.sType = WGPUSType_ShaderModuleWGSLDescriptor;
-        auto code = readFile(file_path);
+        auto code = readFile(copy);
         shaderCodeDesc.code = &code[0];
 
         shaderDesc.nextInChain = &shaderCodeDesc.chain;
         WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device, &shaderDesc);
 
         if (shaderModule == nullptr) {
-            throw std::runtime_error("WGPU: Failed to create shader module for \"" + file_path + "\"!");
+            throw std::runtime_error("WGPU: Failed to create shader module for \"" + copy + "\"!");
         }
 
         unsigned int id = shaderModuleVector.size();

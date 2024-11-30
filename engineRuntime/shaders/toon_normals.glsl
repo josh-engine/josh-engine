@@ -1,4 +1,4 @@
-// JE_TRANSLATE
+// JE_TRANSLATE fragment
 #version 420
 
 layout(location = 0) out vec4 c_final;
