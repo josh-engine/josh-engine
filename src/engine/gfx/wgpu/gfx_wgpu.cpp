@@ -24,7 +24,7 @@
 
 namespace JE::GFX {
 
-    unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label = "JEbuffer");
+    unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label = "JElifetimebuffer");
 
     GraphicsSettings settings;
     GLFWwindow** window;
@@ -44,8 +44,15 @@ namespace JE::GFX {
     std::vector<WGPUShaderModule> shaderModuleVector{};
     std::vector<WGPURenderPipeline> pipelineVector{};
 
-    std::vector<WGPUBuffer> vertexBuffers{};
-    std::vector<WGPUBuffer> indexBuffers{};
+    std::vector<WGPUBuffer> buffers{};
+
+    WGPUBindGroupLayout uniformBindGroupLayout;
+    WGPUBindGroupLayout textureBindGroupLayout;
+
+    std::vector<WGPUBindGroup> bindGroups{};
+
+    struct index_pair {unsigned int resource; unsigned int bindGroup;};
+    std::vector<index_pair> indexPairs{};
 
     void initGLFW(int width, int height, const char* windowName) {
         if (!glfwInit()) {
@@ -258,6 +265,61 @@ namespace JE::GFX {
         wgpuSurfaceConfigure(surface, &config);
     }
 
+    void setDefaultBinding(WGPUBindGroupLayoutEntry &bindingLayout) {
+        bindingLayout.buffer.nextInChain = nullptr;
+        bindingLayout.buffer.type = WGPUBufferBindingType_Undefined;
+        bindingLayout.buffer.hasDynamicOffset = false;
+
+        bindingLayout.sampler.nextInChain = nullptr;
+        bindingLayout.sampler.type = WGPUSamplerBindingType_Undefined;
+
+        bindingLayout.storageTexture.nextInChain = nullptr;
+        bindingLayout.storageTexture.access = WGPUStorageTextureAccess_Undefined;
+        bindingLayout.storageTexture.format = WGPUTextureFormat_Undefined;
+        bindingLayout.storageTexture.viewDimension = WGPUTextureViewDimension_Undefined;
+
+        bindingLayout.texture.nextInChain = nullptr;
+        bindingLayout.texture.multisampled = false;
+        bindingLayout.texture.sampleType = WGPUTextureSampleType_Undefined;
+        bindingLayout.texture.viewDimension = WGPUTextureViewDimension_Undefined;
+    }
+
+    void createUniformBindGroupLayout() {
+        // Define binding layout
+        WGPUBindGroupLayoutEntry bindingLayout{};
+        setDefaultBinding(bindingLayout);
+        bindingLayout.binding = 0;
+        bindingLayout.visibility = WGPUShaderStage_Vertex;
+        bindingLayout.buffer.type = WGPUBufferBindingType_Uniform;
+        bindingLayout.buffer.minBindingSize = 2 * sizeof(uint64_t);
+
+        // Create a bind group layout
+        WGPUBindGroupLayoutDescriptor bindGroupLayoutDesc{};
+        bindGroupLayoutDesc.nextInChain = nullptr;
+        bindGroupLayoutDesc.entryCount = 1;
+        bindGroupLayoutDesc.entries = &bindingLayout;
+        uniformBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &bindGroupLayoutDesc);
+    }
+
+    void createTextureBindGroupLayout() {
+        std::array<WGPUBindGroupLayoutEntry, 2> layouts{};
+        // Define binding layout
+        setDefaultBinding(layouts[0]);
+        layouts[0].binding = 0;
+        layouts[0].visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+
+        setDefaultBinding(layouts[1]);
+        layouts[1].binding = 1;
+        layouts[1].visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+
+        // Create a bind group layout
+        WGPUBindGroupLayoutDescriptor bindGroupLayoutDesc{};
+        bindGroupLayoutDesc.nextInChain = nullptr;
+        bindGroupLayoutDesc.entryCount = layouts.size();
+        bindGroupLayoutDesc.entries = layouts.data();
+        textureBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &bindGroupLayoutDesc);
+    }
+
     void init(GLFWwindow **p, const char* n, int w, int h, GraphicsSettings s) {
         window = p;
         settings = s;
@@ -267,6 +329,8 @@ namespace JE::GFX {
         createSurface();
         createAdapter();
         createDevice();
+        createUniformBindGroupLayout();
+        //createTextureBindGroupLayout();
         createCommandObjects();
         configureSurface(w, h);
 
@@ -276,20 +340,28 @@ namespace JE::GFX {
         ShaderProgramSettings shaderProgramSettings{};
         shaderProgramSettings.transparencySupported = false;
         shaderProgramSettings.doubleSided = true;
+        shaderProgramSettings.shaderInputs = 0b0;
+        shaderProgramSettings.shaderInputCount = 1;
+
         createProgram(testv, testf, shaderProgramSettings, VERTEX);
 
-        std::vector<float> vertexData = {
+        std::vector<InterleavedVertex> vertexData = {
                 // x0, y0
-                -0.5, -0.5,
+                {{-0.5, -0.5, 0.0}, {0.0, 0.0}, {0.0, 0.0, 1.0}},
 
                 // x1, y1
-                +0.5, -0.5,
+                {{+0.5, -0.5, 0.0}, {1.0, 0.0}, {0.0, 0.0, 1.0}},
 
                 // x2, y2
-                +0.0, +0.5
+                {{+0.0, +0.5, 0.0}, {0.5, 1.0}, {0.0, 0.0, 1.0}}
         };
 
-        createLifetimeBuffer(&vertexData[0], vertexData.size()*sizeof(float), WGPUBufferUsage_Vertex, vertexBuffers);
+        std::vector<unsigned int> indexData = {0, 1, 2};
+
+        createVBO(&vertexData, &indexData);
+        unsigned int ubufid = JE::GFX::createUniformBuffer(sizeof(float)); // specify JE::GFX not JE
+        float f = -0.5f;
+        JE::GFX::updateUniformBuffer(ubufid, &f, sizeof(float), false);
     }
 
     WGPUTextureView acquireNext() {
@@ -356,14 +428,22 @@ namespace JE::GFX {
         // Select which render pipeline to use
         wgpuRenderPassEncoderSetPipeline(pass, pipelineVector[0]);
 
-        // Set vertex buffer while encoding the render pass
-        wgpuRenderPassEncoderSetVertexBuffer(pass, 0, vertexBuffers[0], 0, wgpuBufferGetSize(vertexBuffers[0]));
+        unsigned int buf = 0;
 
-// Draw 1 instance of a 3-vertices shape
+        // Set vertex buffer while encoding the render pass
+        wgpuRenderPassEncoderSetVertexBuffer(pass, 0, buffers[buf], 0, wgpuBufferGetSize(buffers[buf]));
+        wgpuRenderPassEncoderSetIndexBuffer(pass, buffers[buf+1], WGPUIndexFormat_Uint32, 0, wgpuBufferGetSize(buffers[buf+1]));
+
+        wgpuRenderPassEncoderSetBindGroup(pass, 0, bindGroups[0], 0, nullptr);
+
+        // Draw 1 instance of a 3-vertices shape
         wgpuRenderPassEncoderDraw(pass, 3, 1, 0, 0);
 
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);
+
+        auto t = static_cast<float>(sin(glfwGetTime())/2); // glfwGetTime returns a double
+        updateUniformBuffer(0, &t, sizeof(float), false);
 
         // Submit render commands
         WGPUCommandBufferDescriptor commandBufferDescriptor{};
@@ -382,10 +462,10 @@ namespace JE::GFX {
     }
 
     void deinit() {
-        for (auto buf : vertexBuffers) {
-            wgpuBufferRelease(buf);
+        for (auto bindGroup : bindGroups) {
+            wgpuBindGroupRelease(bindGroup);
         }
-        for (auto buf : indexBuffers) {
+        for (auto buf : buffers) {
             wgpuBufferRelease(buf);
         }
         for (auto shader : shaderModuleVector) {
@@ -396,6 +476,8 @@ namespace JE::GFX {
         }
         wgpuSurfaceUnconfigure(surface);
         wgpuQueueRelease(queue);
+        //wgpuBindGroupLayoutRelease(textureBindGroupLayout);
+        wgpuBindGroupLayoutRelease(uniformBindGroupLayout);
         wgpuDeviceRelease(device);
         wgpuAdapterRelease(adapter);
         wgpuSurfaceRelease(surface);
@@ -482,16 +564,33 @@ namespace JE::GFX {
         pipelineDescriptor.vertex.bufferCount = 0;
         pipelineDescriptor.vertex.buffers = nullptr;
 
+        std::vector<WGPUVertexAttribute> vtxAttrs{};
+        vtxAttrs.push_back({});
+        vtxAttrs[0].shaderLocation = 0;
+        vtxAttrs[0].format = WGPUVertexFormat_Float32x3;
+        vtxAttrs[0].offset = offsetof(InterleavedVertex, position);
 
-        WGPUVertexAttribute positionAttrib{};
-        positionAttrib.shaderLocation = 0;
-        positionAttrib.format = WGPUVertexFormat_Float32x2;
-        positionAttrib.offset = 0;
+        vtxAttrs.push_back({});
+        vtxAttrs[1].shaderLocation = 1;
+        vtxAttrs[1].format = WGPUVertexFormat_Float32x2;
+        vtxAttrs[1].offset = offsetof(InterleavedVertex, uvCoords);
+
+        vtxAttrs.push_back({});
+        vtxAttrs[2].shaderLocation = 2;
+        vtxAttrs[2].format = WGPUVertexFormat_Float32x3;
+        vtxAttrs[2].offset = offsetof(InterleavedVertex, normal);
+
+        if (vtype == ANIMATED_VERTEX) {
+            vtxAttrs.push_back({});
+            vtxAttrs[3].shaderLocation = 3;
+            vtxAttrs[3].format = WGPUVertexFormat_Uint8x2;
+            vtxAttrs[3].offset = offsetof(InterleavedAnimatedVertex, groupID);
+        }
 
         WGPUVertexBufferLayout vertexBufferLayout{};
-        vertexBufferLayout.attributeCount = 1;
-        vertexBufferLayout.attributes = &positionAttrib;
-        vertexBufferLayout.arrayStride = 2 * sizeof(float);
+        vertexBufferLayout.attributeCount = vtxAttrs.size();
+        vertexBufferLayout.attributes = &vtxAttrs[0];
+        vertexBufferLayout.arrayStride = vtype == VERTEX ? sizeof(InterleavedVertex) : sizeof(InterleavedAnimatedVertex);
         vertexBufferLayout.stepMode = WGPUVertexStepMode_Vertex;
 
         pipelineDescriptor.vertex.module = shaderModuleVector[VertexShaderID];
@@ -542,7 +641,29 @@ namespace JE::GFX {
         pipelineDescriptor.multisample.mask = ~0u;
         pipelineDescriptor.multisample.alphaToCoverageEnabled = false;
 
-        WGPURenderPipeline pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDescriptor);
+        // Direct translation of "dsls" loop in gfx_vk.cpp
+        std::vector<WGPUBindGroupLayout> bgls{};
+        for (int i = 0; i < shaderProgramSettings.shaderInputCount; i++) {
+            //  select single bit from shader inputs
+            if (((shaderProgramSettings.shaderInputs >> i) & 0b1) == 1) {
+                // texture
+                bgls.push_back(textureBindGroupLayout);
+            } else {
+                // uniform
+                bgls.push_back(uniformBindGroupLayout);
+            }
+        }
+
+// Create the pipeline layout
+        WGPUPipelineLayoutDescriptor layoutDesc{};
+        layoutDesc.nextInChain = nullptr;
+        layoutDesc.bindGroupLayoutCount = bgls.size();
+        layoutDesc.bindGroupLayouts = bgls.data();
+        auto layout = wgpuDeviceCreatePipelineLayout(device, &layoutDesc);
+
+        pipelineDescriptor.layout = layout;
+
+        auto pipeline = wgpuDeviceCreateRenderPipeline(device, &pipelineDescriptor);
 
         if (pipeline == nullptr) {
             throw std::runtime_error("WGPU: Failed to create graphics pipeline!");
@@ -578,35 +699,58 @@ namespace JE::GFX {
         createLifetimeBuffer(&(*interleavedVertices)[0],
                              interleavedVertices->size()*sizeof(InterleavedVertex),
                              WGPUBufferUsage_Vertex,
-                             vertexBuffers);
+                             buffers);
         unsigned int idx2 =
         createLifetimeBuffer(&(*indices)[0],
                              indices->size()*sizeof(unsigned int),
                              WGPUBufferUsage_Index,
-                             indexBuffers);
-        if (idx1 != idx2) throw std::runtime_error("WGPU: Index/Vertex buffer count mismatch!");
+                             buffers);
+        if (idx1+1 != idx2) throw std::runtime_error("WGPU: Vertex/Index buffer ID desynced!");
         return idx1;
     }
 
     unsigned int createUniformBuffer(size_t bufferSize) {
-        /* Not actually sure if this is how I'm supposed to implement it
+        // WebGPU quirk.
+        if (bufferSize < 16) bufferSize = 16;
+
         WGPUBufferDescriptor bufferDesc = {};
         bufferDesc.nextInChain = nullptr;
-        bufferDesc.label = "Uniform Buf";
+        bufferDesc.label = "JEuniformbuffer";
         bufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
         bufferDesc.size = bufferSize;
         bufferDesc.mappedAtCreation = false;
-        WGPUBuffer buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
+        auto buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
 
-        if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create buffer!");
-        unsigned int id = bufferVector.size();
-        bufferVector.push_back(buffer);
+        if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create uniform buffer!");
+        unsigned int bufferID = buffers.size();
+        buffers.push_back(buffer);
+
+        // Create a binding
+        WGPUBindGroupEntry binding{};
+        binding.nextInChain = nullptr;
+        binding.binding = 0;
+        binding.buffer = buffers[bufferID];
+        binding.offset = 0;
+        binding.size = bufferSize;
+
+        WGPUBindGroupDescriptor bindGroupDesc{};
+        bindGroupDesc.nextInChain = nullptr;
+        bindGroupDesc.layout = uniformBindGroupLayout;
+        bindGroupDesc.entryCount = 1;
+        bindGroupDesc.entries = &binding;
+        auto bindGroup = wgpuDeviceCreateBindGroup(device, &bindGroupDesc);
+
+        if (bindGroup == nullptr) throw std::runtime_error("WGPU: Failed to create uniform bind group!");
+        unsigned int bindID = bindGroups.size();
+        bindGroups.push_back(bindGroup);
+
+        unsigned int id = indexPairs.size();
+        indexPairs.push_back({bufferID, bindID});
+
         return id;
-         */
-        return 0;
     }
 
     void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
-        // TODO: Implement uniform buffers
+        wgpuQueueWriteBuffer(queue, buffers[indexPairs[id].resource], 0, ptr, size);
     }
 }
