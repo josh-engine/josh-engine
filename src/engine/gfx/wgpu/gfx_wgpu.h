@@ -22,6 +22,7 @@ unsigned int loadTexture(const std::string& fileName, const int& samplerFilter);
 unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter);
 unsigned int loadShader(const std::string& file_path, int target);
 unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype);
+unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype, bool use2DSamplers);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices);
