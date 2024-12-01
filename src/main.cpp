@@ -3,8 +3,8 @@
 
 int main() {
     JE::GraphicsSettings graphicsSettings{};
-    graphicsSettings.vsyncEnabled = false;
-    graphicsSettings.skybox = false;
+    graphicsSettings.vsyncEnabled = true;
+    graphicsSettings.skybox = true;
     graphicsSettings.clearColor[0] = 0.75f;
     graphicsSettings.clearColor[1] = 0.75f;
     graphicsSettings.clearColor[2] = 0.8f;

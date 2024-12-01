@@ -63,6 +63,7 @@ namespace JE::GFX {
 
     WGPUBindGroupLayout uniformBindGroupLayout;
     WGPUBindGroupLayout textureBindGroupLayout;
+    WGPUBindGroupLayout cubemapBindGroupLayout;
 
     std::vector<WGPUBindGroup> bindGroups{};
 
@@ -325,6 +326,28 @@ namespace JE::GFX {
         textureBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &bindGroupLayoutDesc);
     }
 
+    void createCubemapBindGroupLayout() {
+        std::array<WGPUBindGroupLayoutEntry, 2> layouts{};
+        // Define binding layout
+        setDefaultBinding(layouts[0]);
+        layouts[0].binding = 0;
+        layouts[0].visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+        layouts[0].texture.sampleType = WGPUTextureSampleType_Float;
+        layouts[0].texture.viewDimension = WGPUTextureViewDimension_Cube;
+
+        setDefaultBinding(layouts[1]);
+        layouts[1].binding = 1;
+        layouts[1].visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+        layouts[1].sampler.type = WGPUSamplerBindingType_Filtering;
+
+        // Create a bind group layout
+        WGPUBindGroupLayoutDescriptor bindGroupLayoutDesc{};
+        bindGroupLayoutDesc.nextInChain = nullptr;
+        bindGroupLayoutDesc.entryCount = layouts.size();
+        bindGroupLayoutDesc.entries = layouts.data();
+        cubemapBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &bindGroupLayoutDesc);
+    }
+
     void configureSurface(int width, int height) {
         WGPUSurfaceConfiguration config{};
         config.nextInChain = nullptr;
@@ -394,6 +417,7 @@ namespace JE::GFX {
         createDevice();
         createUniformBindGroupLayout();
         createTextureBindGroupLayout();
+        createCubemapBindGroupLayout();
         createCommandObjects();
         createSwapchain(fbw, fbh);
         pushConstantBufferID = JE::GFX::createUniformBuffer(pushConstantBufferSize * 2);
@@ -593,6 +617,7 @@ namespace JE::GFX {
         destroySwapchain();
         wgpuSurfaceRelease(surface);
         wgpuQueueRelease(queue);
+        wgpuBindGroupLayoutRelease(cubemapBindGroupLayout);
         wgpuBindGroupLayoutRelease(textureBindGroupLayout);
         wgpuBindGroupLayoutRelease(uniformBindGroupLayout);
         wgpuDeviceRelease(device);
@@ -724,8 +749,99 @@ namespace JE::GFX {
     }
 
     unsigned int loadCubemap(std::vector<std::string> faces) {
-        // TODO: Implement textures
-        return 0;
+        int texWidth[6], texHeight[6], texChannels[6];
+
+        stbi_set_flip_vertically_on_load(false);
+
+        stbi_uc *images[6];
+        for (int i = 0; i < 6; i++) {
+            images[i] = stbi_load(faces[i].c_str(), &texWidth[i], &texHeight[i], &texChannels[i], STBI_rgb_alpha);
+        }
+
+        size_t layerSize = texWidth[0] * texHeight[0] * 4;
+        size_t totalSize = layerSize * 6;
+
+        WGPUTextureDescriptor textureDesc{};
+        textureDesc.nextInChain = nullptr;
+        textureDesc.dimension = WGPUTextureDimension_2D;
+        textureDesc.size = {static_cast<uint32_t>(texWidth[0]), static_cast<uint32_t>(texHeight[0]), 6};
+        textureDesc.mipLevelCount = 1;
+        textureDesc.sampleCount = 1;
+        textureDesc.format = WGPUTextureFormat_RGBA8UnormSrgb;
+        textureDesc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
+        textureDesc.viewFormatCount = 0;
+        textureDesc.viewFormats = nullptr;
+
+        auto texture = wgpuDeviceCreateTexture(device, &textureDesc);
+        if (texture == nullptr) throw std::runtime_error("WGPU: Failed to create texture!");
+
+        WGPUTextureDataLayout dataLayout{};
+        dataLayout.offset = 0;
+        dataLayout.bytesPerRow = 4 * textureDesc.size.width;
+        dataLayout.rowsPerImage = textureDesc.size.height;
+        WGPUExtent3D writeSize{ static_cast<uint32_t>(texWidth[0]), static_cast<uint32_t>(texHeight[0]), 1 };
+
+        for (int i = 0; i < 6; i++) {
+            WGPUImageCopyTexture destination{};
+            destination.texture = texture;
+            destination.mipLevel = 0;
+            destination.origin = {0, 0, static_cast<uint32_t>(i)}; // equivalent of the offset argument of Queue::writeBuffer
+            destination.aspect = WGPUTextureAspect_All; // only relevant for depth/Stencil textures
+
+            wgpuQueueWriteTexture(queue, &destination, images[i], layerSize, &dataLayout, &writeSize);
+        }
+
+        WGPUTextureViewDescriptor textureViewDesc{};
+        textureViewDesc.aspect = WGPUTextureAspect_All;
+        textureViewDesc.baseArrayLayer = 0;
+        textureViewDesc.arrayLayerCount = 6;
+        textureViewDesc.baseMipLevel = 0;
+        textureViewDesc.mipLevelCount = 1;
+        textureViewDesc.dimension = WGPUTextureViewDimension_Cube;
+        textureViewDesc.format = textureDesc.format;
+        auto textureView = wgpuTextureCreateView(texture, &textureViewDesc);
+        if (textureView == nullptr) throw std::runtime_error("WGPU: Failed to create texture view!");
+
+        WGPUSamplerDescriptor samplerDesc;
+        samplerDesc.addressModeU = WGPUAddressMode_ClampToEdge;
+        samplerDesc.addressModeV = WGPUAddressMode_ClampToEdge;
+        samplerDesc.addressModeW = WGPUAddressMode_ClampToEdge;
+        samplerDesc.magFilter = WGPUFilterMode_Linear;
+        samplerDesc.minFilter = WGPUFilterMode_Linear;
+        samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
+        samplerDesc.lodMinClamp = 0.0f;
+        samplerDesc.lodMaxClamp = 1.0f;
+        samplerDesc.compare = WGPUCompareFunction_Undefined;
+        samplerDesc.maxAnisotropy = 1;
+        WGPUSampler sampler = wgpuDeviceCreateSampler(device, &samplerDesc);
+
+        std::array<WGPUBindGroupEntry, 2> bindings{};
+        bindings[0].binding = 0;
+        bindings[0].textureView = textureView;
+
+        bindings[1].binding = 1;
+        bindings[1].sampler = sampler;
+
+        WGPUBindGroupDescriptor bindGroupDesc{};
+        bindGroupDesc.nextInChain = nullptr;
+        bindGroupDesc.layout = cubemapBindGroupLayout;
+        bindGroupDesc.entryCount = bindings.size();
+        bindGroupDesc.entries = bindings.data();
+        auto bindGroup = wgpuDeviceCreateBindGroup(device, &bindGroupDesc);
+
+        if (bindGroup == nullptr) throw std::runtime_error("WGPU: Failed to create texture bind group!");
+        unsigned int bindID = bindGroups.size();
+        bindGroups.push_back(bindGroup);
+
+        unsigned int textureID = textureViews.size();
+        textureViews.push_back(textureView);
+        textures.push_back(texture);
+        samplers.push_back(sampler);
+
+        unsigned int id = indexPairs.size();
+        indexPairs.push_back({textureID, bindID, false});
+
+        return id;
     }
 
     static std::vector<char> readFile(const std::string& filename) {
@@ -801,7 +917,7 @@ namespace JE::GFX {
         setDefaultStencilFaceState(depthStencilState.stencilBack);
     }
 
-    unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype) {
+    unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype, bool use2DSamplers) {
         WGPURenderPipelineDescriptor pipelineDesc{};
         pipelineDesc.nextInChain = nullptr;
 
@@ -902,7 +1018,7 @@ namespace JE::GFX {
             //  select single bit from shader inputs
             if (((shaderProgramSettings.shaderInputs >> i) & 0b1) == 1) {
                 // texture
-                bgls.push_back(textureBindGroupLayout);
+                bgls.push_back(use2DSamplers ? textureBindGroupLayout : cubemapBindGroupLayout);
             } else {
                 // uniform
                 bgls.push_back(uniformBindGroupLayout);
@@ -927,6 +1043,10 @@ namespace JE::GFX {
         unsigned int id = pipelineVector.size();
         pipelineVector.push_back(pipeline);
         return id;
+    }
+
+    unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype) {
+        return createProgram(VertexShaderID, FragmentShaderID, shaderProgramSettings, vtype, true);
     }
 
     unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label) {

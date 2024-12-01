@@ -165,6 +165,26 @@ void putImGuiCall(void (*argument)()) {
     imGuiCalls.push_back(argument);
 }
 
+void createSkyboxShader() {
+    unsigned int vertID = GFX::loadShader("./shaders/skybox_vertex.glsl", JE_VERTEX_SHADER);
+    unsigned int fragID = GFX::loadShader("./shaders/skybox_fragment.glsl", JE_FRAGMENT_SHADER);
+    programs.insert({"skybox", GFX::createProgram(vertID, fragID,
+                                                    {false,
+                                                     true,
+                                                     false,
+                                                     false,
+                                                     (ShaderInputBit::Uniform | (ShaderInputBit::Texture << 1)),
+                                                     2},
+                                                  VERTEX
+            // You may be thinking "What the fuck does this do?"
+            // "Why is this here?"
+            // WGPU is a bitchass motherfucker. That's why.
+#ifdef GFX_API_WEBGPU
+                                                , false
+#endif
+                                                  )});
+}
+
 void createShader(const std::string& name, const std::string& vertex, const std::string& fragment, const ShaderProgramSettings& settings, const VertexType& vtype) {
     unsigned int vertID = GFX::loadShader(vertex, JE_VERTEX_SHADER);
     unsigned int fragID = GFX::loadShader(fragment, JE_FRAGMENT_SHADER);
@@ -340,11 +360,7 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
 
     if (graphicsSettings.skybox) {
         // Skybox init
-        createShader("skybox",
-                     "./shaders/skybox_vertex.glsl",
-                     "./shaders/skybox_fragment.glsl",
-                // hacky bullshit. don't depth test, disable depth writes (transparency mode :skull:)
-                     {false, true, false, false, (ShaderInputBit::Uniform | (ShaderInputBit::Texture << 1)), 2});
+        createSkyboxShader();
         skybox = loadObj("./models/skybox.obj", getShader("skybox"), {uboID, GFX::loadCubemap({
                                              "./skybox/px_right.jpg",
                                              "./skybox/nx_left.jpg",
