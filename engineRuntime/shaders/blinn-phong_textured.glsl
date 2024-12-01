@@ -1,4 +1,4 @@
-// JE_TRANSLATE
+// JE_TRANSLATE fragment
 #version 420
 
 layout(location = 0) in vec3 vpos;

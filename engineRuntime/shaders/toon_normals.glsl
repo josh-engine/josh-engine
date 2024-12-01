@@ -1,7 +1,10 @@
-// JE_TRANSLATE
+// JE_TRANSLATE fragment
 #version 420
 
 layout(location = 0) out vec4 c_final;
+
+layout(location = 0) in vec3 _;
+layout(location = 1) in vec2 __;
 layout(location = 2) in vec3 vnorm;
 
 layout(set = 0, binding = 0) uniform UBO { // JE_TRANSLATE

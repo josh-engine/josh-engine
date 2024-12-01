@@ -19,14 +19,12 @@ enum VertexType {
     ANIMATED_VERTEX
 };
 
-#ifdef GFX_API_VK
-
 struct InterleavedVertex {
     glm::vec3 position;
     glm::vec2 uvCoords;
     glm::vec3 normal;
-
-    static VkVertexInputBindingDescription getBindingDescription() {
+#ifdef GFX_API_VK
+        static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
         bindingDescription.stride = sizeof(InterleavedVertex);
@@ -56,6 +54,7 @@ struct InterleavedVertex {
 
         return attributeDescriptions;
     }
+#endif
 };
 
 struct InterleavedAnimatedVertex {
@@ -63,7 +62,7 @@ struct InterleavedAnimatedVertex {
     glm::vec2 uvCoords;
     glm::vec3 normal;
     unsigned short groupID;
-
+#ifdef GFX_API_VK
     static VkVertexInputBindingDescription getBindingDescription() {
         VkVertexInputBindingDescription bindingDescription{};
         bindingDescription.binding = 0;
@@ -99,8 +98,8 @@ struct InterleavedAnimatedVertex {
 
         return attributeDescriptions;
     }
-};
 #endif
+};
 
 class Renderable {
 public:
@@ -116,9 +115,7 @@ public:
 
     unsigned char flags;
 
-#ifdef GFX_API_VK
     unsigned int vboID{};
-#endif
 
     unsigned int indicesSize{};
 

@@ -12,7 +12,7 @@
 #include <glm/glm.hpp>
 #include "../../engine.h"
 
-namespace JE::VK {
+namespace JE::GFX {
 
 // VK_SHADER_STAGE_VERTEX_BIT
 #define JE_VERTEX_SHADER 0x00000001
@@ -55,9 +55,9 @@ struct UniformBufferReference {
 };
 #endif
 
-void initGFX(GLFWwindow **window, const char* windowName, int width, int height, GraphicsSettings settings);
+void init(GLFWwindow **window, const char* windowName, int width, int height, GraphicsSettings settings);
 void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls);
-void deinitGFX();
+void deinit();
 unsigned int loadTexture(const std::string& fileName, const int& samplerFilter);
 unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter);
 unsigned int loadShader(const std::string& file_path, int target);
@@ -65,10 +65,6 @@ unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentSha
 unsigned int loadCubemap(std::vector<std::string> faces);
 void resizeViewport();
 unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices);
-/* We are exposing these to the user through engine.h instead.
-unsigned int createUniformBuffer(size_t bufferSize);
-void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);
-*/
 void setClearColor(float r, float g, float b);
 unsigned int createUniformBuffer(size_t bufferSize);
 void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll);

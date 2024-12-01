@@ -1,4 +1,4 @@
-// JE_TRANSLATE
+// JE_TRANSLATE fragment
 #version 420
 
 // Interpolated values from the vertex shaders

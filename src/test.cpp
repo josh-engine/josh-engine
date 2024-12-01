@@ -213,7 +213,7 @@ void setupTest() {
     putGameObject("ui_item", GameObject(&initUiItem));
 
     Audio::Sound st2 = Audio::Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
-    st2.play();
+    st2.play(); // this noise is so annoying now
 
     UI::staticText({-10.0+UI::getTextWidth("joshengine demo", "manifold"), -5.25},
                    "joshengine demo",

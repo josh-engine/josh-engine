@@ -12,7 +12,7 @@
 
 #ifdef GFX_API_VK
 #include "../gfx/vk/gfx_vk.h"
-using namespace JE::VK;
+using namespace JE::GFX;
 bool vulkanMemoryView;
 #endif
 
@@ -233,7 +233,7 @@ void setupImGuiWindow() {
 
         ImGui::End();
     }
-
+#ifdef GFX_API_VK
     if (texturesView && graphicsView) {
         ImGui::Begin("Textures");
         std::unordered_map<std::string, unsigned int> textures = getTexs();
@@ -246,7 +246,7 @@ void setupImGuiWindow() {
             ImGui::EndCombo();
         }
         if (!selectedTexture.empty()) {
-            ImTextureID texture_id = getTex(textures.at(selectedTexture));
+            auto texture_id = std::bit_cast<unsigned long long>(getTex(textures.at(selectedTexture)));
             ImGui::Image(texture_id, {ImGui::GetWindowSize().x-20, ImGui::GetWindowSize().y-60});
         }
         ImGui::End();
@@ -272,7 +272,6 @@ void setupImGuiWindow() {
         ImGui::End();
     }
 
-#ifdef GFX_API_VK
     if (vulkanMemoryView && graphicsView) {
         ImGui::Begin("vkAlloc Memory Viewer");
         std::vector<MemoryBlock> mem = getMemory();

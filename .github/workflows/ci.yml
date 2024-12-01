@@ -59,7 +59,6 @@ jobs:
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-
   cmake-windows-vulkan:
     name: CMake Windows Build (Vulkan)
     runs-on: windows-latest
@@ -94,3 +93,26 @@ jobs:
 
       - name: Build
         run: cmake --build ${{github.workspace}}\build --config ${{env.BUILD_TYPE}}
+
+  cmake-ubuntu-wgpu:
+    name: CMake Ubuntu Build (WGPU)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev libopenal-dev
+
+      - name: Get submodules
+        run: git submodule update --init
+
+      - name: Cache Cmake Build
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-wgpu
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache -DJE_API_VK:BOOL=OFF -DJE_API_WEBGPU:BOOL=ON -DWEBGPU_BACKEND=WGPU
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}

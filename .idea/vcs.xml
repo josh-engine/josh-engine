@@ -2,5 +2,23 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/abseil-cpp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/glfw" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/glslang/src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/jinja2" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/khronos/EGL-Registry" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/khronos/OpenGL-Registry" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/libprotobuf-mutator/src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/markupsafe" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/spirv-headers/src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/spirv-tools/src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/vulkan-headers/src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/vulkan-loader/src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/vulkan-utility-libraries/src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/webgpu-backend-dawn-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/webgpu-backend-wgpu-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/glfw3webgpu" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/webgpu" vcs="Git" />
   </component>
 </project>
