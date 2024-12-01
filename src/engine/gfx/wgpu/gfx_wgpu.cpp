@@ -18,7 +18,9 @@
 #include <stb_image.h>
 
 #ifdef __EMSCRIPTEN__
-#  include <emscripten.h>
+#include <emscripten.h>
+#include <emscripten/html5.h>
+#include <emscripten/html5_webgpu.h>
 #endif // __EMSCRIPTEN__
 
 #include "../../ui/imgui/imgui.h"
@@ -77,6 +79,8 @@ namespace JE::GFX {
 
     unsigned int pushConstantBufferID;
     size_t pushConstantBufferSize = sizeof(glm::mat4) * 2;
+
+    bool srgbTextures;
 
     void initGLFW(int width, int height, const char* windowName) {
         if (!glfwInit()) {
@@ -220,7 +224,7 @@ namespace JE::GFX {
         }, &awty);
 
 #ifdef __EMSCRIPTEN__
-        while (!userData.requestEnded) {
+        while (!awty) {
         emscripten_sleep(100);
     }
 #endif // __EMSCRIPTEN__
@@ -356,6 +360,7 @@ namespace JE::GFX {
         config.height = height;
 
         surfaceFormat = wgpuSurfaceGetPreferredFormat(surface, adapter);
+        srgbTextures = surfaceFormat == WGPUTextureFormat_RGBA8UnormSrgb || surfaceFormat == WGPUTextureFormat_BGRA8UnormSrgb;
         config.format = surfaceFormat;
         config.viewFormatCount = 0;
         config.viewFormats = nullptr;
@@ -513,8 +518,8 @@ namespace JE::GFX {
 
         // TODO: At some point in both APIs, maybe add support for this?
         depthStencilAttachment.stencilClearValue = 0;
-        depthStencilAttachment.stencilLoadOp = WGPULoadOp_Clear; // Where's LOAD_OP_DONT_CARE when you need it?
-        depthStencilAttachment.stencilStoreOp = WGPUStoreOp_Store;
+        depthStencilAttachment.stencilLoadOp = WGPULoadOp_Undefined; // Where's LOAD_OP_DONT_CARE when you need it?
+        depthStencilAttachment.stencilStoreOp = WGPUStoreOp_Undefined;
         depthStencilAttachment.stencilReadOnly = true;
 
         WGPURenderPassDescriptor passDesc{};
@@ -583,8 +588,12 @@ namespace JE::GFX {
 
         wgpuTextureViewRelease(next);
 
+#ifndef __EMSCRIPTEN__
         wgpuSurfacePresent(surface);
+#endif
+#ifdef WEBGPU_BACKEND_WGPU
         wgpuDevicePoll(device, false, nullptr);
+#endif
     }
 
     void deinit() {
@@ -653,7 +662,7 @@ namespace JE::GFX {
         textureDesc.size = {width, height, 1};
         textureDesc.mipLevelCount = 1;
         textureDesc.sampleCount = 1;
-        textureDesc.format = WGPUTextureFormat_RGBA8UnormSrgb;
+        textureDesc.format = static_cast<WGPUTextureFormat>(WGPUTextureFormat_RGBA8Unorm + (srgbTextures ? 1 : 0));
         textureDesc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
         textureDesc.viewFormatCount = 0;
         textureDesc.viewFormats = nullptr;
@@ -685,16 +694,15 @@ namespace JE::GFX {
         auto textureView = wgpuTextureCreateView(texture, &textureViewDesc);
         if (textureView == nullptr) throw std::runtime_error("WGPU: Failed to create texture view!");
 
-        WGPUSamplerDescriptor samplerDesc;
-        samplerDesc.addressModeU = WGPUAddressMode_ClampToEdge;
-        samplerDesc.addressModeV = WGPUAddressMode_ClampToEdge;
-        samplerDesc.addressModeW = WGPUAddressMode_ClampToEdge;
+        WGPUSamplerDescriptor samplerDesc{};
         samplerDesc.magFilter = sampleFilter == 0 ? WGPUFilterMode_Nearest : WGPUFilterMode_Linear;
         samplerDesc.minFilter = sampleFilter == 0 ? WGPUFilterMode_Nearest : WGPUFilterMode_Linear;
         samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
+        samplerDesc.addressModeU = WGPUAddressMode_ClampToEdge;
+        samplerDesc.addressModeV = WGPUAddressMode_ClampToEdge;
+        samplerDesc.addressModeW = WGPUAddressMode_ClampToEdge;
         samplerDesc.lodMinClamp = 0.0f;
         samplerDesc.lodMaxClamp = 1.0f;
-        samplerDesc.compare = WGPUCompareFunction_Undefined;
         samplerDesc.maxAnisotropy = 1;
         WGPUSampler sampler = wgpuDeviceCreateSampler(device, &samplerDesc);
 
@@ -767,7 +775,7 @@ namespace JE::GFX {
         textureDesc.size = {static_cast<uint32_t>(texWidth[0]), static_cast<uint32_t>(texHeight[0]), 6};
         textureDesc.mipLevelCount = 1;
         textureDesc.sampleCount = 1;
-        textureDesc.format = WGPUTextureFormat_RGBA8UnormSrgb;
+        textureDesc.format = static_cast<WGPUTextureFormat>(WGPUTextureFormat_RGBA8Unorm + (srgbTextures ? 1 : 0));
         textureDesc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
         textureDesc.viewFormatCount = 0;
         textureDesc.viewFormats = nullptr;

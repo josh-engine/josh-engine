@@ -5,3 +5,5 @@
 /cmake-build-noaudio/
 /cmake-build-relwithdebinfo/
 /cmake-build-webgpu-local/
+/cmake-build-webgpu-em/
+/cmake-build-*

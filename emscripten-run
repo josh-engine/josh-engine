@@ -1,0 +1,4 @@
+#!/bin/bash
+cmake --build cmake-build-webgpu-em
+echo Built project, starting server.
+python3 -m http.server -d cmake-build-webgpu-em

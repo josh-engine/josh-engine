@@ -1,0 +1,2 @@
+#!/bin/bash
+emcmake cmake -B cmake-build-webgpu-em -DJE_API_VK:BOOL=OFF -DJE_API_WEBGPU:BOOL=ON

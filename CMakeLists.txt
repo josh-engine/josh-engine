@@ -7,10 +7,21 @@ option(JE_OPENAL "Compile with audio support" ON)
 
 set(CMAKE_CXX_STANDARD 20)
 
+# Require for GLM
+include(FetchContent)
+
 # Engine Required Includes
+if (NOT EMSCRIPTEN)
 find_package(glfw3 3.3 REQUIRED)
 find_package(OpenAL REQUIRED)
-find_package(glm REQUIRED)
+endif()
+
+FetchContent_Declare(
+        glm
+        GIT_REPOSITORY	https://github.com/g-truc/glm.git
+        GIT_TAG 	bf71a834948186f4097caa076cd2663c69a10e1e #refs/tags/1.0.1
+)
+FetchContent_MakeAvailable(glm)
 
 # Global definitions should probably be defined before compilation
 add_compile_definitions(GLM_FORCE_DEFAULT_ALIGNED_GENTYPES)
@@ -39,7 +50,7 @@ set(JoshEngine_sources
         src/main.cpp
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT EMSCRIPTEN)
     add_compile_definitions(DEBUG_ENABLED)
     if (XCODE)
         set_target_properties(JoshEngine PROPERTIES
@@ -74,14 +85,16 @@ endif()
 
 # WebGPU
 if (JE_API_WEBGPU)
-    if (WEBGPU_BACKEND STREQUAL "WGPU")
-        message("JoshEngine detected WGPU for WebGPU backend.")
-        add_compile_definitions(IMGUI_IMPL_WEBGPU_BACKEND_WGPU)
-    elseif (WEBGPU_BACKEND STREQUAL "DAWN")
-        message(SEND_ERROR "JoshEngine detected Dawn for WebGPU backend. If you're determined enough, you can make it work, but this was written with WGPU in mind.")
-        add_compile_definitions(IMGUI_IMPL_WEBGPU_BACKEND_DAWN)
-    elseif (NOT EMSCRIPTEN)
-        message(SEND_ERROR "JoshEngine detected no WebGPU backend! Please set -DWEBGPU_BACKEND=WGPU in your cmake invocation arguments.")
+    if (NOT EMSCRIPTEN)
+        if (WEBGPU_BACKEND STREQUAL "WGPU")
+            message("JoshEngine detected WGPU for WebGPU backend.")
+            add_compile_definitions(IMGUI_IMPL_WEBGPU_BACKEND_WGPU)
+        elseif (WEBGPU_BACKEND STREQUAL "DAWN")
+            message(SEND_ERROR "JoshEngine detected Dawn for WebGPU backend. If you're determined enough, you can make it work, but this was written with WGPU in mind.")
+            add_compile_definitions(IMGUI_IMPL_WEBGPU_BACKEND_DAWN)
+        else()
+            message(SEND_ERROR "JoshEngine detected no WebGPU backend! Please set -DWEBGPU_BACKEND=WGPU in your cmake invocation arguments.")
+        endif()
     endif()
     add_subdirectory(webgpu)
     add_subdirectory(glfw3webgpu)
@@ -96,19 +109,16 @@ if (JE_API_WEBGPU)
             webgpu
             glfw3webgpu
     )
-
-    if (EMSCRIPTEN)
-        set_target_properties(JoshEngine PROPERTIES SUFFIX ".html")
-        target_link_options(JoshEngine PRIVATE -sASYNCIFY)
-    endif()
 endif()
 
-if (JE_OPENAL)
-    set(JoshEngine_libraries ${JoshEngine_libraries}
-            OpenAL::OpenAL
-    )
-else()
-    add_compile_definitions(AUDIO_DISABLE)
+if (NOT EMSCRIPTEN)
+    if (JE_OPENAL)
+        set(JoshEngine_libraries ${JoshEngine_libraries}
+                OpenAL::OpenAL
+        )
+    else()
+        add_compile_definitions(AUDIO_DISABLE)
+    endif()
 endif()
 
 # Please put your game's sources under Game_src to stay organized!
@@ -122,8 +132,20 @@ set(JoshEngine_sources ${JoshEngine_sources}
 )
 
 add_executable(JoshEngine ${JoshEngine_sources})
-target_link_libraries(JoshEngine ${JoshEngine_libraries})
+target_link_libraries(JoshEngine PRIVATE ${JoshEngine_libraries})
 
 if (JE_API_WEBGPU)
     target_copy_webgpu_binaries(JoshEngine)
+endif()
+if (EMSCRIPTEN)
+    set_target_properties(JoshEngine PROPERTIES SUFFIX ".html")
+    target_link_options(JoshEngine PRIVATE
+            -sASYNCIFY
+            -sUSE_GLFW=3
+            -sUSE_WEBGPU
+            --preload-file "${JoshEngine_SOURCE_DIR}/engineRuntime@/"
+            -sALLOW_MEMORY_GROWTH
+            -sNO_DISABLE_EXCEPTION_CATCHING
+            -lopenal
+    )
 endif()

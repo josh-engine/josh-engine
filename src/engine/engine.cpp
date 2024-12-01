@@ -13,6 +13,10 @@
 
 #include <glm/gtx/euler_angles.hpp>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace JE {
 [[nodiscard]] mat4 Transform::getRotateMatrix() const {
     vec3 radianRotation = radians(rotation);
@@ -564,7 +568,7 @@ void mainLoop() {
     while (glfwWindowShouldClose(window) == 0) {
         tick();
     }
-#elif
+#else
     emscripten_set_main_loop_arg([](void *arg) {tick();}, nullptr, 0, true);
 #endif
 }
