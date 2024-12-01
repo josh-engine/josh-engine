@@ -5,8 +5,13 @@
 #include "audioutil.h"
 #ifndef AUDIO_DISABLE
 #include <iostream>
+#ifndef __EMSCRIPTEN__
 #include <al.h>
 #include <alc.h>
+#else
+#include <AL/al.h>
+#include <AL/alc.h>
+#endif
 #include <stb_vorbis.h>
 #include <unordered_map>
 #include <thread>
