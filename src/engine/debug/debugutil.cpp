@@ -51,21 +51,22 @@ void setupImGuiWindow() {
     ImGui::Begin("Debug Menu");
 
     ImGui::Text("JoshEngine %s", ENGINE_VERSION_STRING);
-//#if defined(GFX_API_VK)
-    // No more other graphics APIs... sadge. If/when DX12 will add this feature back.
-    // ImGui::Text("Running on Vulkan");
-//#endif
+#if defined(GFX_API_VK)
+    ImGui::Text("Running on Vulkan");
+#elif defined(GFX_API_WEBGPU)
+    ImGui::Text("Running on WGPU");
+#endif
 
     ImGui::Checkbox("Stats", &statView);
     ImGui::Checkbox("Scene Editor", &sceneInfoView);
+#ifdef GFX_API_VK
     ImGui::Checkbox("Show Graphics Menus", &graphicsView);
     if (graphicsView) {
         ImGui::Checkbox("Textures", &texturesView);
         ImGui::Checkbox("Uniform Memory Info", &buffersView);
-#ifdef GFX_API_VK
         ImGui::Checkbox("vkAlloc Allocation View", &vulkanMemoryView);
-#endif
     }
+#endif
 
     ImGui::End();
 

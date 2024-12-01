@@ -149,7 +149,7 @@ void initCube(GameObject* selfObject) {
 
 void initUiItem(GameObject* selfObject) {
     selfObject->transform = Transform(glm::vec3(-5, -2.5, 0), glm::vec3(0), glm::vec3(2.5));
-    selfObject->renderables.push_back(createQuad(getShader("ui"), {0, getTexture("missing")}, false, true));
+    selfObject->renderables.push_back(createQuad(getShader("ui"), {getUBOID(), getTexture("missing")}, false, true));
 }
 
 void setupTest() {
@@ -187,6 +187,8 @@ void setupTest() {
     //               This layout is {Uniform, Uniform, Texture}.
     a.shaderInputs = ShaderInputBit::Uniform | (ShaderInputBit::Uniform << 1) | (ShaderInputBit::Texture << 2);
     a.shaderInputCount = 3;
+
+    a.testDepth = true;
 
     createShader("bnphTexture", "./shaders/vertex3d.glsl", "./shaders/blinn-phong_textured.glsl", a);
 
