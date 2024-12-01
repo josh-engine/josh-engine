@@ -282,7 +282,7 @@ namespace JE::GFX {
         WGPUBindGroupLayoutEntry bindingLayout{};
         setDefaultBinding(bindingLayout);
         bindingLayout.binding = 0;
-        bindingLayout.visibility = WGPUShaderStage_Vertex;
+        bindingLayout.visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
         bindingLayout.buffer.type = WGPUBufferBindingType_Uniform;
         bindingLayout.buffer.minBindingSize = 2 * sizeof(uint64_t);
 
@@ -300,10 +300,13 @@ namespace JE::GFX {
         setDefaultBinding(layouts[0]);
         layouts[0].binding = 0;
         layouts[0].visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+        layouts[0].texture.sampleType = WGPUTextureSampleType_Float;
+        layouts[0].texture.viewDimension = WGPUTextureViewDimension_2D;
 
         setDefaultBinding(layouts[1]);
         layouts[1].binding = 1;
         layouts[1].visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+        layouts[1].sampler.type = WGPUSamplerBindingType_Filtering;
 
         // Create a bind group layout
         WGPUBindGroupLayoutDescriptor bindGroupLayoutDesc{};
@@ -381,7 +384,7 @@ namespace JE::GFX {
         createAdapter();
         createDevice();
         createUniformBindGroupLayout();
-        //createTextureBindGroupLayout();
+        createTextureBindGroupLayout();
         createCommandObjects();
         createSwapchain(w, h);
 
@@ -399,11 +402,11 @@ namespace JE::GFX {
 
         //TODO remove
         unsigned int testv = loadShader("./shaders/temp_triangle_vert.glsl", 0);
-        unsigned int testf = loadShader("./shaders/temp_triangle_frag.glsl", 0);
+        unsigned int testf = loadShader("./shaders/frag_tex.glsl", 0);
         ShaderProgramSettings shaderProgramSettings{};
         shaderProgramSettings.transparencySupported = false;
         shaderProgramSettings.doubleSided = true;
-        shaderProgramSettings.shaderInputs = 0b00;
+        shaderProgramSettings.shaderInputs = 0b10;
         shaderProgramSettings.shaderInputCount = 2;
 
         createProgram(testv, testf, shaderProgramSettings, VERTEX);
@@ -426,9 +429,7 @@ namespace JE::GFX {
         float f = -0.5f;
         JE::GFX::updateUniformBuffer(ubufid, &f, sizeof(float), false);
 
-        unsigned int ubufid2 = JE::GFX::createUniformBuffer(sizeof(float)); // specify JE::GFX not JE
-        float f2 = -0.5f;
-        JE::GFX::updateUniformBuffer(ubufid2, &f2, sizeof(float), false);
+        loadTexture("./textures/uv_tex.png", JE_TEXTURE);
     }
 
     WGPUTextureView acquireNext() {
@@ -565,6 +566,16 @@ namespace JE::GFX {
         for (auto bindGroup : bindGroups) {
             wgpuBindGroupRelease(bindGroup);
         }
+        for (auto sampler : samplers) {
+            wgpuSamplerRelease(sampler);
+        }
+        for (auto view : textureViews) {
+            wgpuTextureViewRelease(view);
+        }
+        for (auto texture : textures) {
+            wgpuTextureDestroy(texture);
+            wgpuTextureRelease(texture);
+        }
         for (auto buf : buffers) {
             wgpuBufferDestroy(buf);
             wgpuBufferRelease(buf);
@@ -578,7 +589,7 @@ namespace JE::GFX {
         destroySwapchain();
         wgpuSurfaceRelease(surface);
         wgpuQueueRelease(queue);
-        //wgpuBindGroupLayoutRelease(textureBindGroupLayout);
+        wgpuBindGroupLayoutRelease(textureBindGroupLayout);
         wgpuBindGroupLayoutRelease(uniformBindGroupLayout);
         wgpuDeviceRelease(device);
         wgpuAdapterRelease(adapter);
@@ -602,8 +613,89 @@ namespace JE::GFX {
         settings.clearColor[2] = b;
     }
 
-    unsigned int loadTextureBytes(void* src, unsigned int width, unsigned int height, const int& sampleFilter) {
+    unsigned int loadTextureBytes(const void* src, unsigned int width, unsigned int height, const int& sampleFilter) {
         //TODO: Implement textures
+        const unsigned int channels = 4;
+        size_t size = width * height * channels;
+
+        WGPUTextureDescriptor textureDesc{};
+        textureDesc.nextInChain = nullptr;
+        textureDesc.dimension = WGPUTextureDimension_2D;
+        textureDesc.size = {width, height, 1};
+        textureDesc.mipLevelCount = 1;
+        textureDesc.sampleCount = 1;
+        textureDesc.format = WGPUTextureFormat_RGBA8UnormSrgb;
+        textureDesc.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
+        textureDesc.viewFormatCount = 0;
+        textureDesc.viewFormats = nullptr;
+
+        auto texture = wgpuDeviceCreateTexture(device, &textureDesc);
+        if (texture == nullptr) throw std::runtime_error("WGPU: Failed to create texture!");
+
+        WGPUImageCopyTexture destination{};
+        destination.texture = texture;
+        destination.mipLevel = 0;
+        destination.origin = { 0, 0, 0 }; // equivalent of the offset argument of Queue::writeBuffer
+        destination.aspect = WGPUTextureAspect_All; // only relevant for depth/Stencil textures
+
+        WGPUTextureDataLayout dataLayout{};
+        dataLayout.offset = 0;
+        dataLayout.bytesPerRow = 4 * textureDesc.size.width;
+        dataLayout.rowsPerImage = textureDesc.size.height;
+
+        wgpuQueueWriteTexture(queue, &destination, src, size, &dataLayout, &textureDesc.size);
+
+        WGPUTextureViewDescriptor textureViewDesc{};
+        textureViewDesc.aspect = WGPUTextureAspect_All;
+        textureViewDesc.baseArrayLayer = 0;
+        textureViewDesc.arrayLayerCount = 1;
+        textureViewDesc.baseMipLevel = 0;
+        textureViewDesc.mipLevelCount = 1;
+        textureViewDesc.dimension = WGPUTextureViewDimension_2D;
+        textureViewDesc.format = textureDesc.format;
+        auto textureView = wgpuTextureCreateView(texture, &textureViewDesc);
+        if (textureView == nullptr) throw std::runtime_error("WGPU: Failed to create texture view!");
+
+        WGPUSamplerDescriptor samplerDesc;
+        samplerDesc.addressModeU = WGPUAddressMode_ClampToEdge;
+        samplerDesc.addressModeV = WGPUAddressMode_ClampToEdge;
+        samplerDesc.addressModeW = WGPUAddressMode_ClampToEdge;
+        samplerDesc.magFilter = sampleFilter == 0 ? WGPUFilterMode_Nearest : WGPUFilterMode_Linear;
+        samplerDesc.minFilter = sampleFilter == 0 ? WGPUFilterMode_Nearest : WGPUFilterMode_Linear;
+        samplerDesc.mipmapFilter = WGPUMipmapFilterMode_Linear;
+        samplerDesc.lodMinClamp = 0.0f;
+        samplerDesc.lodMaxClamp = 1.0f;
+        samplerDesc.compare = WGPUCompareFunction_Undefined;
+        samplerDesc.maxAnisotropy = 1;
+        WGPUSampler sampler = wgpuDeviceCreateSampler(device, &samplerDesc);
+
+        std::array<WGPUBindGroupEntry, 2> bindings{};
+        bindings[0].binding = 0;
+        bindings[0].textureView = textureView;
+
+        bindings[1].binding = 1;
+        bindings[1].sampler = sampler;
+
+        WGPUBindGroupDescriptor bindGroupDesc{};
+        bindGroupDesc.nextInChain = nullptr;
+        bindGroupDesc.layout = textureBindGroupLayout;
+        bindGroupDesc.entryCount = bindings.size();
+        bindGroupDesc.entries = bindings.data();
+        auto bindGroup = wgpuDeviceCreateBindGroup(device, &bindGroupDesc);
+
+        if (bindGroup == nullptr) throw std::runtime_error("WGPU: Failed to create texture bind group!");
+        unsigned int bindID = bindGroups.size();
+        bindGroups.push_back(bindGroup);
+
+        unsigned int textureID = textureViews.size();
+        textureViews.push_back(textureView);
+        textures.push_back(texture);
+        samplers.push_back(sampler);
+
+        unsigned int id = indexPairs.size();
+        indexPairs.push_back({textureID, bindID});
+
+        return id;
     }
 
     unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
@@ -613,7 +705,7 @@ namespace JE::GFX {
         if (!pixels) {
             throw std::runtime_error("WGPU: Failed to load image \"" + fileName + "\"!");
         }
-        return 0;
+        return loadTextureBytes(pixels, texWidth, texHeight, samplerFilter);
     }
 
     unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter) {
@@ -624,7 +716,7 @@ namespace JE::GFX {
         if (!pixels) {
             throw std::runtime_error("WGPU: Failed to load image from bundle!");
         }
-        return 0;
+        return loadTextureBytes(pixels, texWidth, texHeight, samplerFilter);
     }
 
     unsigned int loadCubemap(std::vector<std::string> faces) {
