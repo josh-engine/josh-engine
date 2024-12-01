@@ -362,8 +362,8 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
 
     Audio::init();
     std::cout << "Audio init successful!" << std::endl;
-    //UI::init();
-    //std::cout << "UI init successful!" << std::endl;
+    UI::init();
+    std::cout << "UI init successful!" << std::endl;
 #ifdef DEBUG_ENABLED
     initDebugTools();
     std::cout << "Debug init successful!" << std::endl;

@@ -50,34 +50,42 @@ for shader in glslShaders:
     commands.append(command)
 
     code = code.replace("#version 420", "#version 440")
-    if code.find("sampler") != -1:
-        print("Found possible combined samplers in", shader)
-        codeLines = code.splitlines()
-        code = ""
-        combinedSamplerDimensionTracker = {}
-        for line in codeLines:
-            # Generally, any sampler2D in JoshEngine should be a combined image sampler.
-            # However, I just want to account for anyone doing things weirdly,
-            # even though this should be impossible with our setup.
-            if line.find("sampler") != -1 and line.find("uniform") != -1:
-                setIndex = line.find(",")
-                equalsIndex = line.find("=") + 1
-                setNumber = int(line[equalsIndex:setIndex])
+    print(shader)
+    codeLines = code.splitlines()
+    code = ""
+    combinedSamplerDimensionTracker = {}
+    for line in codeLines:
+        # Generally, any sampler2D in JoshEngine should be a combined image sampler.
+        # However, I just want to account for anyone doing things weirdly,
+        # even though this should be impossible with our setup.
+        if line.find("sampler") != -1 and line.find("uniform") != -1:
+            setIndex = line.find(",")
+            equalsIndex = line.find("=") + 1
+            setNumber = int(line[equalsIndex:setIndex])
 
-                line = line.replace("sampler", "texture")
-                lastSpace = line.rfind(" ")+1
-                print("- Replaced " + line[lastSpace:-1] + "'s layout qualifier and uniforms")
-                combinedSamplerDimensionTracker[line[lastSpace:-1]] = line[line.find("texture")+7:lastSpace-1]
-                line = line[:lastSpace]+"_je_texture_"+line[lastSpace:] + "\nlayout(set = " + str(setNumber) + ", binding = 1) uniform sampler _je_sampler_" + line[lastSpace:]
-            elif line.find("texture(") != -1:
-                statementBegin = line.find("texture(")
-                statementEnd = line[statementBegin:].find(",")
-                combinedSamplerName = line[statementBegin+8:statementEnd+statementBegin]
-                dimension = combinedSamplerDimensionTracker[combinedSamplerName]
-                line = line.replace(combinedSamplerName, "sampler"+dimension+"(_je_texture_"+combinedSamplerName+", _je_sampler_"+combinedSamplerName+")")
-                print("- Replaced texture value evaluation of " + combinedSamplerName)
-            code += line + "\n"
-        print()
+            line = line.replace("sampler", "texture")
+            lastSpace = line.rfind(" ")+1
+            print("- Replaced " + line[lastSpace:-1] + "'s layout qualifier and uniforms")
+            combinedSamplerDimensionTracker[line[lastSpace:-1]] = line[line.find("texture")+7:lastSpace-1]
+            line = line[:lastSpace]+"_je_texture_"+line[lastSpace:] + "\nlayout(set = " + str(setNumber+1) + ", binding = 1) uniform sampler _je_sampler_" + line[lastSpace:]
+        elif line.find("texture(") != -1:
+            statementBegin = line.find("texture(")
+            statementEnd = line[statementBegin:].find(",")
+            combinedSamplerName = line[statementBegin+8:statementEnd+statementBegin]
+            dimension = combinedSamplerDimensionTracker[combinedSamplerName]
+            line = line.replace(combinedSamplerName, "sampler"+dimension+"(_je_texture_"+combinedSamplerName+", _je_sampler_"+combinedSamplerName+")")
+            print("- Replaced texture value evaluation of " + combinedSamplerName)
+        if line.find("set") != -1:
+            setIndex = line.find(",")
+            equalsIndex = line.find("=") + 1
+            setNumber = int(line[equalsIndex:setIndex])
+            line = "layout(set = "+str(setNumber+1)+line[setIndex:]
+            print ("- Incremented set", setNumber, "to make space for constants")
+        if line.find("push_constant") != -1:
+            line = line.replace("layout(push_constant)", "layout(set = 0, binding = 0)")
+            print("- Changed push constant to uniform(0)")
+        code += line + "\n"
+    print()
 
     tempf = open("./glsl_to_wgsl/"+shader, "w")
     tempf.write(code)

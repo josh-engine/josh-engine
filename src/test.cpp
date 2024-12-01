@@ -153,7 +153,6 @@ void initUiItem(GameObject* selfObject) {
 }
 
 void setupTest() {
-    /*
     //     sun-ish direction from skybox, slightly warm white
     setSunProperties(glm::vec3(-1, 1, -1), glm::vec3(1, 1, 0.85));
 
@@ -214,10 +213,9 @@ void setupTest() {
     putGameObject("ui_item", GameObject(&initUiItem));
 
     Audio::Sound st2 = Audio::Sound(glm::vec3(0), glm::vec3(0), "./sounds/explosion-mono.ogg", true, 3, 0.1, 2, 0.25);
-    st2.play();
+    st2.play(); // this noise is so annoying now
 
     UI::staticText({-10.0+UI::getTextWidth("joshengine demo", "manifold"), -5.25},
                    "joshengine demo",
                    "manifold");
-                   */
 }
