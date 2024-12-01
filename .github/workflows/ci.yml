@@ -101,7 +101,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Dependencies
-        run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev libopenal-dev && git submodule update --recursive
+        run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev libopenal-dev
+
+      - name: Get submodules
+        run: git submodule update --init --remote --recursive
 
       - name: Cache Cmake Build
         uses: hendrikmuhs/ccache-action@v1.2
