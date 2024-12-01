@@ -386,7 +386,7 @@ namespace JE::GFX {
         createUniformBindGroupLayout();
         createTextureBindGroupLayout();
         createCommandObjects();
-        createSwapchain(w, h);
+        createSwapchain(fbw, fbh);
 
         ImGui::CreateContext();
         ImGui::GetIO();
@@ -399,37 +399,6 @@ namespace JE::GFX {
         initInfo.DepthStencilFormat = depthFormat;
         ImGui_ImplWGPU_Init(&initInfo);
         ImGui_ImplWGPU_CreateDeviceObjects();
-
-        //TODO remove
-        unsigned int testv = loadShader("./shaders/temp_triangle_vert.glsl", 0);
-        unsigned int testf = loadShader("./shaders/frag_tex.glsl", 0);
-        ShaderProgramSettings shaderProgramSettings{};
-        shaderProgramSettings.transparencySupported = false;
-        shaderProgramSettings.doubleSided = true;
-        shaderProgramSettings.shaderInputs = 0b10;
-        shaderProgramSettings.shaderInputCount = 2;
-
-        createProgram(testv, testf, shaderProgramSettings, VERTEX);
-
-        std::vector<InterleavedVertex> vertexData = {
-                // x0, y0
-                {{-0.5, -0.5, 0.0}, {0.0, 0.0}, {0.0, 0.0, 1.0}},
-
-                // x1, y1
-                {{+0.5, -0.5, 0.0}, {1.0, 0.0}, {0.0, 0.0, 1.0}},
-
-                // x2, y2
-                {{+0.0, +0.5, 0.0}, {0.5, 1.0}, {0.0, 0.0, 1.0}}
-        };
-
-        std::vector<unsigned int> indexData = {0, 1, 2};
-
-        createVBO(&vertexData, &indexData);
-        unsigned int ubufid = JE::GFX::createUniformBuffer(sizeof(float)); // specify JE::GFX not JE
-        float f = -0.5f;
-        JE::GFX::updateUniformBuffer(ubufid, &f, sizeof(float), false);
-
-        loadTexture("./textures/uv_tex.png", JE_TEXTURE);
     }
 
     WGPUTextureView acquireNext() {
@@ -460,7 +429,6 @@ namespace JE::GFX {
         WGPUTextureView next = acquireNext();
         if (!next) return;
 
-        /*
         ImGui_ImplGlfw_NewFrame();
         ImGui_ImplWGPU_NewFrame();
 
@@ -470,7 +438,6 @@ namespace JE::GFX {
         }
         ImGui::EndFrame();
         ImGui::Render();
-         */
 
         // I swear the Vulkan PTSD is fully set in
         WGPUCommandEncoderDescriptor encoderDesc{};
@@ -517,7 +484,7 @@ namespace JE::GFX {
 
         // Generate render commands
         auto pass = wgpuCommandEncoderBeginRenderPass(encoder, &passDesc);
-        // TODO: Render triangles!
+        /*
         wgpuRenderPassEncoderSetPipeline(pass, pipelineVector[0]);
 
         unsigned int buf = 0;
@@ -534,14 +501,12 @@ namespace JE::GFX {
 
         // Draw 1 instance of a 3-vertices shape
         wgpuRenderPassEncoderDraw(pass, 3, 1, 0, 0);
+         */
 
-        //ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), pass);
+        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), pass);
 
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);
-
-        auto t = static_cast<float>(sin(glfwGetTime())/2); // glfwGetTime returns a double
-        updateUniformBuffer(0, &t, sizeof(float), false);
 
         // Submit render commands
         WGPUCommandBufferDescriptor commandBufferDesc{};
@@ -560,8 +525,8 @@ namespace JE::GFX {
     }
 
     void deinit() {
-        //ImGui_ImplGlfw_Shutdown();
-        //ImGui_ImplWGPU_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui_ImplWGPU_Shutdown();
 
         for (auto bindGroup : bindGroups) {
             wgpuBindGroupRelease(bindGroup);

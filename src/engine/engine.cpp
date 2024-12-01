@@ -337,7 +337,7 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
 
     drawSkybox = graphicsSettings.skybox;
     skyboxSupported = graphicsSettings.skybox;
-/*
+
     if (graphicsSettings.skybox) {
         // Skybox init
         createShader("skybox",
@@ -359,7 +359,7 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
         }
     }
     std::cout << "Graphics init successful!" << std::endl;
-*/
+
     Audio::init();
     std::cout << "Audio init successful!" << std::endl;
     //UI::init();
