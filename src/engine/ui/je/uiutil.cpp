@@ -6,7 +6,6 @@
 #include "../../gfx/modelutil.h"
 #include "../../engine.h"
 #include <vector>
-#include <bit> // This should fix Ubuntu
 
 namespace JE { namespace UI {
 vec2 temp_pos;
@@ -57,7 +56,8 @@ std::vector<Renderable> stringToRenderables(std::string str, vec3 color, const s
             temp.push_back(createQuad(getShader("textShader"), {getUBOID(), getTexture(font)}, false, true));
             temp[temp.size() - 1].data[0][0] = static_cast<float>(charLineCounter) * offset.x * 2;
             temp[temp.size() - 1].data[0][1] = static_cast<float>(newlineCounter) * -offset.y * 2;
-            temp[temp.size() - 1].data[0][2] = std::bit_cast<float>(static_cast<unsigned int>(str[i]-32));
+            auto temp_int = static_cast<unsigned int>(str[i]-32);
+            temp[temp.size() - 1].data[0][2] = *reinterpret_cast<float*>(&temp_int);
             temp[temp.size() - 1].data[1][0] = color.r;
             temp[temp.size() - 1].data[1][1] = color.g;
             temp[temp.size() - 1].data[1][2] = color.b;
@@ -91,7 +91,7 @@ void buttonUpdate(double _, GameObject* self) {
         self->renderables[0].data[0][3] = 0.4f;
         bool buttonDown = isMouseButtonDown(GLFW_MOUSE_BUTTON_LEFT);
         if (!buttonDown && lastButtonDown) {
-            (*std::bit_cast<void (*)()>(self->flags))(); // Call pointer stored in flags
+            (*reinterpret_cast<void (*)()>(self->flags))(); // Call pointer stored in flags
         }
         lastButtonDown = buttonDown;
     } else {
@@ -107,7 +107,7 @@ void clickableButton(GameObject* self) {
     self->renderables[0].data[0][1] = 0.0f;
     self->renderables[0].data[0][2] = 0.0f;
     self->renderables[0].data[0][3] = 0.6f;
-    self->flags = std::bit_cast<uint64>(temp_fp);
+    self->flags = *reinterpret_cast<uint64*>(&temp_fp);
     if (!temp_disable) self->onUpdate.push_back(&buttonUpdate);
 }
 
