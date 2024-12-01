@@ -104,7 +104,7 @@ jobs:
         run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev libopenal-dev
 
       - name: Get submodules
-        run: git submodule update --init --remote --recursive
+        run: git pull --recurse
 
       - name: Cache Cmake Build
         uses: hendrikmuhs/ccache-action@v1.2
