@@ -147,5 +147,6 @@ if (EMSCRIPTEN)
             -sALLOW_MEMORY_GROWTH
             -sNO_DISABLE_EXCEPTION_CATCHING
             -lopenal
+            --shell-file "${CMAKE_CURRENT_SOURCE_DIR}/je_shell.html"
     )
 endif()
