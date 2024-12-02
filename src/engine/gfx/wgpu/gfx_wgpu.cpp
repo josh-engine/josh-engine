@@ -257,7 +257,8 @@ namespace JE::GFX {
 
     WGPUPresentMode getBestPresentMode() {
         if (settings.vsyncEnabled) {
-            WGPUSurfaceCapabilities surfaceCapabilities;
+            WGPUSurfaceCapabilities surfaceCapabilities{};
+            surfaceCapabilities.nextInChain = nullptr;
             wgpuSurfaceGetCapabilities(surface, adapter, &surfaceCapabilities);
 
             for (int i = 0; i < surfaceCapabilities.presentModeCount; ++i) {
