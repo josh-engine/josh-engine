@@ -1,2 +1,3 @@
 #!/bin/bash
+echo This script assumes you already have emcmake added to your PATH. If it is not, the following command will error out.
 emcmake cmake -B cmake-build-webgpu-em -DJE_API_VK:BOOL=OFF -DJE_API_WEBGPU:BOOL=ON
