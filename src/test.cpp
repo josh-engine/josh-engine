@@ -21,13 +21,14 @@ void cameraFly(double dt) {
     if (mouseLocked) {
         Transform* camera = cameraAccess();
 
+        static glm::vec2 lastCursorPos = {static_cast<float>(getCurrentWidth()) / 2.0f, static_cast<float>(getCurrentHeight()) / 2.0f};
         glm::vec2 cursor = getRawCursorPos();
-        setRawCursorPos({static_cast<float>(getCurrentWidth()) / 2.0f, static_cast<float>(getCurrentHeight()) / 2.0f});
         camera->rotation.x +=
-                mouseSpeed * static_cast<float>(dt) * (static_cast<float>(getCurrentWidth()) / 2.0f - cursor.x);
+                mouseSpeed * static_cast<float>(dt) * (lastCursorPos.x - cursor.x);
         camera->rotation.y +=
-                mouseSpeed * static_cast<float>(dt) * (static_cast<float>(getCurrentHeight()) / 2.0f - cursor.y);
+                mouseSpeed * static_cast<float>(dt) * (lastCursorPos.y - cursor.y);
         camera->rotation.y = clamp(camera->rotation.y, -70.0f, 70.0f);
+        lastCursorPos = cursor;
 
 
         // Right vector

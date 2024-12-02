@@ -15,6 +15,7 @@
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#include <emscripten/html5.h>
 #endif
 
 namespace JE {
@@ -129,9 +130,22 @@ void setFogPlanes(float near, float far) {
     recopyLightingBuffer();
 }
 
+bool having_stroke = false;
+
 void setMouseVisible(bool vis) {
-    // Disabled-2 = normal, so if visible is true subtract 2 from mode to get normal.
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED-((int)vis)*2);
+    if (vis) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+#ifdef __EMSCRIPTEN__
+        having_stroke = false;
+        emscripten_exit_pointerlock();
+#endif
+    }
+    else {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+#ifdef __EMSCRIPTEN__
+        having_stroke = true;
+#endif
+    }
 }
 
 size_t getRenderableCount() {
@@ -335,6 +349,13 @@ void framebuffer_size_callback(GLFWwindow* windowInstance,[[maybe_unused]] int u
     GFX::resizeViewport();
 }
 
+#ifdef __EMSCRIPTEN__
+bool emscripten_click_callback_fml(int eventType, const EmscriptenMouseEvent *mouseEvent, void *userData) {
+    if (having_stroke) emscripten_request_pointerlock("canvas", false);
+    return true;
+}
+#endif
+
 void init(const char* windowName, int width, int height, GraphicsSettings graphicsSettings) {
     std::cout << "JoshEngine " << ENGINE_VERSION_STRING << std::endl;
     std::cout << "Starting engine init." << std::endl;
@@ -348,6 +369,9 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
     GFX::init(&window, windowName, width, height, graphicsSettings);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+#ifdef __EMSCRIPTEN__
+    emscripten_set_click_callback("canvas", nullptr, true, emscripten_click_callback_fml);
+#endif
 
     uboID = createUniformBuffer(sizeof(UniformBufferObject));
     lboID = createUniformBuffer(sizeof(GlobalLightingBufferObject));
