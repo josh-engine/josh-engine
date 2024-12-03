@@ -219,7 +219,7 @@ namespace JE::GFX {
         }, &areWeThereYet);
 
 #ifdef __EMSCRIPTEN__
-        while (!awty) {
+        while (!areWeThereYet) {
         emscripten_sleep(100);
     }
 #endif // __EMSCRIPTEN__
