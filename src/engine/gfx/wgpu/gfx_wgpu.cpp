@@ -138,7 +138,7 @@ namespace JE::GFX {
         }
     }
 
-    /* Boilerplate? I hardly know her!
+    /*
     void setDefaultLimits(WGPULimits &limits) {
         limits.maxTextureDimension1D = WGPU_LIMIT_U32_UNDEFINED;
         limits.maxTextureDimension2D = WGPU_LIMIT_U32_UNDEFINED;
@@ -175,44 +175,37 @@ namespace JE::GFX {
     }
 
     WGPURequiredLimits getRequiredLimits() {
+
         WGPUSupportedLimits supportedLimits{};
         supportedLimits.nextInChain = nullptr;
         wgpuAdapterGetLimits(adapter, &supportedLimits);
 
+
         WGPURequiredLimits requiredLimits{};
         setDefaultLimits(requiredLimits.limits);
 
-        // We use at most 1 vertex attribute for now
-        requiredLimits.limits.maxVertexAttributes = 1;
-        // We should also tell that we use 1 vertex buffers
-        requiredLimits.limits.maxVertexBuffers = 1;
-        // Maximum size of a buffer is 6 vertices of 2 float each
-        requiredLimits.limits.maxBufferSize = 6 * 2 * sizeof(float);
-        // Maximum stride between 2 consecutive vertices in the vertex buffer
-        requiredLimits.limits.maxVertexBufferArrayStride = 2 * sizeof(float);
-
-        requiredLimits.limits.minUniformBufferOffsetAlignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
-        requiredLimits.limits.minStorageBufferOffsetAlignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
+        requiredLimits.limits.maxBindGroups = 7;
 
         return requiredLimits;
     }*/
 
     void createDevice() {
-
         WGPUDeviceDescriptor deviceDesc;
-        deviceDesc.label = "John Graphics"; // why do these things have names??
+        deviceDesc.label = "John Graphics";
         deviceDesc.requiredFeatureCount = 0;
         deviceDesc.requiredFeatures = nullptr;
-        deviceDesc.requiredLimits = nullptr; // Weirdly enough, the tutorial tells me to do this then doesn't...
+        //char reqs[sizeof(WGPURequiredLimits)]; // why why why why why why
+        //*reinterpret_cast<WGPURequiredLimits*>(reqs) = getRequiredLimits();
+        deviceDesc.requiredLimits = nullptr;
         deviceDesc.defaultQueue.nextInChain = nullptr;
-        deviceDesc.defaultQueue.label = "John Queue"; // what??
+        deviceDesc.defaultQueue.label = "John Queue";
         deviceDesc.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void*) {
             std::cout << "WGPU: Device lost,  " << reason;
             if (message) std::cout << " (" << message << ")";
             std::cout << std::endl;
         };;
 
-        bool awty = false;
+        bool areWeThereYet = false;
 
         wgpuAdapterRequestDevice(adapter, &deviceDesc, [](WGPURequestDeviceStatus status, WGPUDevice d, char const * message, void * b) {
             if (status == WGPURequestDeviceStatus_Success) {
@@ -221,7 +214,7 @@ namespace JE::GFX {
                 std::cerr << "Could not get WebGPU device: " << message << std::endl;
             }
             *reinterpret_cast<bool*>(b) = true;
-        }, &awty);
+        }, &areWeThereYet);
 
 #ifdef __EMSCRIPTEN__
         while (!awty) {
@@ -229,7 +222,7 @@ namespace JE::GFX {
     }
 #endif // __EMSCRIPTEN__
 
-        assert(awty);
+        assert(areWeThereYet);
 
         if (device == nullptr) {
             throw std::runtime_error("WGPU: Failed to get device!");
