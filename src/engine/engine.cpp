@@ -130,20 +130,22 @@ void setFogPlanes(float near, float far) {
     recopyLightingBuffer();
 }
 
-bool having_stroke = false;
+#ifdef __EMSCRIPTEN__
+bool emscriptenRequestPointer = false;
+#endif
 
 void setMouseVisible(bool vis) {
     if (vis) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 #ifdef __EMSCRIPTEN__
-        having_stroke = false;
+        emscriptenRequestPointer = false;
         emscripten_exit_pointerlock();
 #endif
     }
     else {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 #ifdef __EMSCRIPTEN__
-        having_stroke = true;
+        emscriptenRequestPointer = true;
 #endif
     }
 }
@@ -350,8 +352,8 @@ void framebuffer_size_callback(GLFWwindow* windowInstance,[[maybe_unused]] int u
 }
 
 #ifdef __EMSCRIPTEN__
-bool emscripten_click_callback_fml(int eventType, const EmscriptenMouseEvent *mouseEvent, void *userData) {
-    if (having_stroke) emscripten_request_pointerlock("canvas", false);
+bool emscripten_click_callback(int eventType, const EmscriptenMouseEvent *mouseEvent, void *userData) {
+    if (emscriptenRequestPointer) emscripten_request_pointerlock("canvas", false);
     return true;
 }
 #endif
@@ -370,7 +372,7 @@ void init(const char* windowName, int width, int height, GraphicsSettings graphi
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 #ifdef __EMSCRIPTEN__
-    emscripten_set_click_callback("canvas", nullptr, true, emscripten_click_callback_fml);
+    emscripten_set_click_callback("canvas", nullptr, true, emscripten_click_callback);
 #endif
 
     uboID = createUniformBuffer(sizeof(UniformBufferObject));
