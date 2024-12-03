@@ -543,7 +543,7 @@ namespace JE::GFX {
 
             // Push Constant hacky solution
             wgpuRenderPassEncoderSetBindGroup(pass, 0, bindGroups[indexPairs[pushConstantBufferID].bindGroup], 1, &dynamicOffset);
-            constants.push_back({r->objectMatrix, r->data, r->rotate, glm::identity<mat4>()});
+            constants.push_back({r->objectMatrix, r->data, glm::transpose(glm::inverse(r->objectMatrix)), glm::identity<mat4>()});
             dynamicOffset += sizeof(PushConstants);
 
             for (int i = 0; i < r->descriptorIDs.size(); i++) {
