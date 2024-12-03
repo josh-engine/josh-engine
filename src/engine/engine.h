@@ -40,12 +40,13 @@ namespace JE {
     };
 
     struct ShaderProgramSettings {
-        bool testDepth;
-        bool transparencySupported;
-        bool doubleSided;
+        bool testDepth = true;
+        bool transparencySupported = false;
+        bool doubleSided = false;
         bool depthAlwaysPass = false;
-        u32 shaderInputs;
-        u8 shaderInputCount;
+
+        uint32_t shaderInputs = 0;
+        uint8_t shaderInputCount = 0;
     };
 
     class Transform {
