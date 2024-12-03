@@ -32,6 +32,8 @@ namespace JE::GFX {
     struct PushConstants {
         glm::mat4 model;
         glm::mat4 freeRealEstate;
+        glm::mat4 _je_normalMatrix;
+        glm::mat4 pad;
     };
 
     unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label = "JElifetimebuffer");
@@ -541,9 +543,8 @@ namespace JE::GFX {
 
             // Push Constant hacky solution
             wgpuRenderPassEncoderSetBindGroup(pass, 0, bindGroups[indexPairs[pushConstantBufferID].bindGroup], 1, &dynamicOffset);
-            constants.push_back({r->objectMatrix, r->data});
-            constants.push_back({});
-            dynamicOffset += sizeof(PushConstants)*2;
+            constants.push_back({r->objectMatrix, r->data, r->rotate, glm::identity<mat4>()});
+            dynamicOffset += sizeof(PushConstants);
 
             for (int i = 0; i < r->descriptorIDs.size(); i++) {
                 auto pair = indexPairs[r->descriptorIDs[i]];
@@ -1153,7 +1154,7 @@ namespace JE::GFX {
         binding.binding = 0;
         binding.buffer = buffers[pair.resource];
         binding.offset = 0;
-        binding.size = sizeof(PushConstants)*2;
+        binding.size = sizeof(PushConstants);
 
         WGPUBindGroupDescriptor bindGroupDesc{};
         bindGroupDesc.nextInChain = nullptr;

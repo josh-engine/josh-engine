@@ -1,4 +1,4 @@
-// JE_TRANSLATE vertex
+// JE_TRANSLATE vertex simplify_inv_transp
 #version 420
 
 layout(location = 0) in vec3 vertexPosition_modelspace;

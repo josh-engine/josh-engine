@@ -2,6 +2,8 @@ import os
 import sys
 import subprocess
 
+from sympy import false
+
 try:
     nagaVersionOutput = subprocess.run(['naga', '--version'], stdout=subprocess.PIPE).stdout.decode('utf-8')
 except:
@@ -52,8 +54,15 @@ for shader in glslShaders:
     code = code.replace("#version 420", "#version 440")
     print(shader)
     codeLines = code.splitlines()
+    translate_header = codeLines.pop(0).split(" ")
+    simplifyInverseTranspose = False
+    for item in translate_header:
+        if item.find("simplify_inv_transp") != -1:
+            simplifyInverseTranspose = True
     code = ""
     combinedSamplerDimensionTracker = {}
+    pushConstantAppend = False
+    print()
     for line in codeLines:
         # Generally, any sampler2D in JoshEngine should be a combined image sampler.
         # However, I just want to account for anyone doing things weirdly,
@@ -83,7 +92,16 @@ for shader in glslShaders:
             print ("- Incremented set", setNumber, "to make space for constants")
         if line.find("push_constant") != -1:
             line = line.replace("layout(push_constant)", "layout(set = 0, binding = 0)")
+            pushConstantAppend = simplifyInverseTranspose
             print("- Changed push constant to uniform(0)")
+        if line.find("};") != -1 and pushConstantAppend:
+            pushConstantAppend = False
+            line = "mat4 _je_normalMatrix;\n" + line
+            print("- Added _je_normalMatrix to push constants (simplify_inv_trans)")
+        if line.find("transpose(inverse(") != -1 and simplifyInverseTranspose:
+            transposeInverseLocation = line.find("transpose(inverse(")
+            line = line.replace(line[transposeInverseLocation:transposeInverseLocation+line[transposeInverseLocation:].find(")")+2], "_je_normalMatrix")
+            print("- Simplified inverse transpose statement to _je_normalMatrix")
         code += line + "\n"
     print()
 
