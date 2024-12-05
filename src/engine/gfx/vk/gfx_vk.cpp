@@ -145,7 +145,9 @@ namespace JE::GFX {
     };
 
     const std::vector instanceExtensions = {
+#ifdef PLATFORM_MAC
             "VK_KHR_portability_enumeration"
+#endif
     };
 
     const std::vector validationLayers = {
@@ -154,7 +156,9 @@ namespace JE::GFX {
 
     const std::vector deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef PLATFORM_MAC
             "VK_KHR_portability_subset"
+#endif
     };
 
     bool framebufferResized = false;
@@ -452,8 +456,9 @@ namespace JE::GFX {
         requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
-        // actual crime against programmer kind
-        createInfo.flags |= 0x00000001; //VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
+#ifdef PLATFORM_MAC
+        createInfo.flags |= VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
         createInfo.enabledExtensionCount = requiredExtensions.size();
         createInfo.ppEnabledExtensionNames = requiredExtensions.data();
