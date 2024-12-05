@@ -40,7 +40,7 @@ namespace JE::GFX {
     void resizePushConstantBuffer(size_t size);
 
     GraphicsSettings settings;
-    GLFWwindow** window;
+    GLFWwindow** windowPtr;
 
     WGPUInstance instance;
     WGPUAdapter adapter;
@@ -91,7 +91,7 @@ namespace JE::GFX {
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        *window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
+        *windowPtr = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
     }
 
     void createInstance() {
@@ -243,7 +243,7 @@ namespace JE::GFX {
     }
 
     void createSurface() {
-        surface = glfwGetWGPUSurface(instance, *window);
+        surface = glfwGetWGPUSurface(instance, *windowPtr);
 
         if (surface == nullptr) {
             throw std::runtime_error("WGPU: Failed to get surface!");
@@ -406,9 +406,9 @@ namespace JE::GFX {
     }
 
     // ReSharper disable once CppParameterNamesMismatch
-    void init(GLFWwindow **p, const char* windowName, const int width, const int height, const GraphicsSettings &s) {
-        window = p;
-        settings = s;
+    void init(GLFWwindow **window, const char* windowName, const int width, const int height, const GraphicsSettings &graphicsSettings) {
+        windowPtr = window;
+        settings = graphicsSettings;
 
         initGLFW(width, height, windowName);
         int fbw, fbh;
@@ -627,13 +627,13 @@ namespace JE::GFX {
         wgpuAdapterRelease(adapter);
         wgpuSurfaceRelease(surface);
         wgpuInstanceRelease(instance);
-        glfwDestroyWindow(*window);
+        glfwDestroyWindow(*windowPtr);
         glfwTerminate();
     }
 
     void resizeViewport() {
         int width, height;
-        glfwGetFramebufferSize(*window, &width, &height);
+        glfwGetFramebufferSize(*windowPtr, &width, &height);
 
         destroySwapchain();
         createSwapchain(width, height);
@@ -750,7 +750,7 @@ namespace JE::GFX {
         return loadTextureBytes(pixels, texWidth, texHeight, samplerFilter);
     }
 
-    unsigned int loadCubemap(std::vector<std::string> faces) {
+    unsigned int loadCubemap(const std::vector<std::string> &faces) {
         int texWidth[6], texHeight[6], texChannels[6];
 
         stbi_set_flip_vertically_on_load(false);
