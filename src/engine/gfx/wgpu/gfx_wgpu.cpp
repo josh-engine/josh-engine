@@ -30,13 +30,13 @@
 namespace JE::GFX {
 
     struct PushConstants {
-        glm::mat4 model;
-        glm::mat4 freeRealEstate;
-        glm::mat4 _je_normalMatrix;
-        glm::mat4 pad;
+        mat4 model;
+        mat4 freeRealEstate;
+        mat4 _je_normalMatrix;
+        mat4 padding;
     };
 
-    unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label = "JElifetimebuffer");
+    unsigned int createLifetimeBuffer(const void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label = "JElifetimebuffer");
     void resizePushConstantBuffer(size_t size);
 
     GraphicsSettings settings;
@@ -80,11 +80,11 @@ namespace JE::GFX {
     WGPUTextureView depthTextureView;
 
     unsigned int pushConstantBufferID;
-    size_t pushConstantBufferSize = sizeof(glm::mat4) * 2;
+    size_t pushConstantBufferSize = sizeof(mat4) * 2;
 
     bool srgbTextures;
 
-    void initGLFW(int width, int height, const char* windowName) {
+    void initGLFW(const int width, const int height, const char* windowName) {
         if (!glfwInit()) {
             throw std::runtime_error("WGPU: Could not initialize GLFW!");
         }
@@ -117,13 +117,13 @@ namespace JE::GFX {
 
         bool areWeThereYet = false;
 
-        wgpuInstanceRequestAdapter(instance, &adapterOpts, [](WGPURequestAdapterStatus status, WGPUAdapter a, char const * message, void * b) {
+        wgpuInstanceRequestAdapter(instance, &adapterOpts, [](const WGPURequestAdapterStatus status, const auto a, char const * message, void * b) {
             if (status == WGPURequestAdapterStatus_Success) {
                 adapter = a;
             } else {
                 std::cerr << "Could not get WebGPU adapter: " << message << std::endl;
             }
-            *reinterpret_cast<bool*>(b) = true;
+            *static_cast<bool*>(b) = true;
         }, &areWeThereYet);
 
 #ifdef __EMSCRIPTEN__
@@ -201,7 +201,7 @@ namespace JE::GFX {
         deviceDesc.requiredLimits = nullptr;
         deviceDesc.defaultQueue.nextInChain = nullptr;
         deviceDesc.defaultQueue.label = "John Queue";
-        deviceDesc.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* message, void*) {
+        deviceDesc.deviceLostCallback = [](const WGPUDeviceLostReason reason, char const* message, void*) {
             std::cout << "WGPU: Device lost,  " << reason;
             if (message) std::cout << " (" << message << ")";
             std::cout << std::endl;
@@ -209,13 +209,13 @@ namespace JE::GFX {
 
         bool areWeThereYet = false;
 
-        wgpuAdapterRequestDevice(adapter, &deviceDesc, [](WGPURequestDeviceStatus status, WGPUDevice d, char const * message, void * b) {
+        wgpuAdapterRequestDevice(adapter, &deviceDesc, [](const auto status, const auto d, char const * message, void * b) {
             if (status == WGPURequestDeviceStatus_Success) {
                 device = d;
             } else {
                 std::cerr << "Could not get WebGPU device: " << message << std::endl;
             }
-            *reinterpret_cast<bool*>(b) = true;
+            *static_cast<bool*>(b) = true;
         }, &areWeThereYet);
 
 #ifdef __EMSCRIPTEN__
@@ -230,7 +230,7 @@ namespace JE::GFX {
             throw std::runtime_error("WGPU: Failed to get device!");
         }
 
-        wgpuDeviceSetUncapturedErrorCallback(device, [](WGPUErrorType type, char const* message, void*) {
+        wgpuDeviceSetUncapturedErrorCallback(device, [](const WGPUErrorType type, char const* message, void*) {
             std::cout << "Uncaptured device error: type " << type;
             if (message) std::cout << " (" << message << ")";
             std::cout << std::endl;
@@ -348,7 +348,7 @@ namespace JE::GFX {
         cubemapBindGroupLayout = wgpuDeviceCreateBindGroupLayout(device, &bindGroupLayoutDesc);
     }
 
-    void configureSurface(int width, int height) {
+    void configureSurface(const int width, const int height) {
         WGPUSurfaceConfiguration config{};
         config.nextInChain = nullptr;
 
@@ -370,7 +370,7 @@ namespace JE::GFX {
         wgpuSurfaceConfigure(surface, &config);
     }
 
-    void createDepthTexture(int width, int height) {
+    void createDepthTexture(const int width, const int height) {
         WGPUTextureDescriptor depthTextureDesc{};
         depthTextureDesc.dimension = WGPUTextureDimension_2D;
         depthTextureDesc.format = depthFormat;
@@ -393,7 +393,7 @@ namespace JE::GFX {
         depthTextureView = wgpuTextureCreateView(depthTexture, &depthTextureViewDesc);
     }
 
-    void createSwapchain(int width, int height) {
+    void createSwapchain(const int width, const int height) {
         configureSurface(width, height);
         createDepthTexture(width, height);
     }
@@ -405,11 +405,12 @@ namespace JE::GFX {
         wgpuSurfaceUnconfigure(surface);
     }
 
-    void init(GLFWwindow **p, const char* n, int w, int h, GraphicsSettings s) {
+    // ReSharper disable once CppParameterNamesMismatch
+    void init(GLFWwindow **p, const char* windowName, const int width, const int height, const GraphicsSettings &s) {
         window = p;
         settings = s;
 
-        initGLFW(w, h, n);
+        initGLFW(width, height, windowName);
         int fbw, fbh;
         glfwGetFramebufferSize(*window, &fbw, &fbh);
         createInstance();
@@ -453,7 +454,7 @@ namespace JE::GFX {
         viewDesc.arrayLayerCount = 1;
         viewDesc.aspect = WGPUTextureAspect_All;
 
-        auto view = wgpuTextureCreateView(surfaceTexture.texture, &viewDesc);
+        const auto view = wgpuTextureCreateView(surfaceTexture.texture, &viewDesc);
 #ifndef WEBGPU_BACKEND_WGPU // If we all just complied to real browser implementation life could be dream
         wgpuTextureRelease(surfaceTexture.texture);
 #endif // WEBGPU_BACKEND_WGPU
@@ -461,32 +462,31 @@ namespace JE::GFX {
     }
 
     void renderFrame(const std::vector<Renderable*>& renderables, const std::vector<void (*)()>& imGuiCalls) {
-        WGPUTextureView next = acquireNext();
+        const auto next = acquireNext();
         if (!next) return;
 
         ImGui_ImplGlfw_NewFrame();
         ImGui_ImplWGPU_NewFrame();
 
         ImGui::NewFrame();
-        for (auto fn : imGuiCalls) {
+        for (const auto fn : imGuiCalls) {
             fn();
         }
         ImGui::EndFrame();
         ImGui::Render();
 
-        size_t requiredPushConstSize = renderables.size() * (sizeof(glm::mat4) * 2);
-        if (requiredPushConstSize > pushConstantBufferSize) {
+        if (const size_t requiredPushConstSize = renderables.size() * (sizeof(PushConstants)); requiredPushConstSize > pushConstantBufferSize) {
             pushConstantBufferSize = pushConstantBufferSize * 2;
             if (requiredPushConstSize > pushConstantBufferSize)
                 pushConstantBufferSize = requiredPushConstSize;
-            resizePushConstantBuffer(pushConstantBufferSize * 2);
+            resizePushConstantBuffer(pushConstantBufferSize);
         }
 
         // I swear the Vulkan PTSD is fully set in
         WGPUCommandEncoderDescriptor encoderDesc{};
         encoderDesc.nextInChain = nullptr;
         encoderDesc.label = "JEframecommandencoder";
-        auto encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
+        const auto encoder = wgpuDeviceCreateCommandEncoder(device, &encoderDesc);
 
 
         WGPURenderPassColorAttachment renderPassColorAttachment{};
@@ -527,14 +527,14 @@ namespace JE::GFX {
 
         std::vector<PushConstants> constants{};
         // Generate render commands
-        auto pass = wgpuCommandEncoderBeginRenderPass(encoder, &passDesc);
+        const auto pass = wgpuCommandEncoderBeginRenderPass(encoder, &passDesc);
 
         uint32_t dynamicOffset = 0;
-        uint32_t badWorkaround = 0;
-        for (auto r : renderables) {
+        constexpr uint32_t badWorkaround = 0;
+        for (const auto r : renderables) {
             wgpuRenderPassEncoderSetPipeline(pass, pipelineVector[r->shaderProgram]);
 
-            size_t s = wgpuBufferGetSize(buffers[r->vboID]);
+            const size_t s = wgpuBufferGetSize(buffers[r->vboID]);
             // Set vertex buffer while encoding the render pass
             wgpuRenderPassEncoderSetVertexBuffer(pass, 0, buffers[r->vboID], 0, s);
             wgpuRenderPassEncoderSetIndexBuffer(pass, buffers[r->vboID + 1], WGPUIndexFormat_Uint32, 0,
@@ -543,12 +543,11 @@ namespace JE::GFX {
 
             // Push Constant hacky solution
             wgpuRenderPassEncoderSetBindGroup(pass, 0, bindGroups[indexPairs[pushConstantBufferID].bindGroup], 1, &dynamicOffset);
-            constants.push_back({r->objectMatrix, r->data, glm::transpose(glm::inverse(r->objectMatrix)), glm::identity<mat4>()});
+            constants.push_back({r->objectMatrix, r->data, transpose(inverse(r->objectMatrix)), glm::identity<mat4>()});
             dynamicOffset += sizeof(PushConstants);
 
             for (int i = 0; i < r->descriptorIDs.size(); i++) {
-                auto pair = indexPairs[r->descriptorIDs[i]];
-                if (pair.isBuffer) {
+                if (const auto pair = indexPairs[r->descriptorIDs[i]]; pair.isBuffer) {
                     wgpuRenderPassEncoderSetBindGroup(pass,
                                                       i + 1,
                                                       bindGroups[pair.bindGroup],
@@ -574,7 +573,7 @@ namespace JE::GFX {
         WGPUCommandBufferDescriptor commandBufferDesc{};
         commandBufferDesc.nextInChain = nullptr;
         commandBufferDesc.label = "Render Command Buffer";
-        auto command = wgpuCommandEncoderFinish(encoder, &commandBufferDesc);
+        const auto command = wgpuCommandEncoderFinish(encoder, &commandBufferDesc);
         wgpuCommandEncoderRelease(encoder);
 
         updateUniformBuffer(pushConstantBufferID, constants.data(), constants.size()*sizeof(PushConstants), false);
@@ -595,27 +594,27 @@ namespace JE::GFX {
         ImGui_ImplGlfw_Shutdown();
         ImGui_ImplWGPU_Shutdown();
 
-        for (auto bindGroup : bindGroups) {
+        for (const auto bindGroup : bindGroups) {
             wgpuBindGroupRelease(bindGroup);
         }
-        for (auto sampler : samplers) {
+        for (const auto sampler : samplers) {
             wgpuSamplerRelease(sampler);
         }
-        for (auto view : textureViews) {
+        for (const auto view : textureViews) {
             wgpuTextureViewRelease(view);
         }
-        for (auto texture : textures) {
+        for (const auto texture : textures) {
             wgpuTextureDestroy(texture);
             wgpuTextureRelease(texture);
         }
-        for (auto buf : buffers) {
+        for (const auto buf : buffers) {
             wgpuBufferDestroy(buf);
             wgpuBufferRelease(buf);
         }
-        for (auto shader : shaderModuleVector) {
+        for (const auto shader : shaderModuleVector) {
             wgpuShaderModuleRelease(shader);
         }
-        for (auto pipeline : pipelineVector) {
+        for (const auto pipeline : pipelineVector) {
             wgpuRenderPipelineRelease(pipeline);
         }
         destroySwapchain();
@@ -640,7 +639,7 @@ namespace JE::GFX {
         createSwapchain(width, height);
     }
 
-    void setClearColor(float r, float g, float b) {
+    void setClearColor(const float r, const float g, const float b) {
         settings.clearColor[0] = r;
         settings.clearColor[1] = g;
         settings.clearColor[2] = b;
@@ -648,7 +647,7 @@ namespace JE::GFX {
 
     unsigned int loadTextureBytes(const void* src, unsigned int width, unsigned int height, const int& sampleFilter) {
         //TODO: Implement textures
-        const unsigned int channels = 4;
+        constexpr unsigned int channels = 4;
         size_t size = width * height * channels;
 
         WGPUTextureDescriptor textureDesc{};
@@ -733,17 +732,17 @@ namespace JE::GFX {
     unsigned int loadTexture(const std::string& fileName, const int& samplerFilter) {
         stbi_set_flip_vertically_on_load(true);
         int texWidth, texHeight, texChannels;
-        stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        const stbi_uc *pixels = stbi_load(fileName.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!pixels) {
             throw std::runtime_error("WGPU: Failed to load image \"" + fileName + "\"!");
         }
         return loadTextureBytes(pixels, texWidth, texHeight, samplerFilter);
     }
 
-    unsigned int loadBundledTexture(char* fileFirstBytePtr, size_t fileLength, const int& samplerFilter) {
+    unsigned int loadBundledTexture(const char* fileFirstBytePtr, const size_t fileLength, const int& samplerFilter) {
         stbi_set_flip_vertically_on_load(true);
         int texWidth, texHeight, texChannels;
-        stbi_uc *pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(fileFirstBytePtr), fileLength,
+        const stbi_uc *pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(fileFirstBytePtr), static_cast<int>(fileLength),
                                                 &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!pixels) {
             throw std::runtime_error("WGPU: Failed to load image from bundle!");
@@ -762,7 +761,7 @@ namespace JE::GFX {
         }
 
         size_t layerSize = texWidth[0] * texHeight[0] * 4;
-        size_t totalSize = layerSize * 6;
+        //size_t totalSize = layerSize * 6;
 
         WGPUTextureDescriptor textureDesc{};
         textureDesc.nextInChain = nullptr;
@@ -854,7 +853,7 @@ namespace JE::GFX {
             throw std::runtime_error("WGPU: Failed to open file!");
         }
 
-        size_t fileSize = (size_t) file.tellg();
+        const size_t fileSize = file.tellg();
         std::vector<char> buffer(fileSize+1); // weirdly needs null terminator (why doesn't this happen on vulkan?)
         file.seekg(0);
         file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
@@ -872,7 +871,7 @@ namespace JE::GFX {
     unsigned int loadShader(const std::string& file_path, int target) {
         std::string copy = file_path;
         if (ends_with(file_path, ".glsl")) {
-            unsigned int lastSubdir = file_path.rfind('/');
+            const unsigned int lastSubdir = file_path.rfind('/');
             copy = file_path.substr(0, lastSubdir) + "/wgsl_conv/" +
                    file_path.substr(lastSubdir + 1, file_path.length() - 5 - (lastSubdir + 1)) + ".wgsl";
         }
@@ -885,17 +884,17 @@ namespace JE::GFX {
         WGPUShaderModuleWGSLDescriptor shaderCodeDesc{};
         shaderCodeDesc.chain.next = nullptr;
         shaderCodeDesc.chain.sType = WGPUSType_ShaderModuleWGSLDescriptor;
-        auto code = readFile(copy);
+        const auto code = readFile(copy);
         shaderCodeDesc.code = &code[0];
 
         shaderDesc.nextInChain = &shaderCodeDesc.chain;
-        WGPUShaderModule shaderModule = wgpuDeviceCreateShaderModule(device, &shaderDesc);
+        const auto shaderModule = wgpuDeviceCreateShaderModule(device, &shaderDesc);
 
         if (shaderModule == nullptr) {
             throw std::runtime_error("WGPU: Failed to create shader module for \"" + copy + "\"!");
         }
 
-        unsigned int id = shaderModuleVector.size();
+        const unsigned int id = shaderModuleVector.size();
         shaderModuleVector.push_back(shaderModule);
         return id;
     }
@@ -1019,7 +1018,7 @@ namespace JE::GFX {
         bgls.push_back(uniformBindGroupLayout);
         for (int i = 0; i < shaderProgramSettings.shaderInputCount; i++) {
             //  select single bit from shader inputs
-            if (((shaderProgramSettings.shaderInputs >> i) & 0b1) == 1) {
+            if ((shaderProgramSettings.shaderInputs >> i & 0b1) == 1) {
                 // texture
                 bgls.push_back(use2DSamplers ? textureBindGroupLayout : cubemapBindGroupLayout);
             } else {
@@ -1048,11 +1047,11 @@ namespace JE::GFX {
         return id;
     }
 
-    unsigned int createProgram(unsigned int VertexShaderID, unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, VertexType vtype) {
+    unsigned int createProgram(const unsigned int VertexShaderID, const unsigned int FragmentShaderID, const ShaderProgramSettings& shaderProgramSettings, const VertexType vtype) {
         return createProgram(VertexShaderID, FragmentShaderID, shaderProgramSettings, vtype, true);
     }
 
-    unsigned int createLifetimeBuffer(void* src, size_t size, WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label) {
+    unsigned int createLifetimeBuffer(const void* src, const size_t size, const WGPUBufferUsage usage, std::vector<WGPUBuffer>& vec, const char* label) {
         WGPUBufferDescriptor bufferDesc{};
         bufferDesc.nextInChain = nullptr;
         bufferDesc.label = label;
@@ -1060,25 +1059,25 @@ namespace JE::GFX {
         bufferDesc.size = size;
         bufferDesc.mappedAtCreation = true;
 
-        WGPUBuffer buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
+        const auto buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
         if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create lifetime buffer!");
 
         void* map = wgpuBufferGetMappedRange(buffer, 0, size);
         memcpy(map, src, size);
         wgpuBufferUnmap(buffer);
 
-        unsigned int id = vec.size();
+        const unsigned int id = vec.size();
         vec.push_back(buffer);
         return id;
     }
 
-    unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices) {
-        unsigned int idx1 =
+    unsigned int createVBO(const std::vector<InterleavedVertex> *interleavedVertices, const std::vector<unsigned int> *indices) {
+        const unsigned int idx1 =
         createLifetimeBuffer(interleavedVertices->data(),
                              interleavedVertices->size()*sizeof(InterleavedVertex),
                              WGPUBufferUsage_Vertex,
                              buffers);
-        unsigned int idx2 =
+        const unsigned int idx2 =
         createLifetimeBuffer(indices->data(),
                              indices->size()*sizeof(unsigned int),
                              WGPUBufferUsage_Index,
@@ -1089,7 +1088,7 @@ namespace JE::GFX {
 
     unsigned int createUniformBuffer(size_t bufferSize) {
         // WebGPU quirk.
-        bufferSize = (bufferSize - (bufferSize % 16)) + 16;
+        bufferSize = bufferSize - bufferSize % 16 + 16;
 
         WGPUBufferDescriptor bufferDesc = {};
         bufferDesc.nextInChain = nullptr;
@@ -1097,10 +1096,10 @@ namespace JE::GFX {
         bufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
         bufferDesc.size = bufferSize;
         bufferDesc.mappedAtCreation = false;
-        auto buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
+        const auto buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
 
         if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create uniform buffer!");
-        unsigned int bufferID = buffers.size();
+        const unsigned int bufferID = buffers.size();
         buffers.push_back(buffer);
 
         // Create a binding
@@ -1116,26 +1115,26 @@ namespace JE::GFX {
         bindGroupDesc.layout = uniformBindGroupLayout;
         bindGroupDesc.entryCount = 1;
         bindGroupDesc.entries = &binding;
-        auto bindGroup = wgpuDeviceCreateBindGroup(device, &bindGroupDesc);
+        const auto bindGroup = wgpuDeviceCreateBindGroup(device, &bindGroupDesc);
 
         if (bindGroup == nullptr) throw std::runtime_error("WGPU: Failed to create uniform bind group!");
-        unsigned int bindID = bindGroups.size();
+        const unsigned int bindID = bindGroups.size();
         bindGroups.push_back(bindGroup);
 
-        unsigned int id = indexPairs.size();
+        const unsigned int id = indexPairs.size();
         indexPairs.push_back({bufferID, bindID, true});
 
         return id;
     }
 
     void resizePushConstantBuffer(size_t size) {
-        auto pair = indexPairs[pushConstantBufferID];
+        const auto pair = indexPairs[pushConstantBufferID];
 
         wgpuBufferDestroy(buffers[pair.resource]);
         wgpuBindGroupRelease(bindGroups[pair.bindGroup]);
 
         // WebGPU quirk.
-        size = (size - (size % 16)) + 16;
+        size = size - size % 16 + 16;
 
         WGPUBufferDescriptor bufferDesc = {};
         bufferDesc.nextInChain = nullptr;
@@ -1143,7 +1142,7 @@ namespace JE::GFX {
         bufferDesc.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_Uniform;
         bufferDesc.size = size;
         bufferDesc.mappedAtCreation = false;
-        auto buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
+        const auto buffer = wgpuDeviceCreateBuffer(device, &bufferDesc);
 
         if (buffer == nullptr) throw std::runtime_error("WGPU: Failed to create uniform buffer!");
         buffers[pair.resource] = buffer;
@@ -1161,13 +1160,13 @@ namespace JE::GFX {
         bindGroupDesc.layout = uniformBindGroupLayout;
         bindGroupDesc.entryCount = 1;
         bindGroupDesc.entries = &binding;
-        auto bindGroup = wgpuDeviceCreateBindGroup(device, &bindGroupDesc);
+        const auto bindGroup = wgpuDeviceCreateBindGroup(device, &bindGroupDesc);
 
         if (bindGroup == nullptr) throw std::runtime_error("WGPU: Failed to create uniform bind group!");
         bindGroups[pair.bindGroup] = bindGroup;
     }
 
-    void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
+    void updateUniformBuffer(const unsigned int id, const void* ptr, const size_t size, [[maybe_unused]] bool updateAll) {
         wgpuQueueWriteBuffer(queue, buffers[indexPairs[id].resource], 0, ptr, size);
     }
 }
