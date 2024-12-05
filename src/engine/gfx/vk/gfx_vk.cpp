@@ -144,17 +144,17 @@ namespace JE::GFX {
         std::vector<VkPresentModeKHR> presentModes;
     };
 
-    const std::vector instanceExtensions = {
+    const std::vector<const char*> instanceExtensions = {
 #ifdef PLATFORM_MAC
             "VK_KHR_portability_enumeration"
 #endif
     };
 
-    const std::vector validationLayers = {
+    const std::vector<const char*> validationLayers = {
             "VK_LAYER_KHRONOS_validation"
     };
 
-    const std::vector deviceExtensions = {
+    const std::vector<const char*> deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 #ifdef PLATFORM_MAC
             "VK_KHR_portability_subset"
