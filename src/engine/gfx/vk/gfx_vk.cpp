@@ -32,7 +32,7 @@
 
 namespace JE::GFX {
     GLFWwindow **windowPtr;
-    JE::GraphicsSettings settings;
+    GraphicsSettings settings;
 
     VkInstance instance;
 
@@ -115,7 +115,7 @@ namespace JE::GFX {
         return memoryBlocks;
     }
 
-    void *getTex(unsigned int i) {
+    void *getTex(const unsigned int i) {
         return descriptorSets[i].sets[0];
     }
 
@@ -123,8 +123,8 @@ namespace JE::GFX {
         return uniformBuffers.size();
     }
 
-    UniformBufferReference getBuf(unsigned int i) {
-        return {&(uniformBuffersMemory[i]), &(uniformBuffersMapped[i])};
+    UniformBufferReference getBuf(const unsigned int i) {
+        return {&uniformBuffersMemory[i], &(uniformBuffersMapped[i])};
     }
 
 #endif
@@ -133,7 +133,7 @@ namespace JE::GFX {
         std::optional<uint32_t> graphicsFamily;
         std::optional<uint32_t> presentFamily;
 
-        bool isComplete() {
+        [[nodiscard]] bool isComplete() const {
             return graphicsFamily.has_value() && presentFamily.has_value();
         }
     };
@@ -144,15 +144,15 @@ namespace JE::GFX {
         std::vector<VkPresentModeKHR> presentModes;
     };
 
-    const std::vector<const char *> instanceExtensions = {
+    const std::vector instanceExtensions = {
             "VK_KHR_portability_enumeration"
     };
 
-    const std::vector<const char *> validationLayers = {
+    const std::vector validationLayers = {
             "VK_LAYER_KHRONOS_validation"
     };
 
-    const std::vector<const char *> deviceExtensions = {
+    const std::vector deviceExtensions = {
             VK_KHR_SWAPCHAIN_EXTENSION_NAME,
             "VK_KHR_portability_subset"
     };
@@ -163,11 +163,11 @@ namespace JE::GFX {
         framebufferResized = true;
     }
 
-    VkSampleCountFlagBits getMaxSamples(VkPhysicalDevice vkPhysicalDevice) {
+    VkSampleCountFlagBits getMaxSamples(const auto vkPhysicalDevice) {
         VkPhysicalDeviceProperties physicalDeviceProperties;
         vkGetPhysicalDeviceProperties(vkPhysicalDevice, &physicalDeviceProperties);
 
-        VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
+        const auto counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
                                     physicalDeviceProperties.limits.framebufferDepthSampleCounts;
         if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
         if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
@@ -179,20 +179,18 @@ namespace JE::GFX {
         return VK_SAMPLE_COUNT_1_BIT;
     }
 
-    VkSampleCountFlagBits getClosestSampleCount(VkPhysicalDevice vkPhysicalDevice) {
+    VkSampleCountFlagBits getClosestSampleCount(const auto vkPhysicalDevice) {
         if (settings.msaaSamples > 1) {
-            unsigned int maxSamples = getMaxSamples(vkPhysicalDevice);
+            const auto maxSamples = getMaxSamples(vkPhysicalDevice);
             if (maxSamples > settings.msaaSamples) {
                 return static_cast<VkSampleCountFlagBits>(settings.msaaSamples);
-            } else {
-                return static_cast<VkSampleCountFlagBits>(maxSamples);
             }
-        } else {
-            return VK_SAMPLE_COUNT_1_BIT;
+            return static_cast<VkSampleCountFlagBits>(maxSamples);
         }
+        return VK_SAMPLE_COUNT_1_BIT;
     }
 
-    void initGLFW(const char *name, int width, int height) {
+    void initGLFW(const char *name, const auto width, const auto height) {
         if (!glfwInit()) {
             throw std::runtime_error("Vulkan: Could not initialize GLFW!");
         }
@@ -203,7 +201,7 @@ namespace JE::GFX {
     }
 
 
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+    uint32_t findMemoryType(const uint32_t typeFilter, const VkMemoryPropertyFlags properties) {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
 
@@ -214,7 +212,7 @@ namespace JE::GFX {
         int backupIndex = -1;
 
         for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-            if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+            if (typeFilter & 1 << i && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
                 if (memProperties.memoryHeaps[memProperties.memoryTypes[i].heapIndex].flags &
                     VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
                     // Great! It's on the device.
@@ -231,7 +229,7 @@ namespace JE::GFX {
         throw std::runtime_error("Vulkan: Failed to find suitable memory type!");
     }
 
-    void allocateDeviceMemory(VkDeviceMemory &memory, VkDeviceSize size, uint32_t memoryType) {
+    void allocateDeviceMemory(VkDeviceMemory &memory, const VkDeviceSize size, const uint32_t memoryType) {
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = size;
@@ -242,15 +240,14 @@ namespace JE::GFX {
         }
     }
 
-    Allocation vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align, bool willMap) {
+    Allocation vkalloc(const auto size, const auto memoryType, const auto align, const auto willMap) {
         unsigned int i = 0;
         for (auto &block: memoryBlocks) {
             // is it the right type?
             if (block.type == memoryType) {
                 // align the block top to whatever vulkan says we should.
-                VkDeviceSize alignedTop;
                 //           get to a lower multiple of align, add it again to get back up
-                alignedTop = (block.top - (block.top % align)) + align;
+                const auto alignedTop = block.top - block.top % align + align;
                 // can we fit and do we have a map conflict?
                 //                                      if it will map and the block already is, we can't use it
                 if (block.size >= alignedTop + size && !(willMap && block.mapped)) {
@@ -270,16 +267,16 @@ namespace JE::GFX {
         return {static_cast<unsigned int>(memoryBlocks.size() - 1), size, 0};
     }
 
-    Allocation vkalloc(VkDeviceSize size, uint32_t memoryType, uint32_t align) {
+    Allocation vkalloc(const auto size, const auto memoryType, const auto align) {
         return vkalloc(size, memoryType, align, false);
     }
 
-    void vkmmap(Allocation *alloc, void **toMap) {
+    void vkmmap(const Allocation *alloc, void **toMap) {
         vkMapMemory(logicalDevice, memoryBlocks[alloc->memoryRefID].memory, alloc->offset, alloc->size, 0, toMap);
     }
 
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
-                      Allocation &alloc, bool willMap) {
+    void createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties, VkBuffer &buffer,
+                      Allocation &alloc, const bool willMap) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
@@ -299,7 +296,7 @@ namespace JE::GFX {
         vkBindBufferMemory(logicalDevice, buffer, memoryBlocks[alloc.memoryRefID].memory, alloc.offset);
     }
 
-    void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer &buffer,
+    void createBuffer(const VkDeviceSize size, const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties, VkBuffer &buffer,
                       VkDeviceMemory &memory) {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -336,7 +333,7 @@ namespace JE::GFX {
         return commandBuffer;
     }
 
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+    void endSingleTimeCommands(const auto commandBuffer) {
         vkEndCommandBuffer(commandBuffer);
 
         VkSubmitInfo submitInfo{};
@@ -350,7 +347,7 @@ namespace JE::GFX {
         vkFreeCommandBuffers(logicalDevice, commandPool, 1, &commandBuffer);
     }
 
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+    void copyBuffer(const auto srcBuffer, const auto dstBuffer, const VkDeviceSize size) {
         VkCommandBuffer commandBuffer = beginSingleTimeCommands();
 
         VkBufferCopy copyRegion{};
@@ -387,17 +384,17 @@ namespace JE::GFX {
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
             // Jesus christ why are vulkan object names so LONG what the HECC
-            VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-            VkDebugUtilsMessageTypeFlagsEXT messageType,
+            const VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-            void *pUserData) {
+            [[maybe_unused]] void *pUserData) {
 
         if (messageSeverity > VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
             std::cerr << "Vulkan Validation Layer: " << pCallbackData->pMessage << std::endl;
         } else if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            std::cout << "\e[0;33mVulkan Validation Layer: " << pCallbackData->pMessage << "\e[0m" << std::endl;
+            std::cout << "\x1b[0;33mVulkan Validation Layer: " << pCallbackData->pMessage << "\x1b[0m" << std::endl;
         } else {
-            std::cout << "\e[0;37mVulkan Validation Layer: " << pCallbackData->pMessage << "\e[0m" << std::endl;
+            std::cout << "\x1b[0;37mVulkan Validation Layer: " << pCallbackData->pMessage << "\x1b[0m" << std::endl;
         }
 
         return VK_FALSE;
@@ -435,16 +432,15 @@ namespace JE::GFX {
                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         debugCreateInfo.pfnUserCallback = debugCallback;
 
-        createInfo.pNext = reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT *>(&debugCreateInfo);
+        createInfo.pNext = &debugCreateInfo;
 #else
         createInfo.enabledLayerCount = 0;
         createInfo.pNext = nullptr;
 #endif
 
         uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions;
 
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        const char **glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
         std::vector<const char *> requiredExtensions = instanceExtensions;
 
@@ -467,6 +463,7 @@ namespace JE::GFX {
         }
     }
 
+    // ReSharper disable once CppParameterMayBeConst
     QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
         QueueFamilyIndices indices;
 
@@ -495,6 +492,7 @@ namespace JE::GFX {
         return indices;
     }
 
+    // ReSharper disable once CppParameterMayBeConst
     bool checkDeviceExtensionSupport(VkPhysicalDevice device) {
         uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
@@ -504,13 +502,14 @@ namespace JE::GFX {
 
         std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-        for (const auto &extension: availableExtensions) {
-            requiredExtensions.erase(extension.extensionName);
+        for (const auto &[extensionName, specVersion]: availableExtensions) {
+            requiredExtensions.erase(extensionName);
         }
 
         return requiredExtensions.empty();
     }
 
+    // ReSharper disable once CppParameterMayBeConst
     SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device) {
         SwapChainSupportDetails details;
 
@@ -640,10 +639,10 @@ namespace JE::GFX {
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-        auto compareLambda = [](std::pair<int, VkPhysicalDevice> left, std::pair<int, VkPhysicalDevice> right) {
+        std::priority_queue<std::pair<int, VkPhysicalDevice>, std::deque<std::pair<int, VkPhysicalDevice>>,
+        decltype([](const auto &left, const auto &right) {
             return left.first < right.first;
-        };
-        std::priority_queue<std::pair<int, VkPhysicalDevice>, std::deque<std::pair<int, VkPhysicalDevice>>, decltype(compareLambda)> candidates;
+        })> candidates;
 
         for (const auto &device: devices) {
             int score = scoreDevice(device);
@@ -669,10 +668,10 @@ namespace JE::GFX {
     }
 
     void createLogicalDevice() {
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+        const auto [graphicsFamily, presentFamily] = findQueueFamilies(physicalDevice);
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        std::set uniqueQueueFamilies = {graphicsFamily.value(), presentFamily.value()};
 
         float queuePriority = 1.0f;
         for (uint32_t queueFamily: uniqueQueueFamilies) {
@@ -708,8 +707,8 @@ namespace JE::GFX {
             throw std::runtime_error("Vulkan: Failed to create logical device!");
         }
 
-        vkGetDeviceQueue(logicalDevice, indices.graphicsFamily.value(), 0, &graphicsQueue);
-        vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
+        vkGetDeviceQueue(logicalDevice, graphicsFamily.value(), 0, &graphicsQueue);
+        vkGetDeviceQueue(logicalDevice, presentFamily.value(), 0, &presentQueue);
     }
 
     void createSurface() {
@@ -719,33 +718,33 @@ namespace JE::GFX {
     }
 
     void createSwapchain() {
-        SwapChainSupportDetails swapchainSupport = querySwapChainSupport(physicalDevice);
+        const auto [capabilities, formats, presentModes] = querySwapChainSupport(physicalDevice);
 
-        VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapchainSupport.formats);
-        VkPresentModeKHR presentMode = chooseSwapPresentMode(swapchainSupport.presentModes);
-        VkExtent2D extent = chooseSwapExtent(swapchainSupport.capabilities);
+        const auto [format, colorSpace] = chooseSwapSurfaceFormat(formats);
+        const auto presentMode = chooseSwapPresentMode(presentModes);
+        const auto extent = chooseSwapExtent(capabilities);
 
-        uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+        uint32_t imageCount = capabilities.minImageCount + 1;
 
-        if (swapchainSupport.capabilities.maxImageCount > 0 &&
-            imageCount > swapchainSupport.capabilities.maxImageCount) {
-            imageCount = swapchainSupport.capabilities.maxImageCount;
+        if (capabilities.maxImageCount > 0 &&
+            imageCount > capabilities.maxImageCount) {
+            imageCount = capabilities.maxImageCount;
         }
 
         VkSwapchainCreateInfoKHR createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         createInfo.surface = windowSurface;
         createInfo.minImageCount = imageCount;
-        createInfo.imageFormat = surfaceFormat.format;
-        createInfo.imageColorSpace = surfaceFormat.colorSpace;
+        createInfo.imageFormat = format;
+        createInfo.imageColorSpace = colorSpace;
         createInfo.imageExtent = extent;
         createInfo.imageArrayLayers = 1;
         createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-        uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+        auto [graphicsFamily, presentFamily] = findQueueFamilies(physicalDevice);
+        const uint32_t queueFamilyIndices[] = {graphicsFamily.value(), presentFamily.value()};
 
-        if (indices.graphicsFamily != indices.presentFamily) {
+        if (graphicsFamily != presentFamily) {
             createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
             createInfo.queueFamilyIndexCount = 2;
             createInfo.pQueueFamilyIndices = queueFamilyIndices;
@@ -753,7 +752,7 @@ namespace JE::GFX {
             createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         }
 
-        createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
+        createInfo.preTransform = capabilities.currentTransform;
         createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         createInfo.presentMode = presentMode;
         createInfo.clipped = VK_TRUE;
@@ -767,12 +766,12 @@ namespace JE::GFX {
         swapchainImages.resize(imageCount);
         vkGetSwapchainImagesKHR(logicalDevice, swapchain, &imageCount, swapchainImages.data());
 
-        swapchainImageFormat = surfaceFormat.format;
+        swapchainImageFormat = format;
         swapchainExtent = extent;
     }
 
     VkImageView
-    createImageView(VkImage image, VkFormat format, VkImageAspectFlagBits aspectFlag, unsigned int mipLevels) {
+    createImageView(const auto image, const auto format, const auto aspectFlag, const unsigned int mipLevels) {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         viewInfo.image = image;
@@ -802,8 +801,8 @@ namespace JE::GFX {
     }
 
     VkFormat
-    findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
-        for (VkFormat format: candidates) {
+    findSupportedFormat(const std::vector<VkFormat> &candidates, const auto tiling, const auto features) {
+        for (const VkFormat format: candidates) {
             VkFormatProperties props;
             vkGetPhysicalDeviceFormatProperties(physicalDevice, format, &props);
 
@@ -889,7 +888,7 @@ namespace JE::GFX {
                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-        std::array<VkAttachmentDescription, 3> attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
+        const std::array attachments = {colorAttachment, depthAttachment, colorAttachmentResolve};
         VkRenderPassCreateInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.attachmentCount = attachments.size();
@@ -930,12 +929,12 @@ namespace JE::GFX {
     }
 
     void createCommandPool() {
-        QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+        const auto [graphicsFamily, presentFamily] = findQueueFamilies(physicalDevice);
 
         VkCommandPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-        poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+        poolInfo.queueFamilyIndex = graphicsFamily.value();
 
         if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
             throw std::runtime_error("Vulkan: Failed to create command pool!");
@@ -948,7 +947,7 @@ namespace JE::GFX {
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = commandPool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+        allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
         if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
             throw std::runtime_error("Vulkan: Failed to allocate command buffers!");
@@ -985,7 +984,7 @@ namespace JE::GFX {
         uboLayoutBinding.descriptorCount = 1;
         uboLayoutBinding.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
 
-        std::array<VkDescriptorSetLayoutBinding, 1> bindings = {uboLayoutBinding};
+        const std::array bindings = {uboLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = bindings.size();
@@ -1005,7 +1004,7 @@ namespace JE::GFX {
         samplerLayoutBinding.pImmutableSamplers = nullptr;
         samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        std::array<VkDescriptorSetLayoutBinding, 1> bindings = {samplerLayoutBinding};
+        const std::array bindings = {samplerLayoutBinding};
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = bindings.size();
@@ -1017,7 +1016,7 @@ namespace JE::GFX {
         }
     }
 
-    void createUniformDescriptorPool(VkDescriptorPool *pool, VkDescriptorPoolCreateFlagBits flags) {
+    void createUniformDescriptorPool(VkDescriptorPool *pool, const auto flags) {
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -1034,8 +1033,8 @@ namespace JE::GFX {
         }
     }
 
-    void createUniformDescriptorSets(unsigned int bufferID, unsigned int descriptorID, size_t uniformSize) {
-        std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, uniformDescriptorSetLayout);
+    void createUniformDescriptorSets(const unsigned int bufferID, const unsigned int descriptorID, const size_t uniformSize) {
+        const std::vector layouts(MAX_FRAMES_IN_FLIGHT, uniformDescriptorSetLayout);
 
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -1068,9 +1067,9 @@ namespace JE::GFX {
         }
     }
 
-    unsigned int createUniformBuffer(size_t bufferSize) {
-        unsigned int bufferID = uniformBuffers.size();
-        unsigned int descriptorID = descriptorSets.size();
+    unsigned int createUniformBuffer(const size_t bufferSize) {
+        const unsigned int bufferID = uniformBuffers.size();
+        const unsigned int descriptorID = descriptorSets.size();
 
         uniformBuffers.emplace_back();
         uniformBuffersMemory.emplace_back();
@@ -1092,7 +1091,7 @@ namespace JE::GFX {
         return descriptorID;
     }
 
-    void createTextureDescriptorPool(VkDescriptorPool *pool, VkDescriptorPoolCreateFlagBits flags) {
+    void createTextureDescriptorPool(VkDescriptorPool *pool, const VkDescriptorPoolCreateFlagBits flags) {
         std::array<VkDescriptorPoolSize, 1> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         poolSizes[0].descriptorCount = 1;
@@ -1109,7 +1108,7 @@ namespace JE::GFX {
         }
     }
 
-    void createTextureDescriptorSet(unsigned int internalID, VkImageView *iv, unsigned int descriptorID) {
+    void createTextureDescriptorSet(const unsigned int internalID, const VkImageView *iv, const unsigned int descriptorID) {
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = textureDescriptorPools[internalID];
@@ -1139,9 +1138,9 @@ namespace JE::GFX {
         vkUpdateDescriptorSets(logicalDevice, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
     }
 
-    void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling,
-                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, Allocation &alloc,
-                     unsigned int mipLevels, VkSampleCountFlagBits samples) {
+    void createImage(const uint32_t width, const uint32_t height, const auto imageType, const auto format, const auto tiling,
+                     const auto usage, const auto properties, VkImage &image, Allocation &alloc,
+                     const unsigned int mipLevels, const auto samples) {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = imageType;
@@ -1170,9 +1169,9 @@ namespace JE::GFX {
         vkBindImageMemory(logicalDevice, image, memoryBlocks[alloc.memoryRefID].memory, alloc.offset);
     }
 
-    void createImage(uint32_t width, uint32_t height, VkImageType imageType, VkFormat format, VkImageTiling tiling,
-                     VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage &image, VkDeviceMemory &memory,
-                     unsigned int mipLevels, VkSampleCountFlagBits samples) {
+    void createImage(const uint32_t width, const uint32_t height, const auto imageType, const auto format, const auto tiling,
+                     const auto usage, const auto properties, VkImage &image, VkDeviceMemory &memory,
+                     const unsigned int mipLevels, const auto samples) {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = imageType;
@@ -1198,14 +1197,14 @@ namespace JE::GFX {
         vkBindImageMemory(logicalDevice, image, memory, 0);
     }
 
-    bool hasStencilComponent(VkFormat format) {
+    bool hasStencilComponent(const VkFormat format) {
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
-                               unsigned int arrayLayers, unsigned int mipLevels) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+    void transitionImageLayout(const auto image, const auto format, const auto oldLayout, const auto newLayout,
+                               const unsigned int arrayLayers, const unsigned int mipLevels) {
+        const auto commandBuffer = beginSingleTimeCommands();
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1271,14 +1270,14 @@ namespace JE::GFX {
     }
 
     void createDepthResources() {
-        VkFormat depthFormat = findDepthFormat();
+        const VkFormat depthFormat = findDepthFormat();
         try {
             createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, depthFormat,
                         VK_IMAGE_TILING_OPTIMAL,
                         VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT, depthImage,
                         depthImageMemory, 1, msaaSamples);
-        } catch (std::exception &e) { // noah bug fix 2 attempt 2
+        } catch ([[maybe_unused]] std::exception &e) { // noah bug fix 2 attempt 2
             vkDestroyImage(logicalDevice, depthImage, nullptr); // noah bug fix 3 attempt 1
             createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, depthFormat,
                         VK_IMAGE_TILING_OPTIMAL,
@@ -1292,14 +1291,14 @@ namespace JE::GFX {
     }
 
     void createColorResources() {
-        VkFormat colorFormat = swapchainImageFormat;
+        const VkFormat colorFormat = swapchainImageFormat;
         try {
             createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, colorFormat,
                         VK_IMAGE_TILING_OPTIMAL,
                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, colorImage,
                         colorImageMemory, 1, msaaSamples);
-        } catch (std::exception &e) { // noah bug fix 2 attempt 2
+        } catch ([[maybe_unused]] std::exception &e) { // noah bug fix 2 attempt 2
             vkDestroyImage(logicalDevice, colorImage, nullptr); // noah bug fix 3 attempt 1
             createImage(swapchainExtent.width, swapchainExtent.height, VK_IMAGE_TYPE_2D, colorFormat,
                         VK_IMAGE_TILING_OPTIMAL,
@@ -1310,7 +1309,7 @@ namespace JE::GFX {
         colorImageView = createImageView(colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
     }
 
-    void createTextureSampler(unsigned int id, unsigned int mipLevels, unsigned int samplerFilter) {
+    void createTextureSampler(const unsigned int id, const unsigned int mipLevels, const unsigned int samplerFilter) {
         VkSamplerCreateInfo samplerInfo{};
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = static_cast<VkFilter>(samplerFilter);
@@ -1343,11 +1342,12 @@ namespace JE::GFX {
 // renderdoc for mac when
     std::array<VkClearValue, 2> clearValues{};
 
-    void setClearColor(float r, float g, float b) {
+    void setClearColor(const float r, const float g, const float b) {
         clearValues[0].color = {{r, g, b, 1.0f}};
     }
 
-    void init(GLFWwindow **window, const char *windowName, int width, int height, GraphicsSettings graphicsSettings) {
+    // ReSharper disable once CppParameterNamesMismatch
+    void init(GLFWwindow **window, const char *windowName, const int width, const int height, const GraphicsSettings &graphicsSettings) {
         windowPtr = window;
         settings = graphicsSettings;
 
@@ -1374,8 +1374,8 @@ namespace JE::GFX {
         clearValues[0].color = {{settings.clearColor[0], settings.clearColor[1], settings.clearColor[2], 1.0f}};
         clearValues[1].depthStencil = {1.0f, 0};
 
-        QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-        SwapChainSupportDetails swapchainSupport = querySwapChainSupport(physicalDevice);
+        const auto [graphicsFamily, presentFamily] = findQueueFamilies(physicalDevice);
+        const auto swapchainSupport = querySwapChainSupport(physicalDevice);
 
         createTextureDescriptorPool(&imGuiDescriptorPool, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
@@ -1387,7 +1387,7 @@ namespace JE::GFX {
         init_info.Instance = instance;
         init_info.PhysicalDevice = physicalDevice;
         init_info.Device = logicalDevice;
-        init_info.QueueFamily = indices.graphicsFamily.value();
+        init_info.QueueFamily = graphicsFamily.value();
         init_info.Queue = graphicsQueue;
         init_info.PipelineCache = VK_NULL_HANDLE;
         init_info.DescriptorPool = imGuiDescriptorPool;
@@ -1400,15 +1400,15 @@ namespace JE::GFX {
         init_info.CheckVkResultFn = nullptr;
         ImGui_ImplVulkan_Init(&init_info);
 
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+        const auto commandBuffer = beginSingleTimeCommands();
         ImGui_ImplVulkan_CreateFontsTexture();
         endSingleTimeCommands(commandBuffer);
 
         vkDeviceWaitIdle(logicalDevice);
     }
 
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, int arrayLayers) {
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+    void copyBufferToImage(const auto buffer, const auto image, const auto width, const auto height, const auto arrayLayers) {
+        const auto commandBuffer = beginSingleTimeCommands();
 
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
@@ -1432,10 +1432,10 @@ namespace JE::GFX {
         endSingleTimeCommands(commandBuffer);
     }
 
-    unsigned int loadCubemap(std::vector<std::string> faces) {
+    unsigned int loadCubemap(const std::vector<std::string> &faces) {
         int texWidth[6], texHeight[6], texChannels[6];
-        unsigned int internalID = textureImages.size();
-        unsigned int descriptorID = descriptorSets.size();
+        const unsigned int internalID = textureImages.size();
+        const unsigned int descriptorID = descriptorSets.size();
 
         textureImages.push_back({});
         textureMemoryRefs.push_back({});
@@ -1453,9 +1453,9 @@ namespace JE::GFX {
         }
 
         //                       width       * height       * channels
-        VkDeviceSize layerSize = texWidth[0] * texHeight[0] * 4;
+        const auto layerSize = texWidth[0] * texHeight[0] * 4;
         //  full cubemap size  = layer     * 6
-        VkDeviceSize imageSize = layerSize * 6;
+        const auto imageSize = layerSize * 6;
 
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -1468,7 +1468,7 @@ namespace JE::GFX {
 
         vkMapMemory(logicalDevice, stagingBufferMemory, 0, imageSize, 0, &data);
         for (int i = 0; i < 6; i++) {
-            memcpy(reinterpret_cast<void *>((unsigned long int) data + (layerSize * i)), images[i], layerSize);
+            memcpy(reinterpret_cast<void *>(reinterpret_cast<uintptr_t>(data) + layerSize * i), images[i], layerSize);
         }
         vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
@@ -1544,7 +1544,7 @@ namespace JE::GFX {
         return descriptorID;
     }
 
-    void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
+    void generateMipmaps(const auto image, const VkFormat imageFormat, const int32_t texWidth, const int32_t texHeight, const uint32_t mipLevels) {
         // Check if image format supports linear blitting
         VkFormatProperties formatProperties;
         vkGetPhysicalDeviceFormatProperties(physicalDevice, imageFormat, &formatProperties);
@@ -1553,7 +1553,7 @@ namespace JE::GFX {
             throw std::runtime_error("Vulkan: Texture image format does not support linear blit!");
         }
 
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+        const auto commandBuffer = beginSingleTimeCommands();
 
         VkImageMemoryBarrier barrier{};
         barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1631,10 +1631,9 @@ namespace JE::GFX {
         endSingleTimeCommands(commandBuffer);
     }
 
-    unsigned int
-    loadSTBI2DTexture(stbi_uc *pixels, int texWidth, int texHeight, int texChannels, const int &samplerFilter) {
-        unsigned int internalID = textureImages.size();
-        unsigned int descriptorID = descriptorSets.size();
+    unsigned int loadTextureBytes(stbi_uc *pixels, const auto texWidth, const auto texHeight, int texChannels, const int &samplerFilter) {
+        const auto internalID = textureImages.size();
+        const auto descriptorID = descriptorSets.size();
 
         textureImages.push_back({});
         textureMemoryRefs.push_back({});
@@ -1643,7 +1642,7 @@ namespace JE::GFX {
         descriptorSets.emplace_back();
         textureDescriptorPools.push_back({});
 
-        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        const auto imageSize = texWidth * texHeight * 4;
 
         textureMipLevels.push_back(static_cast<uint32_t>(std::floor(std::log2(std::max(texWidth, texHeight)))) + 1);
 
@@ -1699,10 +1698,10 @@ namespace JE::GFX {
         if (!pixels) {
             throw std::runtime_error("Vulkan: Failed to load image \"" + fileName + "\"!");
         }
-        return loadSTBI2DTexture(pixels, texWidth, texHeight, texChannels, samplerFilter);
+        return loadTextureBytes(pixels, texWidth, texHeight, texChannels, samplerFilter);
     }
 
-    unsigned int loadBundledTexture(char *fileFirstBytePtr, size_t fileLength, const int &samplerFilter) {
+    unsigned int loadBundledTexture(const char *fileFirstBytePtr, const size_t fileLength, const int &samplerFilter) {
         stbi_set_flip_vertically_on_load(true);
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load_from_memory(reinterpret_cast<const stbi_uc *>(fileFirstBytePtr), fileLength,
@@ -1710,7 +1709,7 @@ namespace JE::GFX {
         if (!pixels) {
             throw std::runtime_error("Vulkan: Failed to load image from bundle!");
         }
-        return loadSTBI2DTexture(pixels, texWidth, texHeight, texChannels, samplerFilter);
+        return loadTextureBytes(pixels, texWidth, texHeight, texChannels, samplerFilter);
     }
 
     static std::vector<char> readFile(const std::string &filename) {
@@ -1720,7 +1719,7 @@ namespace JE::GFX {
             throw std::runtime_error("Vulkan: Failed to open file!");
         }
 
-        size_t fileSize = (size_t) file.tellg();
+        const size_t fileSize = file.tellg();
         std::vector<char> buffer(fileSize);
         file.seekg(0);
         file.read(buffer.data(), static_cast<std::streamsize>(fileSize));
@@ -1837,8 +1836,8 @@ namespace JE::GFX {
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
-        viewport.width = (float) swapchainExtent.width;
-        viewport.height = (float) swapchainExtent.height;
+        viewport.width = static_cast<float>(swapchainExtent.width);
+        viewport.height = static_cast<float>(swapchainExtent.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
@@ -1983,11 +1982,11 @@ namespace JE::GFX {
         vkDestroyImage(logicalDevice, colorImage, nullptr);
         vkFreeMemory(logicalDevice, colorImageMemory, nullptr);
 
-        for (auto &swapchainFramebuffer: swapchainFramebuffers) {
+        for (const auto &swapchainFramebuffer: swapchainFramebuffers) {
             vkDestroyFramebuffer(logicalDevice, swapchainFramebuffer, nullptr);
         }
 
-        for (auto &swapchainImageView: swapchainImageViews) {
+        for (const auto &swapchainImageView: swapchainImageViews) {
             vkDestroyImageView(logicalDevice, swapchainImageView, nullptr);
         }
 
@@ -2006,8 +2005,8 @@ namespace JE::GFX {
         createSwapchainFramebuffers();
     }
 
-    unsigned int createVBO(std::vector<InterleavedVertex> *interleavedVertices, std::vector<unsigned int> *indices) {
-        unsigned int id = vertexBuffers.size();
+    unsigned int createVBO(const std::vector<InterleavedVertex> *interleavedVertices, const std::vector<unsigned int> *indices) {
+        const unsigned int id = vertexBuffers.size();
         vertexBuffers.push_back({});
         vertexBufferMemoryRefs.push_back({});
         indexBuffers.push_back({});
@@ -2067,7 +2066,7 @@ namespace JE::GFX {
         return id;
     }
 
-    void updateUniformBuffer(unsigned int id, void *ptr, size_t size, bool updateAll) {
+    void updateUniformBuffer(const unsigned int id, const void *ptr, const size_t size, const bool updateAll) {
         if (!updateAll) memcpy(uniformBuffersMapped[descriptorSets[id].idRef - 1][currentFrame], ptr, size);
         else
             for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -2087,7 +2086,8 @@ namespace JE::GFX {
         if (result == VK_ERROR_OUT_OF_DATE_KHR) {
             recreateSwapchain();
             return;
-        } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+        }
+        if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
             throw std::runtime_error("Vulkan: Failed to acquire swap chain image!");
         }
 
@@ -2099,7 +2099,7 @@ namespace JE::GFX {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        for (auto execute: imGuiCalls) {
+        for (const auto execute: imGuiCalls) {
             execute();
         }
 
@@ -2177,7 +2177,7 @@ namespace JE::GFX {
             throw std::runtime_error("Vulkan: Failed to record command buffer!");
         }
 
-        VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+        constexpr VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
         VkSubmitInfo submitInfo{};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -2222,41 +2222,41 @@ namespace JE::GFX {
 
         vkDestroyDescriptorPool(logicalDevice, imGuiDescriptorPool, nullptr);
 
-        for (auto memoryBlock: memoryBlocks) {
+        for (const auto memoryBlock: memoryBlocks) {
             if (memoryBlock.mapped) vkUnmapMemory(logicalDevice, memoryBlock.memory);
             vkFreeMemory(logicalDevice, memoryBlock.memory, nullptr);
         }
 
-        for (auto descriptorPool: textureDescriptorPools) {
+        for (const auto descriptorPool: textureDescriptorPools) {
             vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
         }
 
-        for (auto descriptorPool: uniformDescriptorPools) {
+        for (const auto descriptorPool: uniformDescriptorPools) {
             vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
         }
 
-        for (auto textureSampler: textureSamplers) {
+        for (const auto textureSampler: textureSamplers) {
             vkDestroySampler(logicalDevice, textureSampler, nullptr);
         }
 
-        for (auto textureImageView: textureImageViews) {
+        for (const auto textureImageView: textureImageViews) {
             vkDestroyImageView(logicalDevice, textureImageView, nullptr);
         }
 
-        for (auto texture: textureImages) {
+        for (const auto texture: textureImages) {
             vkDestroyImage(logicalDevice, texture, nullptr);
         }
 
-        for (auto vertexBuffer: vertexBuffers) {
+        for (const auto vertexBuffer: vertexBuffers) {
             vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
         }
 
-        for (auto indexBuffer: indexBuffers) {
+        for (const auto indexBuffer: indexBuffers) {
             vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
         }
 
         for (const auto &ubVec: uniformBuffers) {
-            for (auto ub: ubVec) {
+            for (const auto ub: ubVec) {
                 vkDestroyBuffer(logicalDevice, ub, nullptr);
             }
         }
@@ -2269,11 +2269,11 @@ namespace JE::GFX {
 
         vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
 
-        for (auto graphicsPipelines: pipelineVector) {
+        for (const auto graphicsPipelines: pipelineVector) {
             vkDestroyPipeline(logicalDevice, graphicsPipelines, nullptr);
         }
 
-        for (auto graphicsPipelineLayout: pipelineLayoutVector) {
+        for (const auto graphicsPipelineLayout: pipelineLayoutVector) {
             vkDestroyPipelineLayout(logicalDevice, graphicsPipelineLayout, nullptr);
         }
 
