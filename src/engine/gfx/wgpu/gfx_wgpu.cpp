@@ -804,7 +804,7 @@ namespace JE::GFX {
         auto textureView = wgpuTextureCreateView(texture, &textureViewDesc);
         if (textureView == nullptr) throw std::runtime_error("WGPU: Failed to create texture view!");
 
-        WGPUSamplerDescriptor samplerDesc;
+        WGPUSamplerDescriptor samplerDesc{};
         samplerDesc.addressModeU = WGPUAddressMode_ClampToEdge;
         samplerDesc.addressModeV = WGPUAddressMode_ClampToEdge;
         samplerDesc.addressModeW = WGPUAddressMode_ClampToEdge;

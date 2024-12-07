@@ -138,6 +138,8 @@ if (JE_API_WEBGPU)
     target_copy_webgpu_binaries(JoshEngine)
 endif()
 if (EMSCRIPTEN)
+    set(SHELL_FILE je_shell.html)
+
     set_target_properties(JoshEngine PROPERTIES SUFFIX ".html")
     target_link_options(JoshEngine PRIVATE
             -sASYNCIFY
@@ -147,6 +149,11 @@ if (EMSCRIPTEN)
             -sALLOW_MEMORY_GROWTH
             -sNO_DISABLE_EXCEPTION_CATCHING
             -lopenal
-            --shell-file "${CMAKE_CURRENT_SOURCE_DIR}/je_shell.html"
+            --shell-file "${CMAKE_CURRENT_SOURCE_DIR}/${SHELL_FILE}"
+    )
+    set_property(
+            TARGET JoshEngine
+            PROPERTY LINK_DEPENDS
+            "${CMAKE_CURRENT_SOURCE_DIR}/${SHELL_FILE}"
     )
 endif()
