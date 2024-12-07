@@ -24,22 +24,31 @@
     const statusElement = document.getElementById('status');
     const progressElement = document.getElementById('progress');
 
+    if (!(navigator.gpu)) {
+      if (window.chrome) {
+        // We know it's kinda joever if they're chromium AND there's no webGPU so more explicit
+        alert("Your device does not support WebGPU, and JoshEngine requires it to run.");
+      } else {
+        // Could just be non-nightly firefox or non-experimental safari.
+        alert("Your browser does not support WebGPU, and JoshEngine requires it to run.");
+        statusElement.textContent = "(Since this browser is not Chromium, WebGPU might not be guaranteed support." +
+                " If you have it, try running this in Chrome or Edge.)";
+      }
+      throw new Error("navigator.gpu not found");
+    }
+
     var Module = {
       print: (function () {
         const element = document.getElementById('output');
-        if (element) element.value = ''; // clear browser cache
         return (...args) => {
-          const text = args.join(' ');
+          let text = args.join(' ');
           // These replacements are necessary if you render to raw HTML
-          //text = text.replace(/&/g, "&amp;");
-          //text = text.replace(/</g, "&lt;");
-          //text = text.replace(/>/g, "&gt;");
-          //text = text.replace('\n', '<br>', 'g');
+          text = text.replace(/&/g, "&amp;");
+          text = text.replace(/</g, "&lt;");
+          text = text.replace(/>/g, "&gt;");
+          text = text.replace('\n', '<br>');
           console.log(text);
-          if (element) {
-            element.value += text + "\n";
-            element.scrollTop = element.scrollHeight; // focus on bottom
-          }
+          statusElement.textContent = text;
         };
       })(),
       canvas: (() => {
@@ -78,7 +87,8 @@
       totalDependencies: 0,
       monitorRunDependencies: (left) => {
         this.totalDependencies = Math.max(this.totalDependencies, left);
-        Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')'
+                : 'All downloads complete.');
       }
     };
     Module.setStatus('Downloading...');
@@ -88,6 +98,9 @@
         if (text) console.error('[post-exception status] ' + text);
       };
     };
+    window.addEventListener('resize', function(e) {
+      Module.setCanvasSize(window.innerWidth, window.innerHeight, false);
+    }, true);
   </script>
   {{{ SCRIPT }}}
   </body>
