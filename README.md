@@ -7,13 +7,14 @@
 __________________________________________________________
 
 JoshEngine is a *"high-performance"* programmatic __real-time__ game engine written in __C++__.
-It can target both the __Vulkan__ and __WGPU__ graphics APIs for __widespread compatibility__, with full web support atop Emscripten coming soon.
+It can target both the __Vulkan__ and __WGPU__ graphics APIs for __widespread compatibility__, 
+and has full web compilation support with Emscripten.
 
 <sub><sup>side note on performance, it's actually relatively good. 
 since it's relatively lower level than many other engines, 
 there's less abstraction in the way of performance. 
 i don't have any benchmarks at the moment but will post some
-along with next update.</sup></sub>
+along with next (some) update.</sup></sub>
 
 # Basic features
 - Simplified input/output system with options for both event-driven programming and a more classical loop approach
@@ -22,9 +23,10 @@ along with next update.</sup></sub>
   - Advanced `MusicTrack` objects for smoothly transitioning music
 - Basic support for loading of .obj files
 - Powerful platform-agnostic graphics support
-  - Seamless compatible transition between Vulkan and WGPU backends
+  - Near-seamless transition between Vulkan and WGPU backends
   - Full support for custom shaders (GLSL)
 - Verbose and utilitarian debugging GUI, made for debugging your shaders *and* your functions
+- Ultra-simple recompilation for web with Emscripten
 
 # When should I use JoshEngine?
 
