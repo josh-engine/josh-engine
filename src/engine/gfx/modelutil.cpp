@@ -82,17 +82,17 @@ Model repackModel(Model r) {
     std::vector<float> uvs;
     std::vector<float> normals;
 
-    for (auto vert : repackList) {
-        vertices.push_back(vert.pos.x);
-        vertices.push_back(vert.pos.y);
-        vertices.push_back(vert.pos.z);
+    for (auto [pos, uv, nml] : repackList) {
+        vertices.push_back(pos.x);
+        vertices.push_back(pos.y);
+        vertices.push_back(pos.z);
 
-        uvs.push_back(vert.uvs.x);
-        uvs.push_back(vert.uvs.y);
+        uvs.push_back(uv.x);
+        uvs.push_back(uv.y);
 
-        normals.push_back(vert.nml.x);
-        normals.push_back(vert.nml.y);
-        normals.push_back(vert.nml.z);
+        normals.push_back(nml.x);
+        normals.push_back(nml.y);
+        normals.push_back(nml.z);
     }
 
     return {vertices, uvs, normals, indices};

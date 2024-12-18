@@ -25,22 +25,22 @@ namespace JE::GFX {
 #define MAX_FRAMES_IN_FLIGHT 2
 
 struct MemoryBlock {
-    VkDeviceMemory memory;
-    uint32_t type;
-    VkDeviceSize size;
-    VkDeviceSize top;
+    VkDeviceMemory memory{};
+    uint32_t type{};
+    VkDeviceSize size{};
+    VkDeviceSize top{};
     bool mapped = false;
 };
 
 struct Allocation {
-    unsigned int memoryRefID;
-    VkDeviceSize size;
-    VkDeviceSize offset;
+    unsigned int memoryRefID{};
+    VkDeviceSize size{};
+    VkDeviceSize offset{};
 };
 
 struct PushConstants {
-    glm::mat4 model;
-    glm::mat4 freeRealEstate;
+    mat4 model;
+    mat4 freeRealEstate;
 };
 
 struct DescriptorSet {

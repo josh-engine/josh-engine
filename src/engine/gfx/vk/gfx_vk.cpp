@@ -72,11 +72,13 @@ namespace JE::GFX {
 
     uint32_t currentFrame = 0;
 
-// Same ID system implementation.
+    // Same ID system implementation.
     std::vector<VkBuffer> vertexBuffers;
     std::vector<Allocation> vertexBufferMemoryRefs;
+    std::vector<size_t> vertexBufferSizes;
     std::vector<VkBuffer> indexBuffers;
     std::vector<Allocation> indexBufferMemoryRefs;
+    std::vector<size_t> indexBufferSizes;
 
     VkDescriptorSetLayout uniformDescriptorSetLayout;
     VkDescriptorSetLayout textureDescriptorSetLayout;
@@ -2010,13 +2012,7 @@ namespace JE::GFX {
         createSwapchainFramebuffers();
     }
 
-    unsigned int createVBO(const std::vector<InterleavedVertex> *interleavedVertices, const std::vector<unsigned int> *indices) {
-        const unsigned int id = vertexBuffers.size();
-        vertexBuffers.push_back({});
-        vertexBufferMemoryRefs.push_back({});
-        indexBuffers.push_back({});
-        indexBufferMemoryRefs.push_back({});
-
+    void uploadVBO(const unsigned int id, const std::vector<InterleavedVertex> *interleavedVertices, const std::vector<unsigned int> *indices) {
         VkDeviceSize bufferSize = sizeof(InterleavedVertex) * interleavedVertices->size();
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;
@@ -2028,7 +2024,7 @@ namespace JE::GFX {
 
         void *data;
         vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, interleavedVertices->data(), (size_t) bufferSize);
+        memcpy(data, interleavedVertices->data(), bufferSize);
         vkUnmapMemory(logicalDevice, stagingBufferMemory);
 
         createBuffer(bufferSize,
@@ -2067,6 +2063,18 @@ namespace JE::GFX {
 
         vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+    }
+
+    unsigned int createVBO(const std::vector<InterleavedVertex> *interleavedVertices, const std::vector<unsigned int> *indices) {
+        const unsigned int id = vertexBuffers.size();
+        vertexBuffers.push_back({});
+        vertexBufferMemoryRefs.push_back({});
+        vertexBufferSizes.push_back(interleavedVertices->size() * sizeof(InterleavedVertex));
+        indexBuffers.push_back({});
+        indexBufferMemoryRefs.push_back({});
+        indexBufferSizes.push_back(indices->size() * sizeof(unsigned int));
+
+        uploadVBO(id, interleavedVertices, indices);
 
         return id;
     }
