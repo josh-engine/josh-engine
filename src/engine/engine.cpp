@@ -499,7 +499,9 @@ void tick() {
             0,
             cos(glm::radians(camera.rotation.x - 90))
     );
-    glm::vec3 up = glm::cross( right, camera.direction() );
+
+    glm::vec3 up = glm::cross( right, camera.direction() )
+    * mat3(rotate(mat4(1), radians(camera.rotation.z), camera.direction()));
 
     // Camera matrix
     glm::mat4 cameraMatrix = glm::lookAt(
