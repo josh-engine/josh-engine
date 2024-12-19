@@ -46,7 +46,7 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
 
       - name: Install Dependencies
-        run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev libvulkan-dev vulkan-validationlayers-dev spirv-tools libopenal-dev && brew install glslang
+        run: sudo apt-get install libglfw3 libglfw3-dev libglm-dev libvulkan-dev vulkan-utility-libraries-dev spirv-tools libopenal-dev && brew install glslang
 
       - name: Cache Cmake Build
         uses: hendrikmuhs/ccache-action@v1.2

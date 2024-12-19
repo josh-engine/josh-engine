@@ -27,6 +27,8 @@
 #include "../../ui/imgui/imgui_impl_glfw.h"
 #include "../../ui/imgui/imgui_impl_wgpu.h"
 
+#include <array>
+
 namespace JE::GFX {
 
     struct PushConstants {
