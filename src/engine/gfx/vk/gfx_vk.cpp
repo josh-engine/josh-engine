@@ -581,9 +581,9 @@ namespace JE::GFX {
                     static_cast<uint32_t>(height)
             };
 
-            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width,
+            actualExtent.width = clamp(actualExtent.width, capabilities.minImageExtent.width,
                                             capabilities.maxImageExtent.width);
-            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height,
+            actualExtent.height = clamp(actualExtent.height, capabilities.minImageExtent.height,
                                              capabilities.maxImageExtent.height);
 
             return actualExtent;
