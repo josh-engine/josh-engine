@@ -28,8 +28,8 @@ namespace JE {
     }
 
     enum TextureFilter {
-        JE_PIXEL_ART = 0,
-        JE_TEXTURE = 1
+        CLOSEST = 0,
+        LINEAR = 1
     };
 
     struct GraphicsSettings {

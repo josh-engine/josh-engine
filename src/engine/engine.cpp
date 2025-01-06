@@ -58,7 +58,7 @@ glm::vec2 fogPlanes(0, 200);
 unsigned int uboID{};
 unsigned int lboID{};
 
-TextureFilter currentFilterMode = JE_TEXTURE;
+TextureFilter currentFilterMode = LINEAR;
 
 bool runUpdates = true;
 bool runObjectUpdates = true;
@@ -455,8 +455,7 @@ void tick() {
     }
 
     for (int keyActionIter = 0; keyActionIter < GLFW_KEY_LAST; keyActionIter++) {
-        bool current = glfwGetKey(window, keyActionIter) == GLFW_PRESS;
-        if (keys[keyActionIter] != current) {
+        if (bool current = glfwGetKey(window, keyActionIter) == GLFW_PRESS; keys[keyActionIter] != current) {
             keys[keyActionIter] = current;
             for (auto & onKeyFunction : onKey) {
                 onKeyFunction(keyActionIter, current, deltaTime);
@@ -465,8 +464,7 @@ void tick() {
     }
 
     for (int mouseActionIter = 0; mouseActionIter < 7; mouseActionIter++){
-        bool current = glfwGetMouseButton(window, mouseActionIter+GLFW_MOUSE_BUTTON_1) == GLFW_PRESS;
-        if (mouseButtons[mouseActionIter] != current) {
+        if (bool current = glfwGetMouseButton(window, mouseActionIter+GLFW_MOUSE_BUTTON_1) == GLFW_PRESS; mouseButtons[mouseActionIter] != current) {
             mouseButtons[mouseActionIter] = current;
             for (auto & onMouseFunction : onMouse) {
                 onMouseFunction(mouseActionIter+GLFW_MOUSE_BUTTON_1, current, deltaTime);
