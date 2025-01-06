@@ -32,7 +32,7 @@ namespace JE {
         LINEAR = 1
     };
 
-    enum ButtonInputs {
+    enum ButtonInput {
         FORWARD = 0,
         BACKWARD = 1,
         UP = 2,
@@ -41,6 +41,7 @@ namespace JE {
         RIGHT = 5,
         UI_SELECT = 6,
         UI_EXIT = 7,
+        BUTTON_INPUTS_MAX_ENUM
     };
 
     struct GraphicsSettings {
@@ -177,13 +178,27 @@ namespace JE {
  * Register a function to be called when a key is updated on the keyboard.
  * @param function Pointer to the function to be called.
  */
-    void registerOnKey(void (*function)(int key, bool pressed, double dt));
+    void registerOnKey(void (*function)(int key, bool pressed));
 
 /**
  * Register a function to be called when the mouse buttons are updated.
  * @param function Pointer to the function to be called.
  */
-    void registerOnMouse(void (*function)(int button, bool pressed, double dt));
+    void registerOnMouse(void (*function)(int button, bool pressed));
+
+/**
+ * Register a function to be called when any abstract button is updated.
+ * @param function Pointer to the function to be called.
+ */
+    void registerOnButton(void (*function)(ButtonInput button, bool pressed));
+
+/**
+ * Bind a key or mouse button to an abstract button.
+ * @param button The abstract button to bind to.
+ * @param id The key or mouse button ID to bind.
+ * @param isMouse Is this a key ID or a mouse button ID?
+ */
+    void bindButton(ButtonInput button, int id, bool isMouse);
 
 /**
  * Add a GameObject to the engine's current objects.
@@ -238,10 +253,17 @@ namespace JE {
 
 /**
  * Check if a GLFW Mouse Button ID is pressed on the keyboard.
- * @param key GLFW Mouse Button ID
- * @return Is button down?
+ * @param button GLFW Mouse Button ID
+ * @return Is mouse button down?
  */
     bool isMouseButtonDown(int button);
+
+/**
+* Check if an abstract button is pressed.
+* @param button JE::ButtonInput (re-bindable control)
+* @return Is button pressed?
+*/
+    bool isButtonDown(ButtonInput button);
 
 /**
  * @return A pointer to the GLFW window. You shouldn't need this unless writing your own graphics backend.
