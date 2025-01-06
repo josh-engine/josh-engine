@@ -40,37 +40,37 @@ void cameraFly(double dt) {
 
 
         // Move forward
-        if (isKeyDown(GLFW_KEY_W)) {
+        if (isButtonDown(FORWARD)) {
             camera->position += camera->direction() * glm::vec3(static_cast<float>(dt) * speed);
         }
         // Move backward
-        if (isKeyDown(GLFW_KEY_S)) {
+        if (isButtonDown(BACKWARD)) {
             camera->position -= camera->direction() * glm::vec3(static_cast<float>(dt) * speed);
         }
         // Strafe right
-        if (isKeyDown(GLFW_KEY_D)) {
+        if (isButtonDown(RIGHT)) {
             camera->position += right * glm::vec3(static_cast<float>(dt) * speed);
         }
         // Strafe left
-        if (isKeyDown(GLFW_KEY_A)) {
+        if (isButtonDown(LEFT)) {
             camera->position -= right * glm::vec3(static_cast<float>(dt) * speed);
         }
 
-        if (isKeyDown(GLFW_KEY_SPACE)) {
+        if (isButtonDown(UP)) {
             camera->position += glm::vec3(0, static_cast<float>(dt) * speed, 0);
         }
-        if (isKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+        if (isButtonDown(DOWN)) {
             camera->position -= glm::vec3(0, static_cast<float>(dt) * speed, 0);
         }
     }
 }
 
-void lockUnlock(int key, bool wasKeyPressed, double _) {
-    if (key == GLFW_KEY_ESCAPE) {
-        if (wasKeyPressed && !pressed) {
+void lockUnlock(const ButtonInput button, const bool wasButtonPressed) {
+    if (button == UI_EXIT) {
+        if (wasButtonPressed && !pressed) {
             mouseLocked = !mouseLocked;
             pressed = true;
-        } else if (!wasKeyPressed) {
+        } else if (!wasButtonPressed) {
             pressed = false;
         }
         // If locked, set mouse to invisible
@@ -78,8 +78,8 @@ void lockUnlock(int key, bool wasKeyPressed, double _) {
     }
 }
 
-void mouseClick(int button, bool wasButtonPressed, double _) {
-    glm::vec2 cursorPos = getCursorPos();
+void mouseClick(const int button, const bool wasButtonPressed) {
+    const glm::vec2 cursorPos = getCursorPos();
     GameObject& ref = getGameObject("ui_item");
 
     if (cursorPos.x <= ref.transform.position.x + ref.transform.scale.x &&
@@ -94,14 +94,14 @@ void mouseClick(int button, bool wasButtonPressed, double _) {
     }
 }
 
-void move(double deltaTime, GameObject* self) {
+void move(const double deltaTime, GameObject* self) {
     if (self->transform.position.y > 2) {
         self->transform.position.y = 0;
     }
     self->transform.position += vec3(0, 1*deltaTime, 0);
 }
 
-void spin(double deltaTime, GameObject* self) {
+void spin(const double deltaTime, GameObject* self) {
     if (self->transform.rotation.y > 360) {
         self->transform.rotation.y -= 360;
     }
@@ -161,7 +161,7 @@ void setupTest() {
     mouseLocked = true;
 
     registerOnUpdate(&cameraFly);
-    registerOnKey(&lockUnlock);
+    registerOnButton(&lockUnlock);
     registerOnMouse(&mouseClick);
 
     //registerFunctionToDebug("spin", reinterpret_cast<void*>(&spin));
