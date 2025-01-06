@@ -32,6 +32,17 @@ namespace JE {
         LINEAR = 1
     };
 
+    enum ButtonInputs {
+        FORWARD = 0,
+        BACKWARD = 1,
+        UP = 2,
+        DOWN = 3,
+        LEFT = 4,
+        RIGHT = 5,
+        UI_SELECT = 6,
+        UI_EXIT = 7,
+    };
+
     struct GraphicsSettings {
         bool vsyncEnabled;
         bool skybox;
