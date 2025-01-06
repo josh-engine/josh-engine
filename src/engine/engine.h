@@ -119,15 +119,20 @@ namespace JE {
         union { //TODO maybe more things
             uint64_t flags = 0;
         };
+        void* dtor;
 
-        explicit GameObject(void (*initFunc)(GameObject *g)) {
+        explicit GameObject(void (*ctor)(GameObject *g)) {
             transform = Transform();
-            initFunc(this);
+            ctor(this);
         }
 
-        GameObject(Transform t, void (*initFunc)(GameObject *g)) {
+        GameObject(Transform t, void (*ctor)(GameObject *g)) {
             transform = t;
-            initFunc(this);
+            ctor(this);
+        }
+
+        ~GameObject() {
+            reinterpret_cast<void (*)(GameObject *g)>(dtor)(this);
         }
     };
 
