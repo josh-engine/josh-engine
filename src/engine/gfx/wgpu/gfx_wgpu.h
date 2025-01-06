@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 11/27/24.
+// Created by Ember Lee on 11/27/24.
 //
 
 #ifdef GFX_API_WEBGPU

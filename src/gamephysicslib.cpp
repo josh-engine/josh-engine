@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 7/24/24.
+// Created by Ember Lee on 7/24/24.
 //
 
 #include "gamephysicslib.h"

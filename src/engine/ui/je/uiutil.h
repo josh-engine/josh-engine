@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 7/15/24.
+// Created by Ember Lee on 7/15/24.
 //
 
 #ifndef JOSHENGINE_UIUTIL_H

@@ -1,5 +1,5 @@
 //
-// Created by Ethan Lee on 7/24/24.
+// Created by Ember Lee on 7/24/24.
 //
 
 #ifndef JOSHENGINE_GAMEPHYSICSLIB_H
