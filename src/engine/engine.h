@@ -23,8 +23,8 @@ using namespace glm;
 
 namespace JE {
     namespace ShaderInputBit {
-        const char Uniform = 0;
-        const char Texture = 1;
+        constexpr char Uniform = 0;
+        constexpr char Texture = 1;
     }
 
     enum TextureFilter {
