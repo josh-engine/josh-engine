@@ -119,7 +119,6 @@ namespace JE {
         union { //TODO maybe more things
             uint64_t flags = 0;
         };
-        void* dtor;
 
         explicit GameObject(void (*ctor)(GameObject *g)) {
             transform = Transform();
@@ -129,10 +128,6 @@ namespace JE {
         GameObject(Transform t, void (*ctor)(GameObject *g)) {
             transform = t;
             ctor(this);
-        }
-
-        ~GameObject() {
-            reinterpret_cast<void (*)(GameObject *g)>(dtor)(this);
         }
     };
 
