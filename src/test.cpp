@@ -21,8 +21,8 @@ void cameraFly(double dt) {
     if (mouseLocked) {
         Transform* camera = cameraAccess();
 
-        static glm::vec2 lastCursorPos = {static_cast<float>(getCurrentWidth()) / 2.0f, static_cast<float>(getCurrentHeight()) / 2.0f};
-        glm::vec2 cursor = getRawCursorPos();
+        static vec2 lastCursorPos = {static_cast<float>(getCurrentWidth()) / 2.0f, static_cast<float>(getCurrentHeight()) / 2.0f};
+        const vec2 cursor = getRawCursorPos();
         camera->rotation.x +=
                 mouseSpeed * static_cast<float>(dt) * (lastCursorPos.x - cursor.x);
         camera->rotation.y +=
@@ -32,7 +32,7 @@ void cameraFly(double dt) {
 
 
         // Right vector
-        glm::vec3 right = glm::vec3(
+        const auto right = vec3(
                 sin(glm::radians(camera->rotation.x - 90)),
                 0,
                 cos(glm::radians(camera->rotation.x - 90))
@@ -41,26 +41,26 @@ void cameraFly(double dt) {
 
         // Move forward
         if (isButtonDown(FORWARD)) {
-            camera->position += camera->direction() * glm::vec3(static_cast<float>(dt) * speed);
+            camera->position += camera->direction() * vec3(static_cast<float>(dt) * speed);
         }
         // Move backward
         if (isButtonDown(BACKWARD)) {
-            camera->position -= camera->direction() * glm::vec3(static_cast<float>(dt) * speed);
+            camera->position -= camera->direction() * vec3(static_cast<float>(dt) * speed);
         }
         // Strafe right
         if (isButtonDown(RIGHT)) {
-            camera->position += right * glm::vec3(static_cast<float>(dt) * speed);
+            camera->position += right * vec3(static_cast<float>(dt) * speed);
         }
         // Strafe left
         if (isButtonDown(LEFT)) {
-            camera->position -= right * glm::vec3(static_cast<float>(dt) * speed);
+            camera->position -= right * vec3(static_cast<float>(dt) * speed);
         }
 
         if (isButtonDown(UP)) {
-            camera->position += glm::vec3(0, static_cast<float>(dt) * speed, 0);
+            camera->position += vec3(0, static_cast<float>(dt) * speed, 0);
         }
         if (isButtonDown(DOWN)) {
-            camera->position -= glm::vec3(0, static_cast<float>(dt) * speed, 0);
+            camera->position -= vec3(0, static_cast<float>(dt) * speed, 0);
         }
     }
 }

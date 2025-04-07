@@ -357,7 +357,15 @@ namespace JE::GFX {
         config.width = width;
         config.height = height;
 
+        WGPUSurfaceCapabilities capabilities{};
+        wgpuSurfaceGetCapabilities(surface, adapter, &capabilities);
         surfaceFormat = wgpuSurfaceGetPreferredFormat(surface, adapter);
+        for (int i = 0; i < capabilities.formatCount; i++) {
+            if (capabilities.formats[i] == WGPUTextureFormat_RGBA8UnormSrgb
+                || capabilities.formats[i] == WGPUTextureFormat_BGRA8UnormSrgb) {
+                surfaceFormat = capabilities.formats[i];
+            }
+        }
         srgbTextures = surfaceFormat == WGPUTextureFormat_RGBA8UnormSrgb || surfaceFormat == WGPUTextureFormat_BGRA8UnormSrgb;
         config.format = surfaceFormat;
         config.viewFormatCount = 0;
