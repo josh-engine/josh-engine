@@ -2,6 +2,8 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-em/_deps/glm-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-em/_deps/webgpu-backend-emscripten-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/abseil-cpp" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/cmake-build-webgpu-local/_deps/dawn-src/third_party/glfw" vcs="Git" />
