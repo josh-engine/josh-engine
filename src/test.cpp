@@ -4,6 +4,7 @@
 
 #include "test.h"
 #include "engine/engine.h"
+#include "engine/engineconfig.h"
 #include "engine/ui/je/uiutil.h"
 #include "engine/sound/audioutil.h"
 #include "engine/gfx/modelutil.h"
@@ -227,5 +228,9 @@ void setupTest() {
                         {1, 1, 1},
                         false);
 
+    UI::staticText({10.0-UI::getTextWidth(ENGINE_VERSION_STRING, "manifold"), -5.25}, ENGINE_VERSION_STRING, "manifold");
 
+    UI::staticQuad({-0.5, -4.0}, {0.25, 0.25}, {1, 0, 0, 0.8});
+    UI::staticQuad({0.0, -4.0}, {0.25, 0.25}, {0, 1, 0, 0.5});
+    UI::staticQuad({0.5, -4.0}, {0.25, 0.25}, {0, 0, 1, 0.2});
 }
