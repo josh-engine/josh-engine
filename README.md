@@ -27,6 +27,7 @@ along with next (some) update.</sup></sub>
   - Full support for custom shaders (GLSL)
 - Verbose and utilitarian debugging GUI, made for debugging your shaders *and* your functions
 - Ultra-simple recompilation for web with Emscripten
+- Barebones built-in UI library for any of your UI needs
 
 # When should I use JoshEngine?
 
