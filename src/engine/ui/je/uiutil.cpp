@@ -23,7 +23,7 @@ namespace JE::UI {
     void init() {
         ShaderProgramSettings fontProgramSettings{};
         fontProgramSettings.transparencySupported = false;
-        fontProgramSettings.doubleSided = true;
+        fontProgramSettings.doubleSided = false;
         fontProgramSettings.testDepth = true;
         fontProgramSettings.depthAlwaysPass = true;
         fontProgramSettings.shaderInputCount = 2;
@@ -31,14 +31,23 @@ namespace JE::UI {
 
         ShaderProgramSettings buttonProgramSettings{};
         buttonProgramSettings.transparencySupported = true;
-        buttonProgramSettings.doubleSided = true;
+        buttonProgramSettings.doubleSided = false;
         buttonProgramSettings.testDepth = false;
         fontProgramSettings.depthAlwaysPass = false;
         buttonProgramSettings.shaderInputCount = 1;
         buttonProgramSettings.shaderInputs = ShaderInputBit::Uniform;
 
-        createShader("textShader", "./shaders/vertex2d_font.glsl", "./shaders/font_texture.glsl", fontProgramSettings);
+        ShaderProgramSettings texturedQuadProgramSettings{};
+        texturedQuadProgramSettings.transparencySupported = true;
+        texturedQuadProgramSettings.doubleSided = false;
+        texturedQuadProgramSettings.testDepth = true;
+        texturedQuadProgramSettings.depthAlwaysPass = true;
+        texturedQuadProgramSettings.shaderInputCount = 2;
+        texturedQuadProgramSettings.shaderInputs = ShaderInputBit::Uniform | ShaderInputBit::Texture << 1;
+
+        createShader("textShader", "./shaders/vertex2d_font.glsl", "./shaders/frag_character.glsl", fontProgramSettings);
         createShader("buttonShader", "./shaders/vertex2d.glsl", "./shaders/frag_button.glsl", buttonProgramSettings);
+        createShader("texturedQuadShader", "./shaders/vertex2d.glsl", "./shaders/frag_textured_ui.glsl", texturedQuadProgramSettings);
     }
 
     void createFont(const std::string& name, const std::string& atlas, glm::vec3 charScale) {
@@ -50,7 +59,7 @@ namespace JE::UI {
         std::vector<Renderable> temp{};
         int newlineCounter = 0;
         int charLineCounter = 0;
-        glm::vec2 offset = fontOffsets.at(font);
+        const vec2 offset = fontOffsets.at(font);
         for (int i = 0; i < str.length(); i++) {
             if (str[i] != '\n') {
                 temp.push_back(createQuad(getShader("textShader"), {getUBOID(), getTexture(font)}, false, true));
@@ -121,6 +130,12 @@ namespace JE::UI {
         self->renderables[0].data[0][3] = temp_col.a;
     }
 
+    void static_quad_textured_ctor_fn(GameObject* self) {
+        self->transform.position = vec3(temp_pos, -1);
+        self->transform.scale = vec3(temp_size, 1);
+        self->renderables.push_back(createQuad(getShader("texturedQuadShader"), {getUBOID(), getTexture(temp_fnt)}, false, true));
+    }
+
     std::string staticText(const vec2& pos, const std::string& text, const std::string& font, const double& textSize, const vec3& color) {
         temp_pos = pos;
         temp_str = text;
@@ -142,16 +157,25 @@ namespace JE::UI {
         return name;
     }
 
-    std::string staticQuad(const vec2& pos, const vec2& size, const vec4& color) {
+    std::string staticColorQuad(const vec2& pos, const vec2& size, const vec4& color) {
         temp_pos = pos;
         temp_size = size;
         temp_col = color;
-        const std::string name = "uiQuadObj_"+std::to_string(itemUUID++);
+        const std::string name = "uiQuadColObj_"+std::to_string(itemUUID++);
         putGameObject(name, GameObject(&static_quad_ctor_fn));
         return name;
     }
 
-    std::string staticQuad(const vec2& pos, const vec2& size, const vec3& color) {
-        return staticQuad(pos, size, vec4(color, 1.0));
+    std::string staticTextureQuad(const vec2& pos, const vec2& size, const std::string& texture_name) {
+        temp_pos = pos;
+        temp_size = size;
+        temp_fnt = texture_name;
+        const std::string name = "uiQuadTexObj_"+std::to_string(itemUUID++);
+        putGameObject(name, GameObject(&static_quad_textured_ctor_fn));
+        return name;
+    }
+
+    std::string staticColorQuad(const vec2& pos, const vec2& size, const vec3& color) {
+        return staticColorQuad(pos, size, vec4(color, 1.0));
     }
 }

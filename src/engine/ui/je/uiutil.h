@@ -38,10 +38,13 @@ namespace JE::UI {
     std::string staticButton(const glm::vec2& pos, const std::string& text, const std::string& font, void (*click_function)(), const glm::vec2& padding = {0.05, 0.05}, const double& textSize = 0.25, const glm::vec3& color = {1.0, 1.0, 1.0}, bool disabled = false);
 
     // TODO: add docs
-    std::string staticQuad(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color = {1.0, 1.0, 1.0, 1.0});
+    std::string staticColorQuad(const glm::vec2& pos, const glm::vec2& size, const glm::vec4& color = {1.0, 1.0, 1.0, 1.0});
 
     // TODO: add docs
-    std::string staticQuad(const glm::vec2& pos, const glm::vec2& size, const glm::vec3& color = {1.0, 1.0, 1.0});
+    std::string staticColorQuad(const glm::vec2& pos, const glm::vec2& size, const glm::vec3& color = {1.0, 1.0, 1.0});
+
+    // TODO: add docs
+    std::string staticTextureQuad(const glm::vec2& pos, const glm::vec2& size, const std::string& texture_name);
 
     /**
      * Returns the screen space text width of a given string, at a given size.

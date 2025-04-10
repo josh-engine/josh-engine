@@ -150,13 +150,13 @@ void initCube(GameObject* selfObject) {
 }
 
 void initUiItem(GameObject* selfObject) {
-    selfObject->transform = Transform(glm::vec3(-5, -2.5, 0), glm::vec3(0), glm::vec3(2.5));
+    selfObject->transform = Transform(vec3(-5, -2.5, 0), vec3(0), vec3(2.5));
     selfObject->renderables.push_back(createQuad(getShader("ui"), {getUBOID(), getTexture("missing")}, false, true));
 }
 
 void setupTest() {
     //     sun-ish direction from skybox, slightly warm white
-    setSunProperties(glm::vec3(-1, 1, -1), glm::vec3(1, 1, 0.85));
+    setSunProperties(vec3(-1, 1, -1), vec3(1, 1, 0.85));
 
     setMouseVisible(false); // Mouse starts locked
     mouseLocked = true;
@@ -230,7 +230,9 @@ void setupTest() {
 
     UI::staticText({10.0-UI::getTextWidth(ENGINE_VERSION_STRING, "manifold"), -5.25}, ENGINE_VERSION_STRING, "manifold");
 
-    UI::staticQuad({-0.5, -4.0}, {0.25, 0.25}, {1, 0, 0, 0.8});
-    UI::staticQuad({0.0, -4.0}, {0.25, 0.25}, {0, 1, 0, 0.5});
-    UI::staticQuad({0.5, -4.0}, {0.25, 0.25}, {0, 0, 1, 0.2});
+    UI::staticTextureQuad({-0.5, -5.0}, {0.25, 0.25}, "uv_tex.png");
+
+    UI::staticColorQuad({-0.5, -4.0}, {0.25, 0.25}, {1, 0, 0, 0.8});
+    UI::staticColorQuad({0.0, -4.0}, {0.25, 0.25}, {0, 1, 0, 0.5});
+    UI::staticColorQuad({0.5, -4.0}, {0.25, 0.25}, {0, 0, 1, 0.2});
 }
