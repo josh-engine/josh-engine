@@ -205,7 +205,7 @@ namespace JE {
  * @param name Name of the GameObject. All GameObject names must be unique, and duplicates will fail to be added with no error message.
  * @param g The GameObject to add.
  */
-    void putGameObject(const std::string &name, const GameObject &g);
+    GameObject& putGameObject(const std::string &name, const GameObject &g);
 
 /**
  * @return A pointer to the engine map of GameObjects.

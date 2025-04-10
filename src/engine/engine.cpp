@@ -85,14 +85,14 @@ namespace JE {
     std::unordered_map<std::string, unsigned int> getTexs() {
         return textures;
     }
-    std::string programReverseLookup(unsigned int num){
+    std::string programReverseLookup(const unsigned int num){
         for (const auto& i : programs){
             if (i.second == num) return i.first;
         }
         return "";
     }
 
-    std::string textureReverseLookup(unsigned int num){
+    std::string textureReverseLookup(const unsigned int num){
         for (const auto& i : textures){
             if (i.second == num) return i.first;
         }
@@ -105,7 +105,7 @@ namespace JE {
     }
 
 
-    void setSkyboxEnabled(bool enabled) {
+    void setSkyboxEnabled(const bool enabled) {
         drawSkybox = enabled && skyboxSupported;
     }
 
@@ -114,16 +114,16 @@ namespace JE {
         updateUniformBuffer(lboID, &lighting_buffer, sizeof(GlobalLightingBufferObject), true);
     }
 
-    void setAmbient(glm::vec3 rgb) {
+    void setAmbient(const vec3 rgb) {
         ambient = rgb;
         recopyLightingBuffer();
     }
 
-    void setAmbient(float r, float g, float b){
-        setAmbient(glm::vec3(r, g, b));
+    void setAmbient(const float r, const float g, const float b){
+        setAmbient(vec3(r, g, b));
     }
 
-    void setClearColor(float r, float g, float b) {
+    void setClearColor(const float r, const float g, const float b) {
         clearColor = vec3(r, g, b);
         recopyLightingBuffer();
         GFX::setClearColor(r, g, b);
@@ -138,7 +138,7 @@ namespace JE {
     bool emscriptenRequestPointer = false;
 #endif
 
-    void setMouseVisible(bool vis) {
+    void setMouseVisible(const bool vis) {
         if (vis) {
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 #ifdef __EMSCRIPTEN__
@@ -190,8 +190,8 @@ namespace JE {
     }
 
     void createSkyboxShader() {
-        unsigned int vertID = GFX::loadShader("./shaders/skybox_vertex.glsl", JE_VERTEX_SHADER);
-        unsigned int fragID = GFX::loadShader("./shaders/skybox_fragment.glsl", JE_FRAGMENT_SHADER);
+        const unsigned int vertID = GFX::loadShader("./shaders/skybox_vertex.glsl", JE_VERTEX_SHADER);
+        const unsigned int fragID = GFX::loadShader("./shaders/skybox_fragment.glsl", JE_FRAGMENT_SHADER);
         programs.insert({"skybox", GFX::createProgram(vertID, fragID,
                                                         {false,
                                                          true,
@@ -227,7 +227,7 @@ namespace JE {
         unsigned int id;
         try {
             id = GFX::loadTexture(filePath, currentFilterMode);
-        } catch (std::runtime_error &e) {
+        } catch ([[maybe_unused]] std::runtime_error &e) {
             id = textures.at("missing");
             std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
         }
@@ -240,7 +240,7 @@ namespace JE {
         try {
             std::vector<unsigned char> file = getFileCharVec(filePath, bundleFilePath);
             id = GFX::loadBundledTexture(reinterpret_cast<char *>(&file[0]), file.size(), currentFilterMode);
-        } catch (std::runtime_error &e) {
+        } catch ([[maybe_unused]] std::runtime_error &e) {
             id = textures.at("missing");
             std::cerr << "Failed to create \"" << name << "\" from file at path " << filePath << "! Texture ID will be set to missing." << std::endl;
         }
@@ -282,47 +282,49 @@ namespace JE {
         }
     }
 
-    glm::vec2 getRawCursorPos() {
+    vec2 getRawCursorPos() {
         double xpos, ypos;
         glfwGetCursorPos(window, (&xpos), (&ypos));
         return {xpos, ypos};
     }
-    glm::vec2 getCursorPos() {
-        glm::vec2 cpos = getRawCursorPos();
+    vec2 getCursorPos() {
+        vec2 cpos = getRawCursorPos();
         // modify to -1, 1 coordinate space
-        cpos /= glm::vec2(getCurrentWidth(), -getCurrentHeight());
-        cpos += glm::vec2(-0.5, 0.5);
+        cpos /= vec2(getCurrentWidth(), -getCurrentHeight());
+        cpos += vec2(-0.5, 0.5);
         cpos *= 2;
 
         // scale Y axis by the current scaled height
-        cpos /= glm::vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
-        cpos *= glm::vec2(10.0, 10.0);
+        cpos /= vec2(1, static_cast<float>(getCurrentWidth())  * 1.0f / static_cast<float>(getCurrentHeight()));
+        cpos *= vec2(10.0, 10.0);
         return cpos;
     }
-    void setRawCursorPos(glm::vec2 pos) {
+
+    void setRawCursorPos(const vec2 pos) {
         glfwSetCursorPos(window, pos.x, pos.y);
     }
-    void setSunProperties(glm::vec3 position, glm::vec3 color){
+
+    void setSunProperties(const vec3 position, const vec3 color){
         sunDirection = position;
         sunColor = color;
         recopyLightingBuffer();
     }
 
-    void setCursorPos(glm::vec2 pos) {
+    void setCursorPos(vec2 pos) {
         // inverse of getCursorPos's coordinate transformation
-        pos /= glm::vec2(10.0, 10.0);
-        pos *= glm::vec2(1, static_cast<float>(getCurrentWidth()) * (1.0f / static_cast<float>(getCurrentHeight())));
+        pos /= vec2(10.0, 10.0);
+        pos *= vec2(1, static_cast<float>(getCurrentWidth()) * (1.0f / static_cast<float>(getCurrentHeight())));
         pos /= 2;
-        pos -= glm::vec2(-0.5, 0.5);
-        pos *= glm::vec2(getCurrentWidth(), -getCurrentHeight());
+        pos -= vec2(-0.5, 0.5);
+        pos *= vec2(getCurrentWidth(), -getCurrentHeight());
         setRawCursorPos(pos);
     }
 
-    unsigned int createUniformBuffer(size_t bufferSize) {
+    unsigned int createUniformBuffer(const size_t bufferSize) {
         return GFX::createUniformBuffer(bufferSize);
     }
 
-    void updateUniformBuffer(unsigned int id, void* ptr, size_t size, bool updateAll) {
+    void updateUniformBuffer(const unsigned int id, void* ptr, const size_t size, const bool updateAll) {
         GFX::updateUniformBuffer(id, ptr, size, updateAll);
     }
 
@@ -346,8 +348,8 @@ namespace JE {
         buttonInputs[button] = id | (isMouse ? 0xF000 : 0x0000);
     }
 
-    void putGameObject(const std::string& name, const GameObject& g) {
-        gameObjects.insert({name, g});
+    GameObject& putGameObject(const std::string& name, const GameObject& g) {
+        return gameObjects.insert({name, g}).first->second;
     }
 
     GameObject& getGameObject(const std::string& name) {
@@ -380,7 +382,7 @@ namespace JE {
     }
 #endif
 
-    void init(const char* windowName, int width, int height, GraphicsSettings graphicsSettings) {
+    void init(const char* windowName, const int width, const int height, GraphicsSettings graphicsSettings) {
         std::cout << "JoshEngine " << ENGINE_VERSION_STRING << std::endl;
         std::cout << "Starting engine init." << std::endl;
 
@@ -396,7 +398,7 @@ namespace JE {
         windowWidth = width;
         windowHeight = height;
 
-        ambient = {glm::max(graphicsSettings.clearColor[0] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[1] - 0.5f, 0.1f), glm::max(graphicsSettings.clearColor[2] - 0.5f, 0.1f)};
+        ambient = {max(graphicsSettings.clearColor[0] - 0.5f, 0.1f), max(graphicsSettings.clearColor[1] - 0.5f, 0.1f), max(graphicsSettings.clearColor[2] - 0.5f, 0.1f)};
         clearColor = vec3(graphicsSettings.clearColor[0], graphicsSettings.clearColor[1], graphicsSettings.clearColor[2]);
 
         GFX::init(&window, windowName, width, height, graphicsSettings);
@@ -453,7 +455,7 @@ namespace JE {
 
     float fov = 78.0f;
 
-    void setFOV(float n) {
+    void setFOV(const float n) {
         fov = n;
     }
     float getFOV() {
@@ -533,23 +535,23 @@ namespace JE {
         forceSkipUpdate = false;
 
         // Right vector
-        glm::vec3 right = glm::vec3(
-                sin(glm::radians(camera.rotation.x - 90)),
+        vec3 right = vec3(
+                sin(radians(camera.rotation.x - 90)),
                 0,
-                cos(glm::radians(camera.rotation.x - 90))
+                cos(radians(camera.rotation.x - 90))
         );
 
-        glm::vec3 up = glm::cross( right, camera.direction() )
+        vec3 up = cross( right, camera.direction() )
         * mat3(rotate(mat4(1), radians(camera.rotation.z), camera.direction()));
 
         // Camera matrix
-        glm::mat4 cameraMatrix = glm::lookAt(
+        mat4 cameraMatrix = lookAt(
                 camera.position, // camera is at its position
                 camera.position+camera.direction(), // looks in look direction
                 up  // up vector
         );
 
-        Audio::updateListener(camera.position, glm::vec3(0), camera.direction(), up);
+        Audio::updateListener(camera.position, vec3(0), camera.direction(), up);
 
         if (doTimesCheck) {
             updateTime = glfwGetTime()*1000 - updateStart;
@@ -578,7 +580,7 @@ namespace JE {
                     if (r.checkUIBit()) {
                         uiRenderables.emplace(-item.second.transform.position.z, &r); // I don't want to write a second lambda
                     } else if (r.manualDepthSort()) {
-                        transparentWorldRenderables.emplace(glm::distance(camera.position, item.second.transform.position), &r);
+                        transparentWorldRenderables.emplace(distance(camera.position, item.second.transform.position), &r);
                     }
                     else {
                         renderables.push_back(&r);
@@ -606,8 +608,8 @@ namespace JE {
 
         UniformBufferObject ubo = {
             cameraMatrix,
-            glm::ortho(-scaledWidth*10,scaledWidth*10,-scaledHeight*10,scaledHeight*10,-1.0f,1.0f),
-            glm::perspective(glm::radians(fov), (float) windowWidth / (float) windowHeight, clippingPlanesPerspective.x, clippingPlanesPerspective.y),
+            ortho(-scaledWidth*10,scaledWidth*10,-scaledHeight*10,scaledHeight*10,-1.0f,1.0f),
+            perspective(radians(fov), (float) windowWidth / (float) windowHeight, clippingPlanesPerspective.x, clippingPlanesPerspective.y),
             camera.position,
             camera.direction(),
             {windowWidth, windowHeight}
