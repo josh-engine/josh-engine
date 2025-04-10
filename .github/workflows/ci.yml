@@ -74,15 +74,7 @@ jobs:
       - name: Install Conan
         run: pip install conan
 
-      - name: Cache Conan Dependencies
-        id: cache-conan
-        uses: actions/cache@v2
-        with:
-          path: C:\Users\runneradmin\.conan2
-          key: ${{runner.os}}-conan-${{hashFiles('**/conan_vk.txt')}}
-
-      - if: ${{ steps.cache-conan.outputs.cache-hit != 'true' }}
-        name: Create default profile
+      - name: Create default profile
         run: conan profile detect
 
       - name: Install Dependencies
