@@ -2,7 +2,20 @@
 <html>
   <style>
     * { margin: 0; padding: 0;}
-    body, html { height:100%; }
+    body, html {
+      height:100%;
+      background-color: #1e202b;
+    }
+
+    p {
+      position: fixed; /* or absolute */
+      top: 50%;
+      left: 50%;
+      color: #FFFFFF;
+      font-family: "Space Mono", sans-serif;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
 
     #canvas {
       position:absolute;
@@ -13,6 +26,9 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   </head>
   <body>
   <div id="theysaiditcouldntbedocumentroot">
@@ -31,8 +47,8 @@
       } else {
         // Could just be non-nightly firefox or non-experimental safari.
         alert("Your browser does not support WebGPU, and JoshEngine requires it to run.");
-        statusElement.textContent = "(Since this browser is not Chromium, WebGPU might not be guaranteed support." +
-                " If you have it, try running this in Chrome or Edge.)";
+        statusElement.textContent = "Since this browser is not Chromium, WebGPU might not have guaranteed support." +
+                " If you have it, try running this in Chrome or Edge.";
       }
       throw new Error("navigator.gpu not found");
     }
