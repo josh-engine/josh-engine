@@ -23,7 +23,7 @@ namespace JE::UI {
     void init() {
         ShaderProgramSettings fontProgramSettings{};
         fontProgramSettings.transparencySupported = false;
-        fontProgramSettings.doubleSided = false;
+        fontProgramSettings.doubleSided = true;
         fontProgramSettings.testDepth = true;
         fontProgramSettings.depthAlwaysPass = true;
         fontProgramSettings.shaderInputCount = 2;
