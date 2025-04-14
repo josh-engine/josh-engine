@@ -15,10 +15,12 @@
       font-family: "Space Mono", sans-serif;
       transform: translate(-50%, -50%);
       text-align: center;
+      display: none;
     }
 
     #canvas {
       position:absolute;
+      z-index:99999999;
       width:100%;
       height:100%;
     }
@@ -44,9 +46,12 @@
       if (window.chrome) {
         // We know it's kinda joever if they're chromium AND there's no webGPU so more explicit
         alert("Your device does not support WebGPU, and JoshEngine requires it to run.");
+        statusElement.style.display = "inline";
+        statusElement.textContent = "Your device does not support WebGPU, which JoshEngine requires to run.";
       } else {
         // Could just be non-nightly firefox or non-experimental safari.
         alert("Your browser does not support WebGPU, and JoshEngine requires it to run.");
+        statusElement.style.display = "inline";
         statusElement.textContent = "Since this browser is not Chromium, WebGPU might not have guaranteed support." +
                 " If you have it, try running this in Chrome or Edge.";
       }
@@ -55,17 +60,6 @@
 
     var Module = {
       print: (function () {
-        const element = document.getElementById('output');
-        return (...args) => {
-          let text = args.join(' ');
-          // These replacements are necessary if you render to raw HTML
-          text = text.replace(/&/g, "&amp;");
-          text = text.replace(/</g, "&lt;");
-          text = text.replace(/>/g, "&gt;");
-          text = text.replace('\n', '<br>');
-          console.log(text);
-          statusElement.textContent = text;
-        };
       })(),
       canvas: (() => {
         const canvas = document.getElementById('canvas');
@@ -93,10 +87,12 @@
           progressElement.value = parseInt(m[2]) * 100;
           progressElement.max = parseInt(m[4]) * 100;
           progressElement.hidden = false;
+          progressElement.style.display = "inline";
         } else {
           progressElement.value = null;
           progressElement.max = null;
           progressElement.hidden = true;
+          progressElement.style.display = "none";
         }
         statusElement.innerHTML = text;
       },
@@ -109,6 +105,7 @@
     };
     Module.setStatus('Downloading...');
     window.onerror = () => {
+      statusElement.style.display = "inline";
       Module.setStatus('Exception thrown, see JavaScript console');
       Module.setStatus = (text) => {
         if (text) console.error('[post-exception status] ' + text);
