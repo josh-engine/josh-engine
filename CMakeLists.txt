@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.27)
 project(JoshEngine)
 
 option(JE_API_VK "Use Vulkan Graphics API" ON)
-option(JE_API_VK "Use WebGPU Graphics API" OFF)
+option(JE_API_WEBGPU "Use WebGPU Graphics API" OFF)
 option(JE_OPENAL "Compile with audio support" ON)
 
 set(CMAKE_CXX_STANDARD 20)
